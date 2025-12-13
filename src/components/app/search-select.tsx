@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export interface SearchSelectProps<T> {
   data: T[];
@@ -51,9 +52,7 @@ export function SearchSelect<T extends Record<string, unknown>>({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [data, setData] = React.useState<T[]>(initialData);
   const [isSearching, setIsSearching] = React.useState(false);
-  const searchTimeoutRef = React.useRef<
-    ReturnType<typeof setTimeout> | undefined
-  >(undefined);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // Função para obter o label de um item
   const getLabel = React.useCallback(
@@ -137,36 +136,50 @@ export function SearchSelect<T extends Record<string, unknown>>({
     [multiple, value, onChange, getValue]
   );
 
-  // Lida com a busca
-  React.useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
+  // Limpa a seleção (para seleção única)
+  const handleClear = React.useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onChange?.(undefined);
+      setOpen(false);
+    },
+    [onChange]
+  );
 
+  // Filtra opções localmente quando não há busca na API
+  const filteredOptions = React.useMemo(() => {
+    if (onSearch) return data;
+    if (!debouncedSearchTerm.trim()) return initialData;
+    const lower = debouncedSearchTerm.toLowerCase();
+    return initialData.filter((item) => {
+      const label = getLabel(item).toLowerCase();
+      return label.includes(lower);
+    });
+  }, [debouncedSearchTerm, initialData, getLabel, onSearch, data]);
+
+  // Atualiza os dados quando filteredOptions muda (busca local)
+  React.useEffect(() => {
     if (!onSearch) {
-      // Busca local
-      if (searchTerm.trim() === "") {
-        setData(initialData);
-      } else {
-        const filtered = initialData.filter((item) => {
-          const label = getLabel(item).toLowerCase();
-          return label.includes(searchTerm.toLowerCase());
-        });
-        setData(filtered);
-      }
+      setData(filteredOptions);
+    }
+  }, [filteredOptions, onSearch]);
+
+  // Lida com a busca na API
+  React.useEffect(() => {
+    if (!onSearch) return;
+
+    // Busca na API com debounce
+    if (debouncedSearchTerm.trim() === "") {
+      setData(initialData);
+      setIsSearching(false);
       return;
     }
 
-    // Busca na API
-    searchTimeoutRef.current = setTimeout(async () => {
-      if (searchTerm.trim() === "") {
-        setData(initialData);
-        return;
-      }
-
-      setIsSearching(true);
+    setIsSearching(true);
+    const performSearch = async () => {
       try {
-        const result = await onSearch(searchTerm);
+        const result = await onSearch(debouncedSearchTerm);
         if (result && Array.isArray(result)) {
           setData(result);
         }
@@ -175,21 +188,10 @@ export function SearchSelect<T extends Record<string, unknown>>({
       } finally {
         setIsSearching(false);
       }
-    }, 300); // Debounce de 300ms
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
     };
-  }, [searchTerm, onSearch, initialData, getLabel]);
 
-  // Atualiza os dados quando initialData muda
-  React.useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setData(initialData);
-    }
-  }, [initialData, searchTerm]);
+    performSearch();
+  }, [debouncedSearchTerm, onSearch, initialData]);
 
   // Renderiza o valor selecionado no trigger
   const renderTriggerContent = () => {
@@ -212,52 +214,72 @@ export function SearchSelect<T extends Record<string, unknown>>({
     return <span className="text-muted-foreground">{placeholder}</span>;
   };
 
+  // Verifica se há valor selecionado (para mostrar botão de limpar)
+  const hasValue = multiple
+    ? Array.isArray(value) && value.length > 0
+    : value !== undefined && value !== null;
+
   return (
     <div className={cn("space-y-2", className)}>
       {label && <Label>{label}</Label>}
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            disabled={disabled}
-            className="w-full justify-between h-auto min-h-9 py-1"
-          >
-            <div className="flex flex-wrap gap-1 flex-1">
-              {multiple && Array.isArray(value) && value.length > 0
-                ? value.map((item) => (
-                    <Badge
-                      key={getValue(item)}
-                      variant="secondary"
-                      className="mr-1"
-                    >
-                      {getLabel(item)}
-                      <button
-                        className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleRemove(
-                              item,
-                              e as unknown as React.MouseEvent<HTMLButtonElement>
-                            );
-                          }
-                        }}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        onClick={(e) => handleRemove(item, e)}
+        <div className="relative">
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              disabled={disabled}
+              className="w-full justify-between h-auto min-h-9 py-1 pr-10"
+            >
+              <div className="flex flex-wrap gap-1 flex-1 min-w-0 text-left">
+                {multiple && Array.isArray(value) && value.length > 0
+                  ? value.map((item) => (
+                      <Badge
+                        key={getValue(item)}
+                        variant="secondary"
+                        className="mr-1"
                       >
-                        <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    </Badge>
-                  ))
-                : renderTriggerContent()}
-            </div>
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
+                        {getLabel(item)}
+                        <button
+                          className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleRemove(
+                                item,
+                                e as unknown as React.MouseEvent<HTMLButtonElement>
+                              );
+                            }
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onClick={(e) => handleRemove(item, e)}
+                        >
+                          <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                        </button>
+                      </Badge>
+                    ))
+                  : renderTriggerContent()}
+              </div>
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+
+          {hasValue && !disabled && !multiple && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-8 top-0.5 h-8 w-8 rounded-full"
+              onClick={handleClear}
+              aria-label="Limpar seleção"
+              type="button"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          )}
+        </div>
         <PopoverContent
           className="w-[var(--radix-popover-trigger-width)] p-0"
           align="start"
@@ -267,15 +289,16 @@ export function SearchSelect<T extends Record<string, unknown>>({
               placeholder="Buscar..."
               value={searchTerm}
               onValueChange={setSearchTerm}
+              className="h-9"
             />
-            <CommandList>
+            <CommandList className="max-h-72 overflow-y-auto">
               {isSearching ? (
                 <div className="py-6 text-center text-sm">Buscando...</div>
-              ) : data.length === 0 ? (
+              ) : filteredOptions.length === 0 ? (
                 <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
               ) : (
                 <CommandGroup>
-                  {data.map((item) => {
+                  {filteredOptions.map((item) => {
                     const selected = isSelected(item);
                     return (
                       <CommandItem
