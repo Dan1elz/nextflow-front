@@ -5,6 +5,7 @@ import "./App.css";
 
 function App() {
   const [count, setCount] = useState(0);
+  const [name, setName] = useState("");
 
   return (
     <>
@@ -21,6 +22,11 @@ function App() {
         <button onClick={() => setCount((count) => count + 1)}>
           count is {count}
         </button>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
