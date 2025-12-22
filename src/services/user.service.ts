@@ -1,10 +1,10 @@
 import type { IApiResponse } from "@/interfaces/api.interface";
-import { ApiService } from "./api.service";
 import { BaseService } from "./base.service";
+import { ApiService } from "./api.service";
 import type {
+  IUser,
   IRecoverPasswordRequest,
   IResetPasswordRequest,
-  IUser,
 } from "@/interfaces/user.interface";
 
 const baseService = new BaseService<IUser>("users");
@@ -23,14 +23,12 @@ export const userService = {
       "users/recover-password",
       data
     );
-
     return response;
   },
   resetPassword: async (
     data: IResetPasswordRequest
   ): Promise<IApiResponse<void>> => {
     const response = await apiService.post<void>("users/reset-password", data);
-
     return response;
   },
 };

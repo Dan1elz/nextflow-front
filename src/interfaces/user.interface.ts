@@ -6,8 +6,19 @@ export interface IUser {
   cpf: string;
 }
 
-export interface IUserForm extends IUser {
-  password?: string;
+export interface ICreateUser {
+  name: string;
+  lastName: string;
+  email: string;
+  cpf: string;
+  password: string;
+}
+
+export interface IUpdateUser {
+  name: string;
+  lastName: string;
+  email: string;
+  cpf: string;
 }
 
 export interface ILogin {
@@ -18,6 +29,7 @@ export interface ILogin {
 export interface ILoginResponse {
   token: string;
   userId: string;
+  user: IUser;
 }
 
 export interface IRecoverPasswordRequest {
