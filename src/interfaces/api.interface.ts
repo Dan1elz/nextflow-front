@@ -31,6 +31,13 @@ export interface IPagination {
   limit: number;
 }
 
+export interface IPaginationInfo {
+  currentPage: number;
+  lastPage: number;
+  total: number;
+  perPage: number;
+}
+
 export interface IBaseService<T> {
   delete: (id: string, token?: string) => Promise<[]>;
   getAll: (

@@ -7,12 +7,12 @@ import type {
   IRecoverPasswordRequest,
   IResetPasswordRequest,
 } from "@/interfaces/user.interface";
-import type { IPagination } from "@/interfaces/api.interface";
+import type { IPagination, IPaginationInfo } from "@/interfaces/api.interface";
 
 export type UserContextType = {
   users: IUser[];
   selectedUser: IUser | null;
-  pagination: IPagination | null;
+  pagination: IPaginationInfo | null;
   searchUsers: (query?: IPagination) => Promise<void>;
   selectUser: (id: string) => Promise<void>;
   createUser: (user: ICreateUser) => Promise<IUser>;

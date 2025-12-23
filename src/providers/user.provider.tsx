@@ -9,12 +9,12 @@ import type {
 } from "@/interfaces/user.interface";
 import { userService } from "@/services/user.service";
 import { UserContext } from "@/contexts/user.context";
-import type { IPagination } from "@/interfaces/api.interface";
+import type { IPagination, IPaginationInfo } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<IUser[]>([]);
-  const [pagination, setPagination] = useState<IPagination | null>(null);
+  const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const { token } = useAuth();
 
@@ -22,8 +22,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
     async (query?: IPagination) => {
       const response = await userService.getAll(query, token ?? undefined);
       setUsers(response.data || []);
-      if (query) {
-        setPagination(query);
+
+      if (query && response.totalItems !== undefined) {
+        const currentPage = Math.floor(query.offset / query.limit) + 1;
+        const lastPage = Math.ceil(response.totalItems / query.limit) || 1;
+
+        setPagination({
+          currentPage,
+          lastPage,
+          total: response.totalItems,
+          perPage: query.limit,
+        });
+      } else {
+        setPagination(null);
       }
     },
     [token]
