@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
+import { NextflowLogo } from "./NextflowLogo";
 
 const items = [
   {
@@ -39,14 +40,7 @@ export function AppSidebar() {
                 to="/"
                 className="w-full flex justify-center items-center gap-2"
               >
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded bg-sidebar-accent flex items-center justify-center">
-                    <span className="text-sidebar-accent-foreground font-bold text-sm">
-                      N
-                    </span>
-                  </div>
-                  <span className="font-bold text-lg">Nextflow</span>
-                </div>
+                <NextflowLogo className="h-8 w-auto" />
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>

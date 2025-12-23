@@ -1,22 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function Users() {
+export function Home() {
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Usuários</CardTitle>
+          <CardTitle>Bem-vindo ao Sistema ERP</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Página de gerenciamento de usuários.
+            Selecione uma opção no menu para começar.
           </p>
         </CardContent>
       </Card>
     </div>
   );
-}
-
-export default function UsersPageWrapper() {
-  return <Users />;
 }

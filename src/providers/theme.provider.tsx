@@ -22,12 +22,14 @@ export function ThemeProvider({
     root.classList.add(theme);
   }, [theme, storageKey]);
 
+  const handleSetTheme = (newTheme: TTheme) => {
+    localStorage.setItem(storageKey, newTheme);
+    setTheme(newTheme);
+  };
+
   const value: TThemeContext = {
     theme,
-    setTheme: (theme: TTheme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
-    },
+    setTheme: handleSetTheme,
   };
 
   return (

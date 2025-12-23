@@ -11,6 +11,7 @@ import { LoginForm } from "@/components/forms/login-form";
 import { useAuth } from "@/hooks/use-auth";
 import { handleError } from "@/utils/toast.helpers";
 import type { LoginFormData } from "@/schemas/login.schema";
+import { NextflowLogo } from "@/components/app/NextflowLogo";
 
 export function Login() {
   const { isAuthenticated, login } = useAuth();
@@ -39,10 +40,8 @@ export function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-            <span className="text-2xl font-bold text-primary-foreground">
-              N
-            </span>
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <NextflowLogo className="h-12 w-auto" />
           </div>
           <CardTitle className="text-2xl font-bold">Bem-vindo</CardTitle>
           <CardDescription>

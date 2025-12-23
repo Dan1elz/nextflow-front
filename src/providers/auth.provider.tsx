@@ -64,9 +64,17 @@ export function AuthProvider({
   useEffect(() => {
     const initializeAuth = () => {
       const storedToken = localStorage.getItem(tokenStorageKey);
-      const storedUser = JSON.parse(
-        localStorage.getItem(userStorageKey) || "null"
-      ) as IUser | null;
+      let storedUser: IUser | null = null;
+
+      try {
+        const userData = localStorage.getItem(userStorageKey);
+        if (userData) {
+          storedUser = JSON.parse(userData) as IUser;
+        }
+      } catch (error) {
+        console.error("Erro ao parsear dados do usuário:", error);
+        localStorage.removeItem(userStorageKey);
+      }
 
       setToken(storedToken);
       setUser(storedUser);
