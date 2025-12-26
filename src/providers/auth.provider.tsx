@@ -7,6 +7,8 @@ import type {
 } from "@/interfaces/user.interface";
 import { authService } from "@/services/auth.service";
 import { AuthContext, type AuthContextType } from "@/contexts/auth.context";
+import { ApiError } from "@/services/api.service";
+import { Spinner } from "@/components/ui/spinner";
 
 export function AuthProvider({
   children,
@@ -52,9 +54,19 @@ export function AuthProvider({
 
     try {
       const response = await authService.checkAuth(currentToken);
-      handleLoginResponse(response);
-    } catch {
-      logout();
+
+      if (response.token) {
+        handleLoginResponse(response);
+      }
+    } catch (error) {
+      if (
+        error instanceof ApiError &&
+        (error.status === 401 ||
+          error.message.includes("Token") ||
+          error.message.includes("autentic"))
+      ) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -96,12 +108,18 @@ export function AuthProvider({
     [handleLoginResponse]
   );
 
-  if (loading) return <div>Carregando...</div>;
+  if (loading)
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <Spinner className="size-8 text-primary" />
+      </div>
+    );
 
   const value: AuthContextType = {
     isAuthenticated: !!token,
     token,
     user,
+    loading,
     login,
     logout,
     checkAuth,

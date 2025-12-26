@@ -6,6 +6,7 @@ export type AuthContextType = {
   isAuthenticated: boolean;
   token: string | null;
   user: IUser | null;
+  loading: boolean;
   login: (data: ILogin) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
