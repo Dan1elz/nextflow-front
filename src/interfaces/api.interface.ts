@@ -5,11 +5,11 @@ export interface IApiResponse<T> {
 }
 
 export interface IApiResponseError {
-  status: number;
-  message: string;
-  error: {
+  Status: number;
+  Message: string;
+  Errors: {
     [key: string]: string[];
-  };
+  } | null;
 }
 
 export interface IApiResponseTable<T> {

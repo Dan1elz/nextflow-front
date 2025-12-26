@@ -38,10 +38,10 @@ export class ApiError extends Error {
   };
 
   constructor(errorResponse: IApiResponseError) {
-    super(errorResponse.message);
+    super(errorResponse.Message);
     this.name = "ApiError";
-    this.status = errorResponse.status;
-    this.errors = errorResponse.error;
+    this.status = errorResponse.Status;
+    this.errors = errorResponse.Errors || {};
   }
 
   getFieldErrors(field: string): string[] {
@@ -91,7 +91,7 @@ export class ApiService {
 
     const content: IApiResponse<T> | IApiResponseError = await response.json();
 
-    if (!response.ok || !("success" in content && content.success)) {
+    if (!response.ok || "Errors" in content) {
       if (response.status === 401) {
         localStorage.removeItem("user-auth-token");
         localStorage.removeItem("user-auth-userId");
