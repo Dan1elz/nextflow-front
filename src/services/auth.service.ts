@@ -10,9 +10,11 @@ export const authService = {
   },
 
   checkAuth: async (token: string): Promise<ILoginResponse> => {
-    const response = await apiService.get<ILoginResponse>("users/check-auth", {
-      token,
-    });
+    const response = await apiService.get<ILoginResponse>(
+      "users/check-auth",
+      undefined,
+      token
+    );
     return response.data;
   },
 };

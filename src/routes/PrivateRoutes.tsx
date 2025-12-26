@@ -18,7 +18,6 @@ export function PrivateRoutes({ children }: { children: ReactNode }) {
 
       try {
         await authService.checkAuth(token);
-        // Token válido, já está autenticado
       } catch {
         if (active) logout();
       } finally {

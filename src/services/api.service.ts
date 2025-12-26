@@ -92,13 +92,6 @@ export class ApiService {
     const content: IApiResponse<T> | IApiResponseError = await response.json();
 
     if (!response.ok || "Errors" in content) {
-      if (response.status === 401) {
-        localStorage.removeItem("user-auth-token");
-        localStorage.removeItem("user-auth-userId");
-        localStorage.removeItem("user-auth-user");
-        window.location.href = "/login";
-      }
-
       const errorContent = content as IApiResponseError;
       throw new ApiError(errorContent);
     }

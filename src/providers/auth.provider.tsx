@@ -53,8 +53,7 @@ export function AuthProvider({
     try {
       const response = await authService.checkAuth(currentToken);
       handleLoginResponse(response);
-    } catch (error) {
-      console.error("Erro ao verificar autenticação:", error);
+    } catch {
       logout();
     } finally {
       setLoading(false);
