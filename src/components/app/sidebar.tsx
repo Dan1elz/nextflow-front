@@ -17,7 +17,7 @@ import { NextflowLogo } from "./NextflowLogo";
 
 const items = [
   {
-    title: "ERP",
+    title: "PRINCIPAL",
     items: [
       { name: "Home", url: "/", icon: Home },
       { name: "Usuários", url: "/users", icon: Users },
