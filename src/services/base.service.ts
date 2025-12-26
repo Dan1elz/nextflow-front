@@ -1,7 +1,7 @@
 import type {
   IApiResponseTable,
   IBaseService,
-  IPagination,
+  IIndexParams,
 } from "@/interfaces/api.interface";
 import { ApiService } from "./api.service";
 
@@ -23,12 +23,22 @@ export class BaseService<T> implements IBaseService<T> {
   }
 
   async getAll(
-    pagination?: IPagination,
+    params?: IIndexParams,
     token?: string
   ): Promise<IApiResponseTable<T>> {
     const query: Record<string, string> = {};
-    if (pagination?.offset) query.offset = pagination.offset.toString();
-    if (pagination?.limit) query.limit = pagination.limit.toString();
+
+    if (params?.filters) {
+      query.filters = JSON.stringify(params.filters);
+    }
+
+    if (params?.page) {
+      query.page = params.page.toString();
+    }
+
+    if (params?.perPage) {
+      query.perPage = params.perPage.toString();
+    }
 
     const response = await this.apiService.get<IApiResponseTable<T>>(
       this.endpoint,

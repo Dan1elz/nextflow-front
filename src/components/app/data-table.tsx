@@ -53,6 +53,7 @@ export function DataTable<TData, TValue>({
   const [perPage, setPerPage] = useState(10);
   const [rowSelection, setRowSelection] = useState({});
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,

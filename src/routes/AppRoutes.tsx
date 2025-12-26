@@ -1,5 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import UsersPageWrapper from "@/pages/Users";
+import CreateUserPageWrapper from "@/pages/User/Create";
+import EditUserPageWrapper from "@/pages/User/Edit";
 import PrivateLayout from "@/components/layouts/PrivateLayout";
 import { Login } from "@/pages/Auth/Login";
 import { PrivateRoutes } from "./PrivateRoutes";
@@ -30,6 +32,8 @@ function AppRoutes() {
       >
         <Route path="/" element={<Home />} />
         <Route path="users" element={<UsersPageWrapper />} />
+        <Route path="users/create" element={<CreateUserPageWrapper />} />
+        <Route path="users/:id/edit" element={<EditUserPageWrapper />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

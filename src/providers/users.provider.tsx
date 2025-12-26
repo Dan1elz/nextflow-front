@@ -8,34 +8,30 @@ import type {
   IResetPasswordRequest,
 } from "@/interfaces/user.interface";
 import { userService } from "@/services/user.service";
-import { UserContext } from "@/contexts/user.context";
-import type { IPagination, IPaginationInfo } from "@/interfaces/api.interface";
+import { UsersContext } from "@/contexts/users.context";
+import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
 
-export function UserProvider({ children }: { children: ReactNode }) {
+export function UsersProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<IUser[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const { token } = useAuth();
 
   const searchUsers = useCallback(
-    async (query?: IPagination) => {
+    async (query?: IIndexParams) => {
+      const page = query?.page ?? 1;
+      const perPage = query?.perPage ?? 10;
+
       const response = await userService.getAll(query, token ?? undefined);
       setUsers(response.data || []);
 
-      if (query && response.totalItems !== undefined) {
-        const currentPage = Math.floor(query.offset / query.limit) + 1;
-        const lastPage = Math.ceil(response.totalItems / query.limit) || 1;
-
-        setPagination({
-          currentPage,
-          lastPage,
-          total: response.totalItems,
-          perPage: query.limit,
-        });
-      } else {
-        setPagination(null);
-      }
+      setPagination({
+        currentPage: page,
+        lastPage: Math.ceil(response.totalItems / perPage) || 1,
+        total: response.totalItems,
+        perPage,
+      });
     },
     [token]
   );
@@ -86,7 +82,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <UserContext.Provider
+    <UsersContext.Provider
       value={{
         users,
         pagination,
@@ -101,6 +97,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </UserContext.Provider>
+    </UsersContext.Provider>
   );
 }

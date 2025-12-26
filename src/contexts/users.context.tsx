@@ -7,13 +7,13 @@ import type {
   IRecoverPasswordRequest,
   IResetPasswordRequest,
 } from "@/interfaces/user.interface";
-import type { IPagination, IPaginationInfo } from "@/interfaces/api.interface";
+import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 
-export type UserContextType = {
+export type UsersContextType = {
   users: IUser[];
   selectedUser: IUser | null;
   pagination: IPaginationInfo | null;
-  searchUsers: (query?: IPagination) => Promise<void>;
+  searchUsers: (query?: IIndexParams) => Promise<void>;
   selectUser: (id: string) => Promise<void>;
   createUser: (user: ICreateUser) => Promise<IUser>;
   updateUser: (id: string, user: IUpdateUser) => Promise<IUser>;
@@ -22,4 +22,4 @@ export type UserContextType = {
   resetPassword: (data: IResetPasswordRequest) => Promise<void>;
 };
 
-export const UserContext = createContext<UserContextType | null>(null);
+export const UsersContext = createContext<UsersContextType | null>(null);

@@ -38,10 +38,16 @@ export interface IPaginationInfo {
   perPage: number;
 }
 
+export interface IIndexParams {
+  filters?: Record<string, string>;
+  page?: number;
+  perPage?: number;
+}
+
 export interface IBaseService<T> {
   delete: (id: string, token?: string) => Promise<[]>;
   getAll: (
-    pagination?: IPagination,
+    params?: IIndexParams,
     token?: string
   ) => Promise<IApiResponseTable<T>>;
   getById: (id: string, token?: string) => Promise<T>;

@@ -65,7 +65,7 @@ export class ApiService {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || `${url}/api`;
+    this.baseUrl = baseUrl || `${url}/api/`;
   }
 
   private async request<T>(
