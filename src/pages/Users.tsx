@@ -141,8 +141,7 @@ function Users() {
           <div className="flex items-center justify-between">
             <CardTitle>Usuários</CardTitle>
             <Button onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Usuário
+              <Plus />
             </Button>
           </div>
         </CardHeader>
