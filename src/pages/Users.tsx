@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus } from "lucide-react";
+import { Plus, Download, Trash2, Upload } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/app/data-table";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { useUsers } from "@/hooks/use-users";
@@ -17,6 +19,8 @@ function Users() {
   const navigate = useNavigate();
   const { users, pagination, searchUsers, deleteUser } = useUsers();
   const [perPage, setPerPage] = useState(10);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const hasSearched = useRef(false);
 
   const searchUsersRef = useRef(searchUsers);
@@ -70,6 +74,38 @@ function Users() {
     [deleteUser, handleSearch]
   );
 
+  const handleExport = useCallback((_ids?: string[]) => {
+    // Função vazia conforme solicitado
+  }, []);
+
+  const handleDeleteMultiple = useCallback((_ids: string[]) => {
+    // Função vazia conforme solicitado
+  }, []);
+
+  const handleImport = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      if (!file.name.endsWith(".csv")) {
+        handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === "string") {
+          const base64 = btoa(result);
+          // Arquivo convertido para base64, pronto para enviar
+          console.log("Arquivo em base64:", base64);
+        }
+      };
+      reader.readAsText(file);
+    },
+    []
+  );
+
   useEffect(() => {
     if (hasSearched.current) {
       searchUsersRef
@@ -91,8 +127,27 @@ function Users() {
     () => [
       {
         id: "select",
-        header: "",
-        cell: () => null,
+        header: ({ table }) => {
+          const isAllSelected = table.getIsAllPageRowsSelected();
+          const isSomeSelected = table.getIsSomePageRowsSelected();
+          return (
+            <Checkbox
+              checked={isAllSelected}
+              indeterminate={isSomeSelected && !isAllSelected}
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label="Selecionar todos"
+            />
+          );
+        },
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Selecionar linha"
+          />
+        ),
         enableSorting: false,
         enableHiding: false,
       },
@@ -113,6 +168,25 @@ function Users() {
         header: "CPF",
         cell: ({ row }) => {
           return formatCpfCnpj(row.original.cpf);
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original.status || "ativo";
+          return (
+            <Badge
+              variant={
+                status.toLowerCase() === "ativo" ||
+                status.toLowerCase() === "active"
+                  ? "default"
+                  : "secondary"
+              }
+            >
+              {status}
+            </Badge>
+          );
         },
       },
       {
@@ -139,10 +213,51 @@ function Users() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Usuários</CardTitle>
-            <Button onClick={handleCreate}>
-              <Plus />
-            </Button>
+            <div className="flex items-center gap-2">
+              <CardTitle>Usuários</CardTitle>
+              {selectedIds.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {selectedIds.length} selecionado
+                  {selectedIds.length > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleImport}
+                className="hidden"
+              />
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  handleExport(selectedIds.length > 0 ? selectedIds : undefined)
+                }
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              {selectedIds.length > 0 && (
+                <Button
+                  // variant="destructive"
+                  variant="outline"
+                  className="text-destructive border-destructive hover:text-destructive"
+                  onClick={() => handleDeleteMultiple(selectedIds)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              <Button onClick={handleCreate}>
+                <Plus />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -154,6 +269,7 @@ function Users() {
             total={pagination?.total ?? 0}
             onPageChange={handlePageChange}
             onPerPageChange={setPerPage}
+            onSelectionChange={setSelectedIds}
           />
         </CardContent>
       </Card>

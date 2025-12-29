@@ -1,4 +1,4 @@
-import NextflowLogoSvg from "@/assets/nextflow-logo.svg";
+import NextflowLogoSvg from "@/assets/nextflow-logo3.svg";
 
 interface NextflowLogoProps {
   className?: string;
