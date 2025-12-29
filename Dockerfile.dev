@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependências (será cacheado se package.json não mudar)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Variáveis de ambiente
+ENV NODE_ENV=development
+
+# O código será montado como volume, então não copiamos aqui
+# Expor a porta do Vite (5173 é a porta padrão)
+EXPOSE 5173
+
+# Healthcheck simples para verificar se o servidor está rodando
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:5173 || exit 1
+
+# Comando: rodar o servidor de desenvolvimento do Vite
+# O código deve ser montado em /app via volume
+# O VITE_API_URL será injetado como variável de ambiente no compose
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+
