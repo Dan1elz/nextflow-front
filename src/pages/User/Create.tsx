@@ -15,6 +15,9 @@ function CreateUser() {
   const { createUser } = useUsers();
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleBack = () => {
+    navigate("/users");
+  };
   const handleSubmit = async (
     data: CreateUserFormData | UpdateUserFormData
   ) => {
@@ -50,6 +53,7 @@ function CreateUser() {
         <CardContent>
           <UserForm
             onSubmit={handleSubmit}
+            onBack={handleBack}
             isLoading={isLoading}
             isEdit={false}
           />

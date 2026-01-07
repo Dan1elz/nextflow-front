@@ -59,6 +59,15 @@ function Users() {
     [navigate]
   );
 
+  const handleView = useCallback(
+    (user: IUser) => {
+      if (user.id) {
+        navigate(`/users/${user.id}/view`);
+      }
+    },
+    [navigate]
+  );
+
   const handleDelete = useCallback(
     async (user: IUser) => {
       if (!user.id) return;
@@ -73,11 +82,12 @@ function Users() {
     },
     [deleteUser, handleSearch]
   );
-
+  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
     // Função vazia conforme solicitado
   }, []);
 
+  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
     // Função vazia conforme solicitado
   }, []);
@@ -198,6 +208,7 @@ function Users() {
               object={row.original}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onView={handleView}
             />
           );
         },
@@ -205,7 +216,7 @@ function Users() {
         enableHiding: false,
       },
     ],
-    [handleDelete, handleEdit]
+    [handleDelete, handleEdit, handleView]
   );
 
   return (

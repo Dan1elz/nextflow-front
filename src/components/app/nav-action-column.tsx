@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EditIcon, EllipsisVertical, TrashIcon } from "lucide-react";
+import { EditIcon, EllipsisVertical, EyeIcon, TrashIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface IHasId {
@@ -28,16 +28,20 @@ interface NavActionColumnProps<T extends IHasId> {
   object: T;
   onEdit?: (object: T) => void;
   onDelete?: (object: T) => void;
+  onView?: (object: T) => void;
   disableDelete?: boolean;
   disableEdit?: boolean;
+  disableView?: boolean;
 }
 
 export function NavActionColumn<T extends IHasId>({
   object,
   onEdit,
   onDelete,
+  onView,
   disableDelete = false,
   disableEdit = false,
+  disableView = false,
 }: NavActionColumnProps<T>) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -65,13 +69,10 @@ export function NavActionColumn<T extends IHasId>({
           <DropdownMenuLabel>Ações</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          {onDelete && !disableDelete && (
-            <DropdownMenuItem
-              onClick={handleDeleteClick}
-              className="text-destructive focus:text-destructive"
-            >
-              <TrashIcon className="mr-2 h-4 w-4" />
-              Excluir
+          {onView && !disableView && (
+            <DropdownMenuItem onClick={() => onView(object)}>
+              <EyeIcon className="mr-2 h-4 w-4" />
+              Visualizar
             </DropdownMenuItem>
           )}
 
@@ -79,6 +80,16 @@ export function NavActionColumn<T extends IHasId>({
             <DropdownMenuItem onClick={() => onEdit(object)}>
               <EditIcon className="mr-2 h-4 w-4" />
               Editar
+            </DropdownMenuItem>
+          )}
+
+          {onDelete && !disableDelete && (
+            <DropdownMenuItem
+              onClick={handleDeleteClick}
+              className="text-destructive focus:text-destructive"
+            >
+              <TrashIcon className="mr-2 h-4 w-4" />
+              Excluir
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

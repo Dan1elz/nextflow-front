@@ -29,6 +29,8 @@ interface UserFormProps {
   isLoading?: boolean;
   initialData?: IUser;
   isEdit?: boolean;
+  disabled?: boolean;
+  onBack?: () => void;
 }
 
 export function UserForm({
@@ -36,6 +38,8 @@ export function UserForm({
   isLoading = false,
   initialData,
   isEdit = false,
+  disabled = false,
+  onBack,
 }: UserFormProps) {
   const schema = isEdit ? updateUserSchema : createUserSchema;
   const form = useForm<CreateUserFormData | UpdateUserFormData>({
@@ -85,7 +89,7 @@ export function UserForm({
                       type="text"
                       placeholder="Nome"
                       className="pl-9"
-                      disabled={isLoading}
+                      disabled={isLoading || disabled}
                       autoComplete="given-name"
                     />
                   </div>
@@ -109,7 +113,7 @@ export function UserForm({
                       type="text"
                       placeholder="Sobrenome"
                       className="pl-9"
-                      disabled={isLoading}
+                      disabled={isLoading || disabled}
                       autoComplete="family-name"
                     />
                   </div>
@@ -134,7 +138,7 @@ export function UserForm({
                     type="email"
                     placeholder="seu@email.com"
                     className="pl-9"
-                    disabled={isLoading}
+                    disabled={isLoading || disabled}
                     autoComplete="email"
                   />
                 </div>
@@ -158,7 +162,7 @@ export function UserForm({
                     type="text"
                     placeholder="000.000.000-00"
                     className="pl-9"
-                    disabled={isLoading}
+                    disabled={isLoading || disabled}
                     maxLength={14}
                     onChange={(e) =>
                       handleCpfChange(e.target.value, field.onChange)
@@ -186,7 +190,7 @@ export function UserForm({
                       type="password"
                       placeholder="••••••••"
                       className="pl-9"
-                      disabled={isLoading}
+                      disabled={isLoading || disabled}
                       autoComplete="new-password"
                     />
                   </div>
@@ -198,14 +202,21 @@ export function UserForm({
         )}
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="submit" disabled={isLoading}>
-            <ButtonLoader
-              isLoading={isLoading}
-              loadingText={isEdit ? "Salvando..." : "Criando..."}
-            >
-              {isEdit ? "Salvar" : "Criar"}
-            </ButtonLoader>
-          </Button>
+          {onBack && (
+            <Button type="button" onClick={onBack} variant="secondary">
+              Voltar
+            </Button>
+          )}
+          {!disabled && (
+            <Button type="submit" disabled={isLoading || disabled}>
+              <ButtonLoader
+                isLoading={isLoading}
+                loadingText={isEdit ? "Salvando..." : "Criando..."}
+              >
+                {isEdit ? "Salvar" : "Criar"}
+              </ButtonLoader>
+            </Button>
+          )}
         </div>
       </form>
     </Form>

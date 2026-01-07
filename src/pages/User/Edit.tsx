@@ -6,12 +6,17 @@ import { useUsers } from "@/hooks/use-users";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { UpdateUserFormData } from "@/schemas/user.schema";
 import type { IUpdateUser } from "@/interfaces/user.interface";
+import { UsersProvider } from "@/providers/users.provider";
 
 function EditUser() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedUser, selectUser, updateUser } = useUsers();
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleBack = () => {
+    navigate("/users");
+  };
 
   useEffect(() => {
     if (!id) {
@@ -70,6 +75,7 @@ function EditUser() {
         <CardContent>
           <UserForm
             onSubmit={handleSubmit}
+            onBack={handleBack}
             isLoading={isLoading}
             initialData={selectedUser}
             isEdit={true}
@@ -79,8 +85,6 @@ function EditUser() {
     </div>
   );
 }
-
-import { UsersProvider } from "@/providers/users.provider";
 
 export default function EditUserPageWrapper() {
   return (

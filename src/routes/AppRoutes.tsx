@@ -7,6 +7,7 @@ import { Login } from "@/pages/Auth/Login";
 import { PrivateRoutes } from "./PrivateRoutes";
 import { PublicRoutes } from "./PublicRoutes";
 import { Home } from "@/pages/Home";
+import ViewUserPageWrapper from "@/pages/User/View";
 
 function AppRoutes() {
   return (
@@ -34,6 +35,7 @@ function AppRoutes() {
         <Route path="users" element={<UsersPageWrapper />} />
         <Route path="users/create" element={<CreateUserPageWrapper />} />
         <Route path="users/:id/edit" element={<EditUserPageWrapper />} />
+        <Route path="users/:id/view" element={<ViewUserPageWrapper />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
