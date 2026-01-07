@@ -21,22 +21,22 @@ export function useBreadcrumbPath(): IBreadcrumb[] | null {
     }
 
     const items: IBreadcrumb[] = [];
-    let currentPath = "";
+    let breadcrumbPath = "";
 
     pathSegments.forEach((segment, index) => {
-      currentPath += `/${segment}`;
       const isLast = index === pathSegments.length - 1;
 
-      if (/^\d+$/.test(segment)) {
-        if (items.length > 0) {
-          const previousItem = items[items.length - 1];
-          if (previousItem) {
-            previousItem.path = currentPath;
-            previousItem.isLast = isLast;
-          }
-        }
+      const isNumericId = /^\d+$/.test(segment);
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          segment
+        );
+
+      if (isNumericId || isUuid) {
         return;
       }
+
+      breadcrumbPath += `/${segment}`;
 
       const name =
         routeNameMap[segment] ||
@@ -44,7 +44,7 @@ export function useBreadcrumbPath(): IBreadcrumb[] | null {
 
       items.push({
         name,
-        path: currentPath,
+        path: breadcrumbPath,
         isLast,
       });
     });

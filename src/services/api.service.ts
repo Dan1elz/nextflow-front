@@ -89,7 +89,36 @@ export class ApiService {
           : undefined,
     });
 
-    const content: IApiResponse<T> | IApiResponseError = await response.json();
+    // Trata resposta 204 (No Content) - não há corpo na resposta
+    if (response.status === 204) {
+      return {
+        status: 204,
+        message: "No Content",
+        data: undefined as unknown as T,
+      };
+    }
+
+    // Verifica se há conteúdo para fazer parse
+    const text = await response.text();
+    let content: IApiResponse<T> | IApiResponseError;
+
+    try {
+      content = text ? JSON.parse(text) : ({} as IApiResponse<T>);
+    } catch {
+      // Se não conseguir fazer parse e a resposta foi ok, retorna vazio
+      if (response.ok) {
+        return {
+          status: response.status,
+          message: "Success",
+          data: undefined as unknown as T,
+        };
+      }
+      throw new ApiError({
+        Status: response.status,
+        Message: "Erro ao processar resposta do servidor",
+        Errors: null,
+      });
+    }
 
     if (!response.ok || "Errors" in content) {
       const errorContent = content as IApiResponseError;

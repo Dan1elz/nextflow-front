@@ -19,7 +19,8 @@ export class BaseService<T> implements IBaseService<T> {
       `${this.endpoint}/${id}`,
       token
     );
-    return response.data;
+    // Para resposta 204 (No Content), retorna array vazio
+    return response.data ?? [];
   }
 
   async getAll(
