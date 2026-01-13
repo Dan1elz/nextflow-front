@@ -4,7 +4,7 @@ export interface IUser {
   lastName: string;
   email: string;
   cpf: string;
-  status?: string;
+  isActive?: boolean;
 }
 
 export interface ICreateUser {

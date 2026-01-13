@@ -184,17 +184,10 @@ function Users() {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-          const status = row.original.status || "ativo";
+          const user = row.original;
           return (
-            <Badge
-              variant={
-                status.toLowerCase() === "ativo" ||
-                status.toLowerCase() === "active"
-                  ? "default"
-                  : "secondary"
-              }
-            >
-              {status}
+            <Badge variant={user.isActive ? "default" : "secondary"}>
+              {user.isActive ? "Ativo" : "Inativo"}
             </Badge>
           );
         },
@@ -209,6 +202,8 @@ function Users() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onView={handleView}
+              disableDelete={!row.original.isActive}
+              disableEdit={!row.original.isActive}
             />
           );
         },

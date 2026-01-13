@@ -35,10 +35,11 @@ export class BaseService<T> implements IBaseService<T> {
 
     if (params?.page) {
       query.page = params.page.toString();
+      query.offset = ((params.page - 1) * (params.perPage ?? 10)).toString();
     }
 
     if (params?.perPage) {
-      query.perPage = params.perPage.toString();
+      query.limit = params.perPage.toString();
     }
 
     const response = await this.apiService.get<IApiResponseTable<T>>(

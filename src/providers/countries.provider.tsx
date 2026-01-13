@@ -2,11 +2,7 @@ import { useState, useCallback, type ReactNode } from "react";
 
 import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
-import type {
-  ICountry,
-  ICreateCountry,
-  IUpdateCountry,
-} from "@/interfaces/locations.interface";
+import type { ICountry } from "@/interfaces/locations.interface";
 import { CountriesContext } from "@/contexts/countries.context";
 import { countryService } from "@/services/country.service";
 
@@ -43,23 +39,16 @@ export function CountriesProvider({ children }: { children: ReactNode }) {
   );
 
   const createCountry = useCallback(
-    async (country: ICreateCountry): Promise<ICountry> => {
-      const data = await countryService.create(
-        country as Partial<ICountry>,
-        token ?? undefined
-      );
+    async (country: ICountry): Promise<ICountry> => {
+      const data = await countryService.create(country, token ?? undefined);
       return data;
     },
     [token]
   );
 
   const updateCountry = useCallback(
-    async (id: string, country: IUpdateCountry): Promise<ICountry> => {
-      const data = await countryService.update(
-        id,
-        country as Partial<ICountry>,
-        token ?? undefined
-      );
+    async (id: string, country: ICountry): Promise<ICountry> => {
+      const data = await countryService.update(id, country, token ?? undefined);
       return data;
     },
     [token]

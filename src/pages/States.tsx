@@ -184,6 +184,14 @@ function States() {
         },
       },
       {
+        accessorKey: "country",
+        header: "País",
+        cell: ({ row }) => {
+          const state = row.original;
+          return state.country?.name ?? "-";
+        },
+      },
+      {
         id: "actions",
         header: "Ações",
         cell: ({ row }) => {
