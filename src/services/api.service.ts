@@ -89,7 +89,6 @@ export class ApiService {
           : undefined,
     });
 
-    // Trata resposta 204 (No Content) - não há corpo na resposta
     if (response.status === 204) {
       return {
         status: 204,
@@ -98,29 +97,50 @@ export class ApiService {
       };
     }
 
-    // Verifica se há conteúdo para fazer parse
     const text = await response.text();
     let content: IApiResponse<T> | IApiResponseError;
+
+    if (!response.ok) {
+      try {
+        content = text ? JSON.parse(text) : ({} as IApiResponseError);
+      } catch {
+        throw new ApiError({
+          Status: response.status,
+          Message: "Erro ao processar resposta do servidor",
+          Errors: null,
+        });
+      }
+
+      if ("Status" in content && "Message" in content) {
+        const errorContent = content as IApiResponseError;
+        throw new ApiError(errorContent);
+      }
+
+      const unknownContent = content as unknown as Record<string, unknown>;
+      throw new ApiError({
+        Status: response.status,
+        Message:
+          (unknownContent.message as string) ||
+          (unknownContent.Message as string) ||
+          "Erro na requisição",
+        Errors:
+          (unknownContent.errors as IApiResponseError["Errors"]) ||
+          (unknownContent.Errors as IApiResponseError["Errors"]) ||
+          null,
+      });
+    }
 
     try {
       content = text ? JSON.parse(text) : ({} as IApiResponse<T>);
     } catch {
-      // Se não conseguir fazer parse e a resposta foi ok, retorna vazio
-      if (response.ok) {
-        return {
-          status: response.status,
-          message: "Success",
-          data: undefined as unknown as T,
-        };
-      }
-      throw new ApiError({
-        Status: response.status,
-        Message: "Erro ao processar resposta do servidor",
-        Errors: null,
-      });
+      return {
+        status: response.status,
+        message: "Success",
+        data: undefined as unknown as T,
+      };
     }
 
-    if (!response.ok || "Errors" in content) {
+    if ("Errors" in content) {
       const errorContent = content as IApiResponseError;
       throw new ApiError(errorContent);
     }

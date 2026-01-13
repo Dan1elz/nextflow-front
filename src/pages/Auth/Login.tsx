@@ -24,6 +24,15 @@ export function Login() {
     }
   }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    const authErrorMessage = sessionStorage.getItem("auth-error-message");
+
+    if (authErrorMessage) {
+      handleError(null, authErrorMessage);
+      sessionStorage.removeItem("auth-error-message");
+    }
+  }, []);
+
   const handleSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);

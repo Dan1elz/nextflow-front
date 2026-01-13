@@ -65,6 +65,10 @@ export function AuthProvider({
           error.message.includes("Token") ||
           error.message.includes("autentic"))
       ) {
+        sessionStorage.setItem(
+          "auth-error-message",
+          "Sessão expirada. Por favor, faça login novamente."
+        );
         logout();
       }
     } finally {
