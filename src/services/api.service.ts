@@ -71,12 +71,14 @@ export class ApiService {
   private async request<T>(
     method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
     uri: string,
-    body?: object,
+    body?: unknown,
     token?: string,
-    params?: Record<string, string>,
+    params?: Record<string, string | number | boolean>,
     isFormData?: boolean
   ): Promise<IApiResponse<T>> {
-    const query = params ? `?${new URLSearchParams(params).toString()}` : "";
+    const query = params
+      ? `?${new URLSearchParams(Object.entries(params) as [string, string][]).toString()}`
+      : "";
     const fullUrl = `${this.baseUrl}${uri}${query}`;
 
     const response = await fetch(fullUrl, {
@@ -150,14 +152,18 @@ export class ApiService {
 
   public post<T>(
     uri: string,
-    body: object,
+    body: unknown,
     token?: string,
     isFormData?: boolean
   ) {
     return this.request<T>("POST", uri, body, token, undefined, isFormData);
   }
 
-  public get<T>(uri: string, params?: Record<string, string>, token?: string) {
+  public get<T>(
+    uri: string,
+    params?: Record<string, string | number | boolean>,
+    token?: string
+  ) {
     return this.request<T>("GET", uri, undefined, token, params);
   }
 
