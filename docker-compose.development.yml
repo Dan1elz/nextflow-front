@@ -6,20 +6,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.development
+    # Importante para Linux/WSL: garante que o usuário do container seja o mesmo do host
+    # user: "1000:1000" 
     volumes:
       - .:/app
+      # Garante que o node_modules do container tenha prioridade sobre o do host
       - /app/node_modules
-
     env_file:
       - .env
-
     ports:
       - 5173:5173
-
     networks:
       - nextflow-development-network
-
     restart: unless-stopped
+    # Habilita polling se o hot-reload falhar no WSL (opcional)
+    # environment:
+    #   - WATCHPACK_POLLING=true
 
 networks:
   nextflow-development-network:

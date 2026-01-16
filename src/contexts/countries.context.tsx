@@ -1,10 +1,6 @@
 import { createContext } from "react";
 
-import type {
-  ICountry,
-  ICreateCountry,
-  IUpdateCountry,
-} from "@/interfaces/locations.interface";
+import type { ICountry } from "@/interfaces/locations.interface";
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 
 export type CountriesContextType = {
@@ -13,8 +9,8 @@ export type CountriesContextType = {
   pagination: IPaginationInfo | null;
   searchCountries: (query?: IIndexParams) => Promise<void>;
   selectCountry: (id: string) => Promise<void>;
-  createCountry: (country: ICreateCountry) => Promise<ICountry>;
-  updateCountry: (id: string, country: IUpdateCountry) => Promise<ICountry>;
+  createCountry: (country: ICountry) => Promise<ICountry>;
+  updateCountry: (id: string, country: ICountry) => Promise<ICountry>;
   deleteCountry: (id: string) => Promise<void>;
 };
 
