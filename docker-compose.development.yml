@@ -1,0 +1,26 @@
+name: nextflow-development
+
+services:
+  front:
+    image: nextflow-front:development
+    build:
+      context: .
+      dockerfile: Dockerfile.development
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+    env_file:
+      - .env
+
+    ports:
+      - 5173:5173
+
+    networks:
+      - nextflow-development-network
+
+    restart: unless-stopped
+
+networks:
+  nextflow-development-network:
+    external: true

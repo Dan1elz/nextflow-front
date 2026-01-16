@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Instalar dependências
+COPY package.json package-lock.json ./
+
+# Instalar dependências
+RUN npm install
+
+# Expor porta 5173
+EXPOSE 5173
+
+# Healthcheck simples para verificar se o servidor está rodando
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:5173 || exit 1
+
+# Comando para iniciar o servidor de desenvolvimento
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
