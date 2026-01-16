@@ -51,10 +51,7 @@ Por se tratar de um ambiente idêntico ao de produção, o servidor Nginx serve 
 
 ```bash
 # 1. Buildar a imagem injetando a variável de ambiente (Build Args)
-docker build --build-arg VITE_API_URL=http://localhost:8000 -t aura-front:staging .
-
-# 2. Subir o ambiente
-docker compose -f docker-compose.staging.yml up -d
+set VITE_API_URL=http://localhost:8080& docker compose -f docker-compose.staging.yml up -d --build
 ```
 
 > **Acesso:** [http://localhost:80](http://localhost:80)
