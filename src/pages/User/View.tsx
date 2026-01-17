@@ -53,6 +53,7 @@ function ViewUser() {
             isLoading={false}
             initialData={selectedUser}
             disabled={true}
+            isEdit={true}
           />
         </CardContent>
       </Card>
