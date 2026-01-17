@@ -17,7 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EditIcon, EllipsisVertical, EyeIcon, TrashIcon } from "lucide-react";
+import {
+  CircleFadingArrowUp,
+  EditIcon,
+  EllipsisVertical,
+  EyeIcon,
+  TrashIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface IHasId {
@@ -29,9 +35,11 @@ interface NavActionColumnProps<T extends IHasId> {
   onEdit?: (object: T) => void;
   onDelete?: (object: T) => void;
   onView?: (object: T) => void;
+  onReactivate?: (object: T) => void;
   disableDelete?: boolean;
   disableEdit?: boolean;
   disableView?: boolean;
+  disableReactivate?: boolean;
 }
 
 export function NavActionColumn<T extends IHasId>({
@@ -39,9 +47,11 @@ export function NavActionColumn<T extends IHasId>({
   onEdit,
   onDelete,
   onView,
+  onReactivate,
   disableDelete = false,
   disableEdit = false,
   disableView = false,
+  disableReactivate = false,
 }: NavActionColumnProps<T>) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -80,6 +90,13 @@ export function NavActionColumn<T extends IHasId>({
             <DropdownMenuItem onClick={() => onEdit(object)}>
               <EditIcon className="mr-2 h-4 w-4" />
               Editar
+            </DropdownMenuItem>
+          )}
+
+          {onReactivate && !disableReactivate && (
+            <DropdownMenuItem onClick={() => onReactivate(object)}>
+              <CircleFadingArrowUp className="mr-2 h-4 w-4" />
+              Reativar
             </DropdownMenuItem>
           )}
 

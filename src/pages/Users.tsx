@@ -17,7 +17,8 @@ import { UsersProvider } from "@/providers/users.provider";
 
 function Users() {
   const navigate = useNavigate();
-  const { users, pagination, searchUsers, deleteUser } = useUsers();
+  const { users, pagination, searchUsers, deleteUser, reactivateUser } =
+    useUsers();
   const [perPage, setPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,6 +58,21 @@ function Users() {
       }
     },
     [navigate]
+  );
+
+  const handleReactivate = useCallback(
+    async (user: IUser) => {
+      if (!user.id) return;
+
+      try {
+        await reactivateUser(user.id);
+        handleSuccess("Usuário reativado com sucesso");
+        handleSearch(1);
+      } catch (error) {
+        handleError(error, "Erro ao reativar usuário");
+      }
+    },
+    [reactivateUser, handleSearch]
   );
 
   const handleView = useCallback(
@@ -200,10 +216,12 @@ function Users() {
             <NavActionColumn
               object={row.original}
               onEdit={handleEdit}
+              onReactivate={handleReactivate}
               onDelete={handleDelete}
               onView={handleView}
               disableDelete={!row.original.isActive}
               disableEdit={!row.original.isActive}
+              disableReactivate={row.original.isActive}
             />
           );
         },
@@ -211,7 +229,7 @@ function Users() {
         enableHiding: false,
       },
     ],
-    [handleDelete, handleEdit, handleView]
+    [handleDelete, handleEdit, handleView, handleReactivate]
   );
 
   return (

@@ -66,6 +66,12 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     },
     [token]
   );
+  const reactivateUser = useCallback(
+    async (id: string): Promise<void> => {
+      await userService.reactivate(id, token ?? undefined);
+    },
+    [token]
+  );
 
   const recoverPassword = useCallback(
     async (data: IRecoverPasswordRequest): Promise<void> => {
@@ -94,6 +100,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         deleteUser,
         recoverPassword,
         resetPassword,
+        reactivateUser,
       }}
     >
       {children}

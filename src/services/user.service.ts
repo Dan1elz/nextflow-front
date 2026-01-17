@@ -31,4 +31,15 @@ export const userService = {
     const response = await apiService.post<void>("users/reset-password", data);
     return response;
   },
+  reactivate: async (
+    id: string,
+    token?: string
+  ): Promise<IApiResponse<void>> => {
+    const response = await apiService.patch<void>(
+      `users/reactivate/${id}`,
+      {},
+      token
+    );
+    return response;
+  },
 };
