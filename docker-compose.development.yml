@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile.development
     # Importante para Linux/WSL: garante que o usuário do container seja o mesmo do host
-    # user: "1000:1000" 
+    # user: "1000:1000"
     volumes:
       - .:/app
       # Garante que o node_modules do container tenha prioridade sobre o do host

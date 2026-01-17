@@ -6,10 +6,10 @@ Antes de rodar qualquer outro comando, é necessário verificar a existência da
 
 ```bash
 # Para ambiente de Desenvolvimento
-docker network inspect nextflow-development-network >/dev/null 2>&1 || docker network create nextflow-development-network 
+docker network inspect nextflow-development-network >/dev/null 2>&1 || docker network create nextflow-development-network
 
 # Para ambiente de Homologação
-docker network inspect nextflow-staging-network >/dev/null 2>&1 || docker network create nextflow-staging-network 
+docker network inspect nextflow-staging-network >/dev/null 2>&1 || docker network create nextflow-staging-network
 ```
 
 ---
@@ -20,10 +20,10 @@ A arquitetura foi definida com o objetivo de atribuir à própria aplicação a 
 
 A estrutura baseia-se nos seguintes arquivos:
 
-* **Dockerfile:** Gerencia a criação da imagem da aplicação (base para produção).
-* **Dockerfile.development:** Gerencia a criação da imagem com dependências e ferramentas úteis para o estágio de desenvolvimento.
-* **docker-compose.staging.yml:** Orquestrador do container frontend para ambientes de homologação/produção.
-* **docker-compose.development.yml:** Orquestrador do container frontend para ambiente de desenvolvimento.
+- **Dockerfile:** Gerencia a criação da imagem da aplicação (base para produção).
+- **Dockerfile.development:** Gerencia a criação da imagem com dependências e ferramentas úteis para o estágio de desenvolvimento.
+- **docker-compose.staging.yml:** Orquestrador do container frontend para ambientes de homologação/produção.
+- **docker-compose.development.yml:** Orquestrador do container frontend para ambiente de desenvolvimento.
 
 ---
 
@@ -31,9 +31,9 @@ A estrutura baseia-se nos seguintes arquivos:
 
 Este ambiente habilita:
 
-* **Vite Server** na porta `5173`.
-* **Hot Reload** (HMR).
-* Leitura do arquivo `.env` local.
+- **Vite Server** na porta `5173`.
+- **Hot Reload** (HMR).
+- Leitura do arquivo `.env` local.
 
 **Pré-requisito:** Certifique-se de ter um arquivo `.env` na raiz do projeto (copie do `.env.example`).
 
@@ -90,4 +90,4 @@ docker exec -it -e TERM=xterm nextflow-staging-front-1 sh
 docker compose -f docker-compose.development.yml down
 ```
 
-*(Nota: O nome do container pode variar dependendo do nome da pasta raiz. Se falhar, verifique o nome correto com `docker ps` ou execute dentro da raiz do frontend)*
+_(Nota: O nome do container pode variar dependendo do nome da pasta raiz. Se falhar, verifique o nome correto com `docker ps` ou execute dentro da raiz do frontend)_

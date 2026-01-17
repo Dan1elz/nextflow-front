@@ -18,6 +18,7 @@ export type UsersContextType = {
   createUser: (user: ICreateUser) => Promise<IUser>;
   updateUser: (id: string, user: IUpdateUser) => Promise<IUser>;
   deleteUser: (id: string) => Promise<void>;
+  reactivateUser: (id: string) => Promise<void>;
   recoverPassword: (data: IRecoverPasswordRequest) => Promise<void>;
   resetPassword: (data: IResetPasswordRequest) => Promise<void>;
 };
