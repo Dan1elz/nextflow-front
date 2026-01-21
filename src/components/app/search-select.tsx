@@ -22,13 +22,18 @@ import { useDebounce } from "@/hooks/use-debounce";
 export interface SearchSelectProps<T> {
   data: T[];
   label?: string;
-  field: keyof T;
+  field:
+    | keyof T
+    | {
+        value: string | number | undefined;
+        onChange: (value: string | number | undefined) => void;
+      };
   placeholder?: string;
   disabled?: boolean;
   onSearch?: (searchTerm: string) => Promise<T[] | void> | T[] | void;
   multiple?: boolean;
-  value?: T | T[];
-  onChange?: (value: T | T[] | undefined) => void;
+  value?: T | T[] | string | number;
+  onChange?: (value: T | T[] | string | number | undefined) => void;
   className?: string;
   getOptionLabel?: (item: T) => string;
   getOptionValue?: (item: T) => string | number;
@@ -54,16 +59,168 @@ export function SearchSelect<T extends Record<string, unknown>>({
   const [isSearching, setIsSearching] = React.useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
+  // Detecta se field é um objeto do react-hook-form ou uma chave
+  const isFieldObject = React.useMemo(
+    () =>
+      typeof field === "object" &&
+      field !== null &&
+      "value" in field &&
+      "onChange" in field,
+    [field]
+  );
+
+  // Obtém o valor atual (pode ser ID ou objeto)
+  const currentValue = React.useMemo(() => {
+    if (isFieldObject) {
+      return (field as { value: string | number | undefined }).value;
+    }
+    return value;
+  }, [isFieldObject, field, value]);
+
+  // Obtém a função onChange
+  const handleChange = React.useCallback(
+    (newValue: T | T[] | string | number | undefined) => {
+      if (isFieldObject) {
+        // Se field é um objeto do react-hook-form, extrai o value do objeto
+        if (newValue === undefined || newValue === null) {
+          (
+            field as {
+              onChange: (value: string | number | undefined) => void;
+            }
+          ).onChange(undefined);
+          return;
+        }
+        if (multiple && Array.isArray(newValue)) {
+          // Para múltipla seleção, retorna array de IDs
+          const ids = newValue.map((item) => {
+            if (typeof item === "string" || typeof item === "number") {
+              return item;
+            }
+            return getOptionValue
+              ? getOptionValue(item)
+              : (item as T)["value" as keyof T]?.toString() || "";
+          });
+          (
+            field as {
+              onChange: (value: string | number | undefined) => void;
+            }
+          ).onChange(ids as unknown as string | number | undefined);
+        } else if (!multiple && !Array.isArray(newValue)) {
+          // Para seleção única, extrai o value do objeto
+          if (typeof newValue === "string" || typeof newValue === "number") {
+            (
+              field as {
+                onChange: (value: string | number | undefined) => void;
+              }
+            ).onChange(newValue);
+          } else {
+            const id = getOptionValue
+              ? getOptionValue(newValue)
+              : (newValue as T)["value" as keyof T]?.toString() || "";
+            (
+              field as {
+                onChange: (value: string | number | undefined) => void;
+              }
+            ).onChange(id);
+          }
+        }
+      } else {
+        onChange?.(newValue);
+      }
+    },
+    [isFieldObject, field, multiple, getOptionValue, onChange]
+  );
+
+  // Encontra o objeto correspondente quando value é um ID
+  const findObjectByValue = React.useCallback(
+    (id: string | number | undefined): T | undefined => {
+      if (id === undefined || id === null) return undefined;
+      return data.find((item) => {
+        const itemValue = getOptionValue
+          ? getOptionValue(item)
+          : (item as T)[
+              isFieldObject ? ("value" as keyof T) : (field as keyof T)
+            ]?.toString();
+        return itemValue === id || itemValue?.toString() === id?.toString();
+      });
+    },
+    [data, getOptionValue, field, isFieldObject]
+  );
+
+  // Obtém o objeto selecionado (converte ID para objeto se necessário)
+  const selectedObject = React.useMemo((): T | T[] | undefined => {
+    if (currentValue === undefined || currentValue === null) return undefined;
+
+    // Se field é objeto do react-hook-form, currentValue sempre será string/number
+    if (isFieldObject) {
+      if (multiple) {
+        if (Array.isArray(currentValue)) {
+          return currentValue
+            .map((id) => findObjectByValue(id as unknown as string | number))
+            .filter((item): item is T => item !== undefined);
+        }
+        return [];
+      } else {
+        if (
+          typeof currentValue === "string" ||
+          typeof currentValue === "number"
+        ) {
+          return findObjectByValue(currentValue);
+        }
+        return undefined;
+      }
+    }
+
+    // Se field não é objeto, currentValue pode ser T | T[]
+    if (multiple) {
+      if (Array.isArray(currentValue)) {
+        // Verifica se é array de IDs ou array de objetos
+        if (
+          currentValue.length > 0 &&
+          (typeof currentValue[0] === "string" ||
+            typeof currentValue[0] === "number")
+        ) {
+          return currentValue
+            .map((id) => findObjectByValue(id as unknown as string | number))
+            .filter((item): item is T => item !== undefined);
+        }
+        return currentValue as T[];
+      }
+      return [];
+    } else {
+      if (
+        typeof currentValue === "string" ||
+        typeof currentValue === "number"
+      ) {
+        return findObjectByValue(currentValue);
+      }
+      // Se já é um objeto, retorna como está
+      if (typeof currentValue === "object" && !Array.isArray(currentValue)) {
+        return currentValue as T;
+      }
+    }
+    return undefined;
+  }, [currentValue, multiple, findObjectByValue, isFieldObject]);
+
+  // Obtém a chave do campo para exibição (quando field não é objeto)
+  const displayField = React.useMemo(() => {
+    if (isFieldObject) {
+      // Quando field é objeto, assume que queremos usar "label" para IOption
+      return "label" as keyof T;
+    }
+    return field as keyof T;
+  }, [isFieldObject, field]);
+
   // Função para obter o label de um item
   const getLabel = React.useCallback(
     (item: T): string => {
       if (getOptionLabel) {
         return getOptionLabel(item);
       }
-      const fieldValue = item[field];
+      const fieldValue = item[displayField];
       return fieldValue?.toString() || "";
     },
-    [field, getOptionLabel]
+    [displayField, getOptionLabel]
   );
 
   // Função para obter o valor de um item (para comparação)
@@ -72,33 +229,39 @@ export function SearchSelect<T extends Record<string, unknown>>({
       if (getOptionValue) {
         return getOptionValue(item);
       }
-      const fieldValue = item[field];
+      // Quando field é objeto, assume que queremos usar "value" para IOption
+      const valueField = isFieldObject
+        ? ("value" as keyof T)
+        : (field as keyof T);
+      const fieldValue = item[valueField];
       return fieldValue?.toString() || "";
     },
-    [field, getOptionValue]
+    [field, getOptionValue, isFieldObject]
   );
 
   // Verifica se um item está selecionado
   const isSelected = React.useCallback(
     (item: T): boolean => {
-      if (!value) return false;
+      if (!selectedObject) return false;
       const itemValue = getValue(item);
 
-      if (multiple && Array.isArray(value)) {
-        return value.some((v) => getValue(v) === itemValue);
-      } else if (!multiple && !Array.isArray(value)) {
-        return getValue(value) === itemValue;
+      if (multiple && Array.isArray(selectedObject)) {
+        return selectedObject.some((v) => getValue(v) === itemValue);
+      } else if (!multiple && !Array.isArray(selectedObject)) {
+        return getValue(selectedObject) === itemValue;
       }
       return false;
     },
-    [value, multiple, getValue]
+    [selectedObject, multiple, getValue]
   );
 
   // Lida com a seleção de um item
   const handleSelect = React.useCallback(
     (item: T) => {
       if (multiple) {
-        const currentValues = Array.isArray(value) ? value : [];
+        const currentValues = Array.isArray(selectedObject)
+          ? selectedObject
+          : [];
         const itemValue = getValue(item);
         const isCurrentlySelected = currentValues.some(
           (v) => getValue(v) === itemValue
@@ -113,27 +276,27 @@ export function SearchSelect<T extends Record<string, unknown>>({
           newValues = [...currentValues, item];
         }
 
-        onChange?.(newValues.length > 0 ? newValues : undefined);
+        handleChange(newValues.length > 0 ? newValues : undefined);
       } else {
-        onChange?.(item);
+        handleChange(item);
         setOpen(false);
         setSearchTerm("");
       }
     },
-    [multiple, value, onChange, getValue]
+    [multiple, selectedObject, handleChange, getValue]
   );
 
   // Remove um item selecionado (apenas para múltipla seleção)
   const handleRemove = React.useCallback(
     (item: T, e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!multiple || !Array.isArray(value)) return;
+      if (!multiple || !Array.isArray(selectedObject)) return;
 
       const itemValue = getValue(item);
-      const newValues = value.filter((v) => getValue(v) !== itemValue);
-      onChange?.(newValues.length > 0 ? newValues : undefined);
+      const newValues = selectedObject.filter((v) => getValue(v) !== itemValue);
+      handleChange(newValues.length > 0 ? newValues : undefined);
     },
-    [multiple, value, onChange, getValue]
+    [multiple, selectedObject, handleChange, getValue]
   );
 
   // Limpa a seleção (para seleção única)
@@ -141,10 +304,10 @@ export function SearchSelect<T extends Record<string, unknown>>({
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
-      onChange?.(undefined);
+      handleChange(undefined);
       setOpen(false);
     },
-    [onChange]
+    [handleChange]
   );
 
   // Filtra opções localmente quando não há busca na API
@@ -195,20 +358,20 @@ export function SearchSelect<T extends Record<string, unknown>>({
 
   // Renderiza o valor selecionado no trigger
   const renderTriggerContent = () => {
-    if (!value) {
+    if (!selectedObject) {
       return <span className="text-muted-foreground">{placeholder}</span>;
     }
 
-    if (multiple && Array.isArray(value)) {
-      if (value.length === 0) {
+    if (multiple && Array.isArray(selectedObject)) {
+      if (selectedObject.length === 0) {
         return <span className="text-muted-foreground">{placeholder}</span>;
       }
-      if (value.length === 1) {
-        return <span>{getLabel(value[0])}</span>;
+      if (selectedObject.length === 1) {
+        return <span>{getLabel(selectedObject[0])}</span>;
       }
-      return <span>{value.length} itens selecionados</span>;
-    } else if (!multiple && !Array.isArray(value)) {
-      return <span>{getLabel(value)}</span>;
+      return <span>{selectedObject.length} itens selecionados</span>;
+    } else if (!multiple && !Array.isArray(selectedObject)) {
+      return <span>{getLabel(selectedObject)}</span>;
     }
 
     return <span className="text-muted-foreground">{placeholder}</span>;
@@ -216,8 +379,8 @@ export function SearchSelect<T extends Record<string, unknown>>({
 
   // Verifica se há valor selecionado (para mostrar botão de limpar)
   const hasValue = multiple
-    ? Array.isArray(value) && value.length > 0
-    : value !== undefined && value !== null;
+    ? Array.isArray(selectedObject) && selectedObject.length > 0
+    : selectedObject !== undefined && selectedObject !== null;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -233,8 +396,10 @@ export function SearchSelect<T extends Record<string, unknown>>({
               className="w-full justify-between h-auto min-h-9 py-1 pr-10"
             >
               <div className="flex flex-wrap gap-1 flex-1 min-w-0 text-left">
-                {multiple && Array.isArray(value) && value.length > 0
-                  ? value.map((item) => (
+                {multiple &&
+                Array.isArray(selectedObject) &&
+                selectedObject.length > 0
+                  ? selectedObject.map((item) => (
                       <Badge
                         key={getValue(item)}
                         variant="secondary"

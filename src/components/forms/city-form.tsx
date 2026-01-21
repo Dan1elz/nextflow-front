@@ -113,15 +113,15 @@ export function CityForm({
         <FormField
           control={form.control}
           name="stateId"
-          render={({ field: formField, fieldState }) => ( 
+          render={({ field }) => (
             <FormItem>
               <FormControl>
                 <div className="relative">
                   <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <SearchSelect
                     field={field}
-                    value={formField.value} 
-                    onChange={formField.onChange}
+                    value={field.value}
+                    onChange={field.onChange}
                     label="Estado"
                     data={data}
                     onSearch={onSearch}
@@ -131,7 +131,7 @@ export function CityForm({
                   />
                 </div>
               </FormControl>
-              <FormMessage /> 
+              <FormMessage />
             </FormItem>
           )}
         />
