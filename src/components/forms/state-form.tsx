@@ -4,6 +4,8 @@ import { Globe, Hash, Building2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SearchSelect } from "@/components/app/search-select";
+import type { IOption } from "@/interfaces/api.interface";
 import {
   Form,
   FormControl,
@@ -23,6 +25,8 @@ interface StateFormProps {
   isEdit?: boolean;
   disabled?: boolean;
   onBack?: () => void;
+  data: IOption[];
+  onSearch: (query: string) => void | Promise<void>;
 }
 
 export function StateForm({
@@ -32,6 +36,8 @@ export function StateForm({
   isEdit = false,
   disabled = false,
   onBack,
+  data,
+  onSearch,
 }: StateFormProps) {
   const form = useForm({
     resolver: zodResolver(stateSchema),
@@ -118,7 +124,7 @@ export function StateForm({
                   <Input
                     {...field}
                     type="text"
-                    placeholder="Código IBGE"
+                    placeholder="00"
                     className="pl-9"
                     disabled={isLoading || disabled}
                     autoComplete="off"
@@ -128,6 +134,31 @@ export function StateForm({
                       const value = e.target.value.toUpperCase();
                       field.onChange(value);
                     }}
+                  />
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="countryId"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <div className="relative">
+                  <SearchSelect
+                    field={field}
+                    value={field.value}
+                    onChange={field.onChange}
+                    label="País"
+                    data={data}
+                    onSearch={onSearch}
+                    placeholder="País"
+                    className="pl-9"
+                    disabled={isLoading || disabled}
                   />
                 </div>
               </FormControl>

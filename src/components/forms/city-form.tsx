@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Globe, Hash, Building2 } from "lucide-react";
+import { Globe, Hash } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +93,7 @@ export function CityForm({
                   <Input
                     {...field}
                     type="text"
-                    placeholder="BR"
+                    placeholder="0000000"
                     className="pl-9 uppercase"
                     disabled={isLoading || disabled}
                     autoComplete="off"
@@ -116,20 +116,17 @@ export function CityForm({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <SearchSelect
-                    field={field}
-                    value={field.value}
-                    onChange={field.onChange}
-                    label="Estado"
-                    data={data}
-                    onSearch={onSearch}
-                    placeholder="Estado"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                  />
-                </div>
+                <SearchSelect
+                  field={field}
+                  value={field.value}
+                  onChange={field.onChange}
+                  label="Estado"
+                  data={data}
+                  onSearch={onSearch}
+                  placeholder="Estado"
+                  className="pl-9"
+                  disabled={isLoading || disabled}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
