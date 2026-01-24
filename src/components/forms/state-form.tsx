@@ -26,7 +26,7 @@ interface StateFormProps {
   disabled?: boolean;
   onBack?: () => void;
   data: IOption[];
-  onSearch: (query: string) => void | Promise<void>;
+  onSearch: (query: string) => Promise<IOption[] | void> | IOption[] | void;
 }
 
 export function StateForm({
@@ -148,19 +148,16 @@ export function StateForm({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div className="relative">
-                  <SearchSelect
-                    field={field}
-                    value={field.value}
-                    onChange={field.onChange}
-                    label="País"
-                    data={data}
-                    onSearch={onSearch}
-                    placeholder="País"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                  />
-                </div>
+                <SearchSelect
+                  field={field}
+                  value={field.value}
+                  onChange={field.onChange}
+                  label="País"
+                  data={data}
+                  onSearch={onSearch}
+                  placeholder="País"
+                  disabled={isLoading || disabled}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

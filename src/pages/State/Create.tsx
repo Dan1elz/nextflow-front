@@ -1,31 +1,38 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StateForm } from "@/components/forms/state-form";
 import { useStates } from "@/hooks/use-states";
 import { useCountries } from "@/hooks/use-countries";
+import { useSearchOptions } from "@/hooks/use-search-options";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { IState } from "@/interfaces/locations.interface";
 import { StatesProvider } from "@/providers/states.provider";
 import { CountriesProvider } from "@/providers/countries.provider";
 import type { StateSchema } from "@/schemas/state.schema";
-import type { IOption } from "@/interfaces/api.interface";
+import type { ICountry } from "@/interfaces/locations.interface";
 
 function CreateState() {
   const navigate = useNavigate();
   const { createState } = useStates();
-  const { searchCountries, countries } = useCountries();
+  const { searchCountriesForOptions, getCountryById } = useCountries();
   const [isLoading, setIsLoading] = useState(false);
 
-  const countriesOptions: IOption[] = useMemo(() => {
-    return countries.map((country) => ({
-      value: country.id ?? "",
-      label: country.name,
-    }));
-  }, [countries]);
+  const { options: countriesOptions, handleSearch: handleSearchCountries } =
+    useSearchOptions<ICountry>({
+      searchFn: searchCountriesForOptions,
+      mapFn: (country) => ({
+        value: country.id ?? "",
+        label: country.name,
+      }),
+      selectFn: getCountryById,
+      errorLabel: "países",
+      autoLoad: false,
+      perPage: 50,
+    });
 
   const handleBack = () => {
-    navigate("/state");
+    navigate("/states");
   };
 
   const handleSubmit = async (data: StateSchema) => {
@@ -41,28 +48,13 @@ function CreateState() {
 
       await createState(stateData);
       handleSuccess("Estado criado com sucesso");
-      navigate("/state");
+      navigate("/states");
     } catch (error) {
       handleError(error, "Erro ao criar estado");
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleSearchCountries = useCallback(
-    async (query: string) => {
-      const filters: Record<string, string> = {
-        search: query,
-      };
-
-      await searchCountries({
-        filters,
-        page: 1,
-        perPage: 50,
-      });
-    },
-    [searchCountries]
-  );
 
   return (
     <div className="flex flex-col gap-4">

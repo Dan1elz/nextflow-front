@@ -1,30 +1,36 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CityForm } from "@/components/forms/city-form";
 import { useCities } from "@/hooks/use-cities";
+import { useStates } from "@/hooks/use-states";
+import { useSearchOptions } from "@/hooks/use-search-options";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { CitiesProvider } from "@/providers/cities.provider";
 import type { CitySchema } from "@/schemas/city.schema";
 import type { ICity } from "@/interfaces/locations.interface";
-import type { IOption } from "@/interfaces/api.interface";
-import { useStates } from "@/hooks/use-states";
+import type { IState } from "@/interfaces/locations.interface";
 import { StatesProvider } from "@/providers/states.provider";
 
-//ta tudo errado
 function EditCity() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { searchStates, states } = useStates();
   const { selectedCity, selectCity, updateCity } = useCities();
+  const { searchStatesForOptions, getStateById } = useStates();
   const [isLoading, setIsLoading] = useState(false);
 
-  const statesOptions: IOption[] = useMemo(() => {
-    return states.map((state) => ({
-      value: state.id ?? "",
-      label: state.name,
-    }));
-  }, [states]);
+  const { options: statesOptions, handleSearch: handleSearchStates } =
+    useSearchOptions<IState>({
+      searchFn: searchStatesForOptions,
+      mapFn: (state) => ({
+        value: state.id ?? "",
+        label: state.name,
+      }),
+      selectFn: getStateById,
+      errorLabel: "estados",
+      autoLoad: true,
+      perPage: 50,
+    });
 
   const handleBack = () => {
     navigate("/cities");
@@ -64,21 +70,6 @@ function EditCity() {
     }
   };
 
-  const handleSearchStates = useCallback(
-    async (query: string) => {
-      const filters: Record<string, string> = {
-        search: query,
-      };
-
-      await searchStates({
-        filters,
-        page: 1,
-        perPage: 50,
-      });
-    },
-    [searchStates]
-  );
-
   if (!selectedCity) {
     return (
       <div className="flex flex-col gap-4">
@@ -107,7 +98,9 @@ function EditCity() {
             initialData={selectedCity}
             isEdit={false}
             data={statesOptions}
-            onSearch={handleSearchStates}
+            onSearch={async (query: string) => {
+              await handleSearchStates(query, selectedCity?.stateId);
+            }}
           />
         </CardContent>
       </Card>
