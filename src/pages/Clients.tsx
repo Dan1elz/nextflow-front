@@ -6,6 +6,7 @@ import { Plus, Download, Trash2, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/app/data-table";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { useClients } from "@/hooks/use-clients";
@@ -16,7 +17,8 @@ import { ClientsProvider } from "@/providers/clients.provider";
 
 function Clients() {
   const navigate = useNavigate();
-  const { clients, pagination, searchClients, deleteClient } = useClients();
+  const { clients, pagination, searchClients, deleteClient, reactivateClient } =
+    useClients();
   const [perPage, setPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +67,21 @@ function Clients() {
       }
     },
     [navigate]
+  );
+
+  const handleReactivate = useCallback(
+    async (client: IClient) => {
+      if (!client.id) return;
+
+      try {
+        await reactivateClient(client.id);
+        handleSuccess("Cliente reativado com sucesso");
+        handleSearch(1);
+      } catch (error) {
+        handleError(error, "Erro ao reativar cliente");
+      }
+    },
+    [reactivateClient, handleSearch]
   );
 
   const handleDelete = useCallback(
@@ -177,21 +194,37 @@ function Clients() {
         cell: ({ row }) => formatCpfCnpj(row.original.cpf),
       },
       {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const client = row.original;
+          return (
+            <Badge variant={client.isActive ? "default" : "secondary"}>
+              {client.isActive ? "Ativo" : "Inativo"}
+            </Badge>
+          );
+        },
+      },
+      {
         id: "actions",
         header: "Ações",
         cell: ({ row }) => (
           <NavActionColumn
             object={row.original}
             onEdit={handleEdit}
+            onReactivate={handleReactivate}
             onDelete={handleDelete}
             onView={handleView}
+            disableDelete={!row.original.isActive}
+            disableEdit={!row.original.isActive}
+            disableReactivate={row.original.isActive}
           />
         ),
         enableSorting: false,
         enableHiding: false,
       },
     ],
-    [handleDelete, handleEdit, handleView]
+    [handleDelete, handleEdit, handleView, handleReactivate]
   );
 
   return (

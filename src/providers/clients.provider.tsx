@@ -61,6 +61,13 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const reactivateClient = useCallback(
+    async (id: string): Promise<void> => {
+      await clientService.reactivate(id, token ?? undefined);
+    },
+    [token]
+  );
+
   return (
     <ClientsContext.Provider
       value={{
@@ -72,6 +79,7 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
         createClient,
         updateClient,
         deleteClient,
+        reactivateClient,
       }}
     >
       {children}

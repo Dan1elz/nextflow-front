@@ -12,6 +12,7 @@ export type ClientsContextType = {
   createClient: (client: IClient) => Promise<IClient>;
   updateClient: (id: string, client: IClient) => Promise<IClient>;
   deleteClient: (id: string) => Promise<void>;
+  reactivateClient: (id: string) => Promise<void>;
 };
 
 export const ClientsContext = createContext<ClientsContextType | null>(null);
