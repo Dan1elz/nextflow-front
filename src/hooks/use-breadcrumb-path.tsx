@@ -6,6 +6,7 @@ const routeNameMap: Record<string, string> = {
   users: "Usuários",
   create: "Criar",
   edit: "Editar",
+  view: "Visualizar",
   clients: "Clientes",
   contacts: "Contatos",
   addresses: "Endereços",

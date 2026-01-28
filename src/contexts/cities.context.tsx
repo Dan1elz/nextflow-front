@@ -8,7 +8,11 @@ export type CitiesContextType = {
   selectedCity: ICity | null;
   pagination: IPaginationInfo | null;
   searchCities: (query?: IIndexParams) => Promise<void>;
+  searchCitiesForOptions: (
+    query?: IIndexParams
+  ) => Promise<{ data: ICity[]; totalItems: number }>;
   selectCity: (id: string) => Promise<void>;
+  getCityById: (id: string) => Promise<ICity>;
   createCity: (city: ICity) => Promise<ICity>;
   updateCity: (id: string, city: ICity) => Promise<ICity>;
   deleteCity: (id: string) => Promise<void>;

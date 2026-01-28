@@ -3,7 +3,7 @@ import type { ICity } from "./locations.interface";
 import type { IState } from "./locations.interface";
 
 export interface IAddress {
-  id: string;
+  id?: string;
   clientId?: string;
   client?: IClient;
   supplierId?: string;

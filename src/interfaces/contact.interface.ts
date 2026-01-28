@@ -1,7 +1,7 @@
 import type { IClient } from "./client.interface";
 
 export interface IContact {
-  id: string;
+  id?: string;
   clientId?: string;
   client?: IClient;
   supplierId?: string;
