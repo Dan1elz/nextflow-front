@@ -4,6 +4,7 @@ import { User, Mail, CreditCard, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/app/date-picker";
 import {
   Form,
   FormControl,
@@ -50,12 +51,14 @@ export function UserForm({
           lastName: initialData.lastName,
           email: initialData.email,
           cpf: formatCpfCnpj(initialData.cpf),
+          birthDate: initialData.birthDate || "",
         }
       : {
           name: "",
           lastName: "",
           email: "",
           cpf: "",
+          birthDate: "",
           ...(isEdit ? {} : { password: "" }),
         },
   });
@@ -142,6 +145,27 @@ export function UserForm({
                     autoComplete="email"
                   />
                 </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="birthDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Data de Nascimento</FormLabel>
+              <FormControl>
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isLoading || disabled}
+                  maxDate={new Date()}
+                  placeholder="dd/mm/aaaa"
+                  error={!!form.formState.errors.birthDate}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

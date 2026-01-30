@@ -12,7 +12,7 @@ import { NavActionColumn } from "@/components/app/nav-action-column";
 import { useClients } from "@/hooks/use-clients";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { IClient } from "@/interfaces/client.interface";
-import { formatCpfCnpj } from "@/utils/format.helpers";
+import { formatCpfCnpj, formatDateOnly } from "@/utils/format.helpers";
 import { ClientsProvider } from "@/providers/clients.provider";
 
 function Clients() {
@@ -185,8 +185,10 @@ function Clients() {
         },
       },
       {
-        accessorKey: "email",
-        header: "E-mail",
+        accessorKey: "birthDate",
+        header: "Data de Nascimento",
+        cell: ({ row }) =>
+          row.original.birthDate ? formatDateOnly(row.original.birthDate) : "-",
       },
       {
         accessorKey: "cpf",

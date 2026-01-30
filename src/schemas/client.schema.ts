@@ -1,6 +1,17 @@
 import { z } from "zod";
-import { validateEmail, validateCpf } from "@/utils/validators";
+import { validateCpf } from "@/utils/validators";
 import { formatOnlyNumbers } from "@/utils/format.helpers";
+
+const birthDateSchema = z
+  .string()
+  .min(1, "Data de nascimento é obrigatória")
+  .refine(
+    (date) => {
+      const year = new Date(date).getFullYear();
+      return year >= 1900;
+    },
+    { message: "Ano deve ser a partir de 1900" }
+  );
 
 export const createClientSchema = z.object({
   name: z
@@ -13,20 +24,13 @@ export const createClientSchema = z.object({
     .min(1, "Sobrenome é obrigatório")
     .min(2, "Sobrenome deve ter no mínimo 2 caracteres")
     .max(25, "Sobrenome deve ter no máximo 25 caracteres"),
-  email: z
-    .string()
-    .min(1, "E-mail é obrigatório")
-    .min(5, "E-mail deve ter no mínimo 5 caracteres")
-    .max(150, "E-mail deve ter no máximo 150 caracteres")
-    .refine((email) => validateEmail(email), {
-      message: "E-mail inválido",
-    }),
   cpf: z
     .string()
     .optional()
     .refine((v) => !v || !v.trim() || validateCpf(formatOnlyNumbers(v)), {
       message: "CPF inválido",
     }),
+  birthDate: birthDateSchema,
 });
 
 export const updateClientSchema = createClientSchema;

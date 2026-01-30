@@ -1,9 +1,10 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Mail, CreditCard } from "lucide-react";
+import { User, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/app/date-picker";
 import {
   Form,
   FormControl,
@@ -48,14 +49,14 @@ export function ClientForm({
       ? {
           name: initialData.name,
           lastName: initialData.lastName,
-          email: initialData.email,
           cpf: initialData.cpf ? formatCpfCnpj(initialData.cpf) : "",
+          birthDate: initialData.birthDate || "",
         }
       : {
           name: "",
           lastName: "",
-          email: "",
           cpf: "",
+          birthDate: "",
         },
   });
 
@@ -125,22 +126,19 @@ export function ClientForm({
 
         <FormField
           control={form.control}
-          name="email"
+          name="birthDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>E-mail</FormLabel>
+              <FormLabel>Data de Nascimento</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="email"
-                    placeholder="seu@email.com"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                    autoComplete="email"
-                  />
-                </div>
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isLoading || disabled}
+                  maxDate={new Date()}
+                  placeholder="dd/mm/aaaa"
+                  error={!!form.formState.errors.birthDate}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

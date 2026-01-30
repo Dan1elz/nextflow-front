@@ -4,6 +4,7 @@ export interface IUser {
   lastName: string;
   email: string;
   cpf: string;
+  birthDate: string;
   isActive?: boolean;
 }
 
@@ -12,6 +13,7 @@ export interface ICreateUser {
   lastName: string;
   email: string;
   cpf: string;
+  birthDate: string;
   password: string;
 }
 
@@ -20,6 +22,7 @@ export interface IUpdateUser {
   lastName: string;
   email: string;
   cpf: string;
+  birthDate: string;
 }
 
 export interface ILogin {

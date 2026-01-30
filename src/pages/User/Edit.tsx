@@ -40,6 +40,7 @@ function EditUser() {
         lastName: data.lastName,
         email: data.email,
         cpf: data.cpf.replace(/\D/g, ""), // Remove formatação do CPF
+        birthDate: data.birthDate,
       };
 
       await updateUser(id, userData);

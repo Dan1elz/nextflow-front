@@ -43,8 +43,8 @@ export function ClientTab({ mode }: ClientTabProps) {
     const base = {
       name: data.name,
       lastName: data.lastName,
-      email: data.email,
       cpf,
+      birthDate: data.birthDate,
     };
 
     try {
