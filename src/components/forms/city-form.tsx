@@ -26,7 +26,7 @@ interface CityFormProps {
   disabled?: boolean;
   onBack?: () => void;
   data: IOption[];
-  onSearch: (query: string) => void | Promise<void>;
+  onSearch: (query: string) => Promise<IOption[] | void> | IOption[] | void;
 }
 
 export function CityForm({
@@ -124,7 +124,6 @@ export function CityForm({
                   data={data}
                   onSearch={onSearch}
                   placeholder="Estado"
-                  className="pl-9"
                   disabled={isLoading || disabled}
                 />
               </FormControl>

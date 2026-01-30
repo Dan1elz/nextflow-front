@@ -1,28 +1,35 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CityForm } from "@/components/forms/city-form";
 import { useCities } from "@/hooks/use-cities";
+import { useStates } from "@/hooks/use-states";
+import { useSearchOptions } from "@/hooks/use-search-options";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { ICity } from "@/interfaces/locations.interface";
 import { CitiesProvider } from "@/providers/cities.provider";
 import type { CitySchema } from "@/schemas/city.schema";
-import { useStates } from "@/hooks/use-states";
-import type { IOption } from "@/interfaces/api.interface";
+import type { IState } from "@/interfaces/locations.interface";
 import { StatesProvider } from "@/providers/states.provider";
 
 function CreateCity() {
   const navigate = useNavigate();
   const { createCity } = useCities();
-  const { searchStates, states } = useStates();
+  const { searchStatesForOptions, getStateById } = useStates();
   const [isLoading, setIsLoading] = useState(false);
 
-  const statesOptions: IOption[] = useMemo(() => {
-    return states.map((state) => ({
-      value: state.id ?? "",
-      label: state.name,
-    }));
-  }, [states]);
+  const { options: statesOptions, handleSearch: handleSearchStates } =
+    useSearchOptions<IState>({
+      searchFn: searchStatesForOptions,
+      mapFn: (state) => ({
+        value: state.id ?? "",
+        label: state.name,
+      }),
+      selectFn: getStateById,
+      errorLabel: "estados",
+      autoLoad: false,
+      perPage: 50,
+    });
 
   const handleBack = () => {
     navigate("/cities");
@@ -47,21 +54,6 @@ function CreateCity() {
       setIsLoading(false);
     }
   };
-
-  const handleSearchStates = useCallback(
-    async (query: string) => {
-      const filters: Record<string, string> = {
-        search: query,
-      };
-
-      await searchStates({
-        filters,
-        page: 1,
-        perPage: 50,
-      });
-    },
-    [searchStates]
-  );
 
   return (
     <div className="flex flex-col gap-4">

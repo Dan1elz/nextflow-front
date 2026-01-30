@@ -30,10 +30,30 @@ export function StatesProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const searchStatesForOptions = useCallback(
+    async (
+      query?: IIndexParams
+    ): Promise<{ data: IState[]; totalItems: number }> => {
+      const response = await stateService.getAll(query, token ?? undefined);
+      return {
+        data: response.data || [],
+        totalItems: response.totalItems,
+      };
+    },
+    [token]
+  );
+
   const selectState = useCallback(
     async (id: string): Promise<void> => {
       const data = await stateService.getById(id, token ?? undefined);
       setSelectedState(data);
+    },
+    [token]
+  );
+
+  const getStateById = useCallback(
+    async (id: string): Promise<IState> => {
+      return await stateService.getById(id, token ?? undefined);
     },
     [token]
   );
@@ -68,7 +88,9 @@ export function StatesProvider({ children }: { children: ReactNode }) {
         pagination,
         selectedState,
         searchStates,
+        searchStatesForOptions,
         selectState,
+        getStateById,
         createState,
         updateState,
         deleteState,

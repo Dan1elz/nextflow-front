@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Mail, CreditCard, Lock } from "lucide-react";
+import { User, CreditCard } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,51 +15,48 @@ import {
 } from "@/components/ui/form";
 import { ButtonLoader } from "@/components/ui/button-loader";
 import {
-  createUserSchema,
-  updateUserSchema,
-  type CreateUserFormData,
-  type UpdateUserFormData,
-} from "@/schemas/user.schema";
+  createClientSchema,
+  updateClientSchema,
+  type CreateClientFormData,
+  type UpdateClientFormData,
+} from "@/schemas/client.schema";
 import { formatCpfCnpj, formatOnlyNumbers } from "@/utils/format.helpers";
-import type { IUser } from "@/interfaces/user.interface";
+import type { IClient } from "@/interfaces/client.interface";
 
-interface UserFormProps {
+interface ClientFormProps {
   onSubmit: (
-    data: CreateUserFormData | UpdateUserFormData
+    data: CreateClientFormData | UpdateClientFormData
   ) => void | Promise<void>;
   isLoading?: boolean;
-  initialData?: IUser;
+  initialData?: IClient;
   isEdit?: boolean;
   disabled?: boolean;
   onBack?: () => void;
 }
 
-export function UserForm({
+export function ClientForm({
   onSubmit,
   isLoading = false,
   initialData,
   isEdit = false,
   disabled = false,
   onBack,
-}: UserFormProps) {
-  const schema = isEdit ? updateUserSchema : createUserSchema;
-  const form = useForm<CreateUserFormData | UpdateUserFormData>({
+}: ClientFormProps) {
+  const schema = isEdit ? updateClientSchema : createClientSchema;
+  const form = useForm<CreateClientFormData | UpdateClientFormData>({
     resolver: zodResolver(schema),
     defaultValues: initialData
       ? {
           name: initialData.name,
           lastName: initialData.lastName,
-          email: initialData.email,
-          cpf: formatCpfCnpj(initialData.cpf),
+          cpf: initialData.cpf ? formatCpfCnpj(initialData.cpf) : "",
           birthDate: initialData.birthDate || "",
         }
       : {
           name: "",
           lastName: "",
-          email: "",
           cpf: "",
           birthDate: "",
-          ...(isEdit ? {} : { password: "" }),
         },
   });
 
@@ -127,95 +124,47 @@ export function UserForm({
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="email"
-                    placeholder="seu@email.com"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                    autoComplete="email"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="birthDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Data de Nascimento</FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isLoading || disabled}
-                  maxDate={new Date()}
-                  placeholder="dd/mm/aaaa"
-                  error={!!form.formState.errors.birthDate}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="cpf"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>CPF</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="000.000.000-00"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                    maxLength={14}
-                    onChange={(e) =>
-                      handleCpfChange(e.target.value, field.onChange)
-                    }
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {!isEdit && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="password"
+            name="birthDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Senha</FormLabel>
+                <FormLabel>Data de Nascimento</FormLabel>
+                <FormControl>
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isLoading || disabled}
+                    maxDate={new Date()}
+                    placeholder="dd/mm/aaaa"
+                    error={!!form.formState.errors.birthDate}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="cpf"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <CreditCard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       {...field}
-                      type="password"
-                      placeholder="••••••••"
+                      type="text"
+                      placeholder="000.000.000-00"
                       className="pl-9"
                       disabled={isLoading || disabled}
-                      autoComplete="new-password"
+                      maxLength={14}
+                      onChange={(e) =>
+                        handleCpfChange(e.target.value, field.onChange)
+                      }
                     />
                   </div>
                 </FormControl>
@@ -223,7 +172,7 @@ export function UserForm({
               </FormItem>
             )}
           />
-        )}
+        </div>
 
         <div className="flex justify-end gap-2 pt-4">
           {onBack && (

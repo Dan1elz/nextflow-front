@@ -30,10 +30,30 @@ export function CitiesProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const searchCitiesForOptions = useCallback(
+    async (
+      query?: IIndexParams
+    ): Promise<{ data: ICity[]; totalItems: number }> => {
+      const response = await cityService.getAll(query, token ?? undefined);
+      return {
+        data: response.data || [],
+        totalItems: response.totalItems,
+      };
+    },
+    [token]
+  );
+
   const selectCity = useCallback(
     async (id: string): Promise<void> => {
       const data = await cityService.getById(id, token ?? undefined);
       setSelectedCity(data);
+    },
+    [token]
+  );
+
+  const getCityById = useCallback(
+    async (id: string): Promise<ICity> => {
+      return await cityService.getById(id, token ?? undefined);
     },
     [token]
   );
@@ -68,7 +88,9 @@ export function CitiesProvider({ children }: { children: ReactNode }) {
         pagination,
         selectedCity,
         searchCities,
+        searchCitiesForOptions,
         selectCity,
+        getCityById,
         createCity,
         updateCity,
         deleteCity,

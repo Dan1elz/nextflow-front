@@ -46,14 +46,24 @@ export function formatCep(value: string | number): string {
 
 /**
  * Formata data apenas (DD/MM/YYYY)
- * @param value - Data (Date, string ISO ou string formatada)
+ * @param value - Data (Date, string ISO YYYY-MM-DD ou string formatada)
  * @returns string - Data formatada (DD/MM/YYYY)
+ *
+ * Nota: Strings ISO "YYYY-MM-DD" são parseadas como data local para evitar
+ * o bug de timezone (ex: "2005-06-04" UTC vira 03/06 no Brasil).
  */
 export function formatDateOnly(value: Date | string): string {
   let date: Date;
 
   if (value instanceof Date) {
     date = value;
+  } else if (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}/.test(value.trim())
+  ) {
+    // ISO YYYY-MM-DD: parsear como data local para evitar deslocamento de timezone
+    const [year, month, day] = value.split("T")[0].split("-").map(Number);
+    date = new Date(year, month - 1, day);
   } else {
     date = new Date(value);
   }
