@@ -1,5 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, MapPin, Users, ChevronDown, Settings } from "lucide-react";
+import {
+  Home,
+  MapPin,
+  Users,
+  UserCircle,
+  ChevronDown,
+  Settings,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -33,6 +40,7 @@ const items: SidebarMenuGroup[] = [
     items: [
       { name: "Home", url: "/", icon: Home },
       { name: "Usuários", url: "/users", icon: Users },
+      { name: "Clientes", url: "/clients", icon: UserCircle },
       {
         name: "Localidades",
         icon: MapPin,

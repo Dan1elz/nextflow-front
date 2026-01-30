@@ -8,7 +8,11 @@ export type CountriesContextType = {
   selectedCountry: ICountry | null;
   pagination: IPaginationInfo | null;
   searchCountries: (query?: IIndexParams) => Promise<void>;
+  searchCountriesForOptions: (
+    query?: IIndexParams
+  ) => Promise<{ data: ICountry[]; totalItems: number }>;
   selectCountry: (id: string) => Promise<void>;
+  getCountryById: (id: string) => Promise<ICountry>;
   createCountry: (country: ICountry) => Promise<ICountry>;
   updateCountry: (id: string, country: ICountry) => Promise<ICountry>;
   deleteCountry: (id: string) => Promise<void>;

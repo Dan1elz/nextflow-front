@@ -8,7 +8,11 @@ export type StatesContextType = {
   selectedState: IState | null;
   pagination: IPaginationInfo | null;
   searchStates: (query?: IIndexParams) => Promise<void>;
+  searchStatesForOptions: (
+    query?: IIndexParams
+  ) => Promise<{ data: IState[]; totalItems: number }>;
   selectState: (id: string) => Promise<void>;
+  getStateById: (id: string) => Promise<IState>;
   createState: (state: IState) => Promise<IState>;
   updateState: (id: string, state: IState) => Promise<IState>;
   deleteState: (id: string) => Promise<void>;

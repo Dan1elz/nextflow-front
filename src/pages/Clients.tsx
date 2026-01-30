@@ -9,101 +9,101 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/app/data-table";
 import { NavActionColumn } from "@/components/app/nav-action-column";
-import { useUsers } from "@/hooks/use-users";
+import { useClients } from "@/hooks/use-clients";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import type { IUser } from "@/interfaces/user.interface";
+import type { IClient } from "@/interfaces/client.interface";
 import { formatCpfCnpj, formatDateOnly } from "@/utils/format.helpers";
-import { UsersProvider } from "@/providers/users.provider";
+import { ClientsProvider } from "@/providers/clients.provider";
 
-function Users() {
+function Clients() {
   const navigate = useNavigate();
-  const { users, pagination, searchUsers, deleteUser, reactivateUser } =
-    useUsers();
+  const { clients, pagination, searchClients, deleteClient, reactivateClient } =
+    useClients();
   const [perPage, setPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasSearched = useRef(false);
 
-  const searchUsersRef = useRef(searchUsers);
+  const searchClientsRef = useRef(searchClients);
   const perPageRef = useRef(perPage);
 
   useEffect(() => {
-    searchUsersRef.current = searchUsers;
-  }, [searchUsers]);
+    searchClientsRef.current = searchClients;
+  }, [searchClients]);
 
   useEffect(() => {
     perPageRef.current = perPage;
   }, [perPage]);
 
   const handleSearch = useCallback((page = 1) => {
-    searchUsersRef
+    searchClientsRef
       .current({
         filters: {},
         page,
         perPage: perPageRef.current,
       })
       .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar usuários");
+        handleError(error, "Erro desconhecido ao buscar clientes");
       });
   }, []);
 
   const handlePageChange = (page: number) => handleSearch(page);
 
-  const handleCreate = () => navigate("/users/create");
+  const handleCreate = () => navigate("/clients/create");
 
   const handleEdit = useCallback(
-    (user: IUser) => {
-      if (user.id) {
-        navigate(`/users/${user.id}/edit`);
+    (client: IClient) => {
+      if (client.id) {
+        navigate(`/clients/${client.id}/edit`);
+      }
+    },
+    [navigate]
+  );
+
+  const handleView = useCallback(
+    (client: IClient) => {
+      if (client.id) {
+        navigate(`/clients/${client.id}/view`);
       }
     },
     [navigate]
   );
 
   const handleReactivate = useCallback(
-    async (user: IUser) => {
-      if (!user.id) return;
+    async (client: IClient) => {
+      if (!client.id) return;
 
       try {
-        await reactivateUser(user.id);
-        handleSuccess("Usuário reativado com sucesso");
+        await reactivateClient(client.id);
+        handleSuccess("Cliente reativado com sucesso");
         handleSearch(1);
       } catch (error) {
-        handleError(error, "Erro ao reativar usuário");
+        handleError(error, "Erro ao reativar cliente");
       }
     },
-    [reactivateUser, handleSearch]
-  );
-
-  const handleView = useCallback(
-    (user: IUser) => {
-      if (user.id) {
-        navigate(`/users/${user.id}/view`);
-      }
-    },
-    [navigate]
+    [reactivateClient, handleSearch]
   );
 
   const handleDelete = useCallback(
-    async (user: IUser) => {
-      if (!user.id) return;
+    async (client: IClient) => {
+      if (!client.id) return;
 
       try {
-        await deleteUser(user.id);
-        handleSuccess("Usuário excluído com sucesso");
+        await deleteClient(client.id);
+        handleSuccess("Cliente excluído com sucesso");
         handleSearch(1);
       } catch (error) {
-        handleError(error, "Erro ao excluir usuário");
+        handleError(error, "Erro ao excluir cliente");
       }
     },
-    [deleteUser, handleSearch]
+    [deleteClient, handleSearch]
   );
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
     // Função vazia conforme solicitado
   }, []);
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
     // Função vazia conforme solicitado
   }, []);
@@ -123,7 +123,6 @@ function Users() {
         const result = e.target?.result;
         if (typeof result === "string") {
           const base64 = btoa(result);
-          // Arquivo convertido para base64, pronto para enviar
           console.log("Arquivo em base64:", base64);
         }
       };
@@ -134,14 +133,14 @@ function Users() {
 
   useEffect(() => {
     if (hasSearched.current) {
-      searchUsersRef
+      searchClientsRef
         .current({
           filters: {},
           page: 1,
           perPage,
         })
         .catch((error) =>
-          handleError(error, "Erro desconhecido ao buscar usuários")
+          handleError(error, "Erro desconhecido ao buscar clientes")
         );
     } else {
       hasSearched.current = true;
@@ -149,7 +148,7 @@ function Users() {
     }
   }, [perPage, handleSearch]);
 
-  const columns = useMemo<ColumnDef<IUser>[]>(
+  const columns = useMemo<ColumnDef<IClient>[]>(
     () => [
       {
         id: "select",
@@ -181,13 +180,9 @@ function Users() {
         accessorKey: "name",
         header: "Nome",
         cell: ({ row }) => {
-          const user = row.original;
-          return `${user.name} ${user.lastName}`;
+          const client = row.original;
+          return `${client.name} ${client.lastName}`;
         },
-      },
-      {
-        accessorKey: "email",
-        header: "Email",
       },
       {
         accessorKey: "birthDate",
@@ -198,18 +193,16 @@ function Users() {
       {
         accessorKey: "cpf",
         header: "CPF",
-        cell: ({ row }) => {
-          return formatCpfCnpj(row.original.cpf);
-        },
+        cell: ({ row }) => formatCpfCnpj(row.original.cpf),
       },
       {
         accessorKey: "status",
         header: "Status",
         cell: ({ row }) => {
-          const user = row.original;
+          const client = row.original;
           return (
-            <Badge variant={user.isActive ? "default" : "secondary"}>
-              {user.isActive ? "Ativo" : "Inativo"}
+            <Badge variant={client.isActive ? "default" : "secondary"}>
+              {client.isActive ? "Ativo" : "Inativo"}
             </Badge>
           );
         },
@@ -217,20 +210,18 @@ function Users() {
       {
         id: "actions",
         header: "Ações",
-        cell: ({ row }) => {
-          return (
-            <NavActionColumn
-              object={row.original}
-              onEdit={handleEdit}
-              onReactivate={handleReactivate}
-              onDelete={handleDelete}
-              onView={handleView}
-              disableDelete={!row.original.isActive}
-              disableEdit={!row.original.isActive}
-              disableReactivate={row.original.isActive}
-            />
-          );
-        },
+        cell: ({ row }) => (
+          <NavActionColumn
+            object={row.original}
+            onEdit={handleEdit}
+            onReactivate={handleReactivate}
+            onDelete={handleDelete}
+            onView={handleView}
+            disableDelete={!row.original.isActive}
+            disableEdit={!row.original.isActive}
+            disableReactivate={row.original.isActive}
+          />
+        ),
         enableSorting: false,
         enableHiding: false,
       },
@@ -244,7 +235,7 @@ function Users() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CardTitle>Usuários</CardTitle>
+              <CardTitle>Clientes</CardTitle>
               {selectedIds.length > 0 && (
                 <span className="text-sm text-muted-foreground">
                   {selectedIds.length} selecionado
@@ -276,7 +267,6 @@ function Users() {
               </Button>
               {selectedIds.length > 0 && (
                 <Button
-                  // variant="destructive"
                   variant="outline"
                   className="text-destructive border-destructive hover:text-destructive"
                   onClick={() => handleDeleteMultiple(selectedIds)}
@@ -293,7 +283,7 @@ function Users() {
         <CardContent>
           <DataTable
             columns={columns}
-            data={users}
+            data={clients}
             page={pagination?.currentPage ?? 1}
             totalPages={pagination?.lastPage ?? 1}
             total={pagination?.total ?? 0}
@@ -307,10 +297,10 @@ function Users() {
   );
 }
 
-export default function UsersPageWrapper() {
+export default function ClientsPageWrapper() {
   return (
-    <UsersProvider>
-      <Users />
-    </UsersProvider>
+    <ClientsProvider>
+      <Clients />
+    </ClientsProvider>
   );
 }

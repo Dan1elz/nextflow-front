@@ -31,6 +31,7 @@ function CreateUser() {
         lastName: data.lastName,
         email: data.email,
         cpf: data.cpf.replace(/\D/g, ""), // Remove formatação do CPF
+        birthDate: data.birthDate,
         password: data.password,
       };
 

@@ -6,6 +6,16 @@ const routeNameMap: Record<string, string> = {
   users: "Usuários",
   create: "Criar",
   edit: "Editar",
+  view: "Visualizar",
+  clients: "Clientes",
+  contacts: "Contatos",
+  addresses: "Endereços",
+  cities: "Cidades",
+  states: "Estados",
+  countries: "Países",
+  suppliers: "Fornecedores",
+  products: "Produtos",
+  orders: "Pedidos",
 };
 
 export function useBreadcrumbPath(): IBreadcrumb[] | null {

@@ -14,7 +14,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { useBreadcrumbPath } from "@/hooks/useBreadcrumbPath";
+import { useBreadcrumbPath } from "@/hooks/use-breadcrumb-path";
 import type { IBreadcrumb } from "@/types/general";
 import React from "react";
 import { ToggleTheme } from "./ToggleTheme";

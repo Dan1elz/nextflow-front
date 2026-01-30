@@ -14,6 +14,16 @@ import CountriesPageWrapper from "@/pages/Countries";
 import CreateCountryPageWrapper from "@/pages/Country/Create";
 import EditCountryPageWrapper from "@/pages/Country/Edit";
 import ViewCountryPageWrapper from "@/pages/Country/View";
+import EditCityPageWrapper from "@/pages/City/Edit";
+import CreateCityPageWrapper from "@/pages/City/Create";
+import ViewCityPageWrapper from "@/pages/City/View";
+import ViewStatePageWrapper from "@/pages/State/View";
+import EditStatePageWrapper from "@/pages/State/Edit";
+import CreateStatePageWrapper from "@/pages/State/Create";
+import ClientsPageWrapper from "@/pages/Clients";
+import CreateClientPageWrapper from "@/pages/Client/Create";
+import EditClientPageWrapper from "@/pages/Client/Edit";
+import ViewClientPageWrapper from "@/pages/Client/View";
 
 function AppRoutes() {
   return (
@@ -43,9 +53,20 @@ function AppRoutes() {
         <Route path="users/:id/edit" element={<EditUserPageWrapper />} />
         <Route path="users/:id/view" element={<ViewUserPageWrapper />} />
 
+        <Route path="clients" element={<ClientsPageWrapper />} />
+        <Route path="clients/create" element={<CreateClientPageWrapper />} />
+        <Route path="clients/:id/edit" element={<EditClientPageWrapper />} />
+        <Route path="clients/:id/view" element={<ViewClientPageWrapper />} />
+
         <Route path="states" element={<StatesPageWrapper />} />
+        <Route path="states/create" element={<CreateStatePageWrapper />} />
+        <Route path="states/:id/edit" element={<EditStatePageWrapper />} />
+        <Route path="states/:id/view" element={<ViewStatePageWrapper />} />
 
         <Route path="cities" element={<CitiesPageWrapper />} />
+        <Route path="cities/create" element={<CreateCityPageWrapper />} />
+        <Route path="cities/:id/edit" element={<EditCityPageWrapper />} />
+        <Route path="cities/:id/view" element={<ViewCityPageWrapper />} />
 
         <Route path="countries" element={<CountriesPageWrapper />} />
         <Route path="countries/create" element={<CreateCountryPageWrapper />} />
