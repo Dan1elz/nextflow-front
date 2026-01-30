@@ -30,10 +30,30 @@ export function CountriesProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const searchCountriesForOptions = useCallback(
+    async (
+      query?: IIndexParams
+    ): Promise<{ data: ICountry[]; totalItems: number }> => {
+      const response = await countryService.getAll(query, token ?? undefined);
+      return {
+        data: response.data || [],
+        totalItems: response.totalItems,
+      };
+    },
+    [token]
+  );
+
   const selectCountry = useCallback(
     async (id: string): Promise<void> => {
       const data = await countryService.getById(id, token ?? undefined);
       setSelectedCountry(data);
+    },
+    [token]
+  );
+
+  const getCountryById = useCallback(
+    async (id: string): Promise<ICountry> => {
+      return await countryService.getById(id, token ?? undefined);
     },
     [token]
   );
@@ -68,7 +88,9 @@ export function CountriesProvider({ children }: { children: ReactNode }) {
         pagination,
         selectedCountry,
         searchCountries,
+        searchCountriesForOptions,
         selectCountry,
+        getCountryById,
         createCountry,
         updateCountry,
         deleteCountry,

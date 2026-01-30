@@ -2,6 +2,17 @@ import { z } from "zod";
 import { validateEmail, validateCpf } from "@/utils/validators";
 import { formatOnlyNumbers } from "@/utils/format.helpers";
 
+const birthDateSchema = z
+  .string()
+  .min(1, "Data de nascimento é obrigatória")
+  .refine(
+    (date) => {
+      const year = new Date(date).getFullYear();
+      return year >= 1900;
+    },
+    { message: "Ano deve ser a partir de 1900" }
+  );
+
 const passwordSchema = z
   .string()
   .min(1, "Senha é obrigatória")
@@ -50,6 +61,7 @@ export const createUserSchema = z.object({
         message: "CPF inválido",
       }
     ),
+  birthDate: birthDateSchema,
   password: passwordSchema,
 });
 
@@ -80,6 +92,7 @@ export const updateUserSchema = z.object({
         message: "CPF inválido",
       }
     ),
+  birthDate: birthDateSchema,
 });
 
 export type CreateUserFormData = z.infer<typeof createUserSchema>;

@@ -1,29 +1,36 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StateForm } from "@/components/forms/state-form";
 import { useStates } from "@/hooks/use-states";
 import { useCountries } from "@/hooks/use-countries";
+import { useSearchOptions } from "@/hooks/use-search-options";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { StatesProvider } from "@/providers/states.provider";
 import { CountriesProvider } from "@/providers/countries.provider";
 import type { StateSchema } from "@/schemas/state.schema";
 import type { IState } from "@/interfaces/locations.interface";
-import type { IOption } from "@/interfaces/api.interface";
+import type { ICountry } from "@/interfaces/locations.interface";
 
 function EditState() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedState, selectState, updateState } = useStates();
-  const { searchCountries, countries } = useCountries();
+  const { searchCountriesForOptions, getCountryById } = useCountries();
   const [isLoading, setIsLoading] = useState(false);
 
-  const countriesOptions: IOption[] = useMemo(() => {
-    return countries.map((country) => ({
-      value: country.id ?? "",
-      label: country.name,
-    }));
-  }, [countries]);
+  const { options: countriesOptions, handleSearch: handleSearchCountries } =
+    useSearchOptions<ICountry>({
+      searchFn: searchCountriesForOptions,
+      mapFn: (country) => ({
+        value: country.id ?? "",
+        label: country.name,
+      }),
+      selectFn: getCountryById,
+      errorLabel: "países",
+      autoLoad: true,
+      perPage: 50,
+    });
 
   const handleBack = () => {
     navigate("/states");
@@ -64,21 +71,6 @@ function EditState() {
     }
   };
 
-  const handleSearchCountries = useCallback(
-    async (query: string) => {
-      const filters: Record<string, string> = {
-        search: query,
-      };
-
-      await searchCountries({
-        filters,
-        page: 1,
-        perPage: 50,
-      });
-    },
-    [searchCountries]
-  );
-
   if (!selectedState) {
     return (
       <div className="flex flex-col gap-4">
@@ -107,7 +99,9 @@ function EditState() {
             initialData={selectedState}
             isEdit={true}
             data={countriesOptions}
-            onSearch={handleSearchCountries}
+            onSearch={async (query: string) => {
+              await handleSearchCountries(query, selectedState?.countryId);
+            }}
           />
         </CardContent>
       </Card>

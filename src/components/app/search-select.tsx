@@ -57,7 +57,12 @@ export function SearchSelect<T extends Record<string, unknown>>({
   const [searchTerm, setSearchTerm] = React.useState("");
   const [data, setData] = React.useState<T[]>(initialData);
   const [isSearching, setIsSearching] = React.useState(false);
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [isLoadingInitial, setIsLoadingInitial] = React.useState(false);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const isInitialMountRef = React.useRef(true);
+  const isSearchingRef = React.useRef(false);
+  const lastSearchTermRef = React.useRef<string>("");
+  const hasLoadedOnOpenRef = React.useRef(false);
 
   // Detecta se field é um objeto do react-hook-form ou uma chave
   const isFieldObject = React.useMemo(
@@ -321,6 +326,17 @@ export function SearchSelect<T extends Record<string, unknown>>({
     });
   }, [debouncedSearchTerm, initialData, getLabel, onSearch, data]);
 
+  // Atualiza os dados quando initialData muda (quando os dados são carregados externamente)
+  // Mas apenas se não houver busca ativa
+  React.useEffect(() => {
+    if (
+      !onSearch ||
+      (searchTerm.trim() === "" && debouncedSearchTerm.trim() === "")
+    ) {
+      setData(initialData);
+    }
+  }, [initialData, onSearch, searchTerm, debouncedSearchTerm]);
+
   // Atualiza os dados quando filteredOptions muda (busca local)
   React.useEffect(() => {
     if (!onSearch) {
@@ -328,18 +344,141 @@ export function SearchSelect<T extends Record<string, unknown>>({
     }
   }, [filteredOptions, onSearch]);
 
-  // Lida com a busca na API
+  // Carrega o valor inicial quando o componente monta ou quando o valor muda
+  React.useEffect(() => {
+    if (!onSearch || !currentValue || isInitialMountRef.current === false) {
+      if (isInitialMountRef.current) {
+        isInitialMountRef.current = false;
+      }
+      return;
+    }
+
+    // Verifica se o valor inicial já está nos dados iniciais
+    const foundItem = initialData.find((item) => {
+      const itemValue = getOptionValue
+        ? getOptionValue(item)
+        : (item as T)["value" as keyof T]?.toString() || "";
+      const currentVal =
+        typeof currentValue === "string" || typeof currentValue === "number"
+          ? currentValue
+          : undefined;
+      return (
+        itemValue === currentVal ||
+        itemValue?.toString() === currentVal?.toString()
+      );
+    });
+
+    // Se não encontrou e há um valor inicial, busca o item específico
+    if (!foundItem && currentValue && typeof currentValue !== "object") {
+      setIsLoadingInitial(true);
+      const loadInitialValue = async () => {
+        try {
+          // Primeiro tenta buscar com string vazia para carregar dados iniciais
+          const result = await onSearch("");
+          if (result && Array.isArray(result)) {
+            setData(result);
+            // Verifica novamente se agora está nos dados
+            result.find((item) => {
+              const itemValue = getOptionValue
+                ? getOptionValue(item)
+                : (item as T)["value" as keyof T]?.toString() || "";
+              return (
+                itemValue === currentValue ||
+                itemValue?.toString() === currentValue?.toString()
+              );
+            });
+
+            // Se ainda não encontrou, não faz nada (o item pode não existir ou estar em outra página)
+            // O usuário pode buscar manualmente se necessário
+          }
+        } catch (error) {
+          console.error("Erro ao carregar valor inicial:", error);
+        } finally {
+          setIsLoadingInitial(false);
+          isInitialMountRef.current = false;
+        }
+      };
+      loadInitialValue();
+    } else {
+      isInitialMountRef.current = false;
+    }
+  }, [currentValue, onSearch, initialData, getOptionValue]);
+
+  // Carrega dados quando o dropdown é aberto pela primeira vez (se não houver dados)
+  React.useEffect(() => {
+    if (!onSearch || !open) return;
+
+    // Se já carregou dados ao abrir ou já está buscando, não faz nada
+    if (
+      hasLoadedOnOpenRef.current ||
+      isSearchingRef.current ||
+      isLoadingInitial
+    ) {
+      return;
+    }
+
+    // Se não há dados e o termo de busca está vazio, carrega dados iniciais
+    if (data.length === 0 && searchTerm.trim() === "") {
+      setIsSearching(true);
+      isSearchingRef.current = true;
+      hasLoadedOnOpenRef.current = true;
+
+      const loadInitialData = async () => {
+        try {
+          const result = await onSearch("");
+          if (result && Array.isArray(result)) {
+            setData(result);
+          }
+        } catch (error) {
+          console.error("Erro ao carregar dados iniciais:", error);
+        } finally {
+          setIsSearching(false);
+          isSearchingRef.current = false;
+        }
+      };
+
+      loadInitialData();
+    }
+  }, [open, onSearch, data.length, searchTerm, isLoadingInitial]);
+
+  // Reseta o flag quando o dropdown é fechado
+  React.useEffect(() => {
+    if (!open) {
+      hasLoadedOnOpenRef.current = false;
+    }
+  }, [open]);
+
+  // Lida com a busca na API (apenas quando o usuário digita)
   React.useEffect(() => {
     if (!onSearch) return;
 
-    // Busca na API com debounce
+    // Se o termo de busca está vazio, restaura os dados iniciais apenas se houver dados iniciais
+    // Caso contrário, mantém os dados já carregados
     if (debouncedSearchTerm.trim() === "") {
-      setData(initialData);
+      if (initialData.length > 0) {
+        setData(initialData);
+      }
       setIsSearching(false);
+      isSearchingRef.current = false;
+      lastSearchTermRef.current = "";
+      return;
+    }
+
+    // Evita busca durante o carregamento inicial
+    if (isLoadingInitial) return;
+
+    // Evita múltiplas buscas simultâneas ou busca duplicada
+    if (
+      isSearchingRef.current ||
+      lastSearchTermRef.current === debouncedSearchTerm
+    ) {
       return;
     }
 
     setIsSearching(true);
+    isSearchingRef.current = true;
+    lastSearchTermRef.current = debouncedSearchTerm;
+
     const performSearch = async () => {
       try {
         const result = await onSearch(debouncedSearchTerm);
@@ -350,11 +489,12 @@ export function SearchSelect<T extends Record<string, unknown>>({
         console.error("Erro ao buscar:", error);
       } finally {
         setIsSearching(false);
+        isSearchingRef.current = false;
       }
     };
 
     performSearch();
-  }, [debouncedSearchTerm, onSearch, initialData]);
+  }, [debouncedSearchTerm, onSearch, initialData, isLoadingInitial]);
 
   // Renderiza o valor selecionado no trigger
   const renderTriggerContent = () => {
@@ -457,7 +597,7 @@ export function SearchSelect<T extends Record<string, unknown>>({
               className="h-9"
             />
             <CommandList className="max-h-72 overflow-y-auto">
-              {isSearching ? (
+              {isSearching || isLoadingInitial ? (
                 <div className="py-6 text-center text-sm">Buscando...</div>
               ) : filteredOptions.length === 0 ? (
                 <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>

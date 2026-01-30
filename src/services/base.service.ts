@@ -62,7 +62,7 @@ export class BaseService<T> implements IBaseService<T> {
 
   async create(data: Partial<T>, token?: string): Promise<T> {
     const response = await this.apiService.post<T>(this.endpoint, data, token);
-    return response.data;
+    return (response.data ?? response) as T;
   }
 
   async update(id: string, data: Partial<T>, token?: string): Promise<T> {
