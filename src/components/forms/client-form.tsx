@@ -124,53 +124,55 @@ export function ClientForm({
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="birthDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Data de Nascimento</FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isLoading || disabled}
-                  maxDate={new Date()}
-                  placeholder="dd/mm/aaaa"
-                  error={!!form.formState.errors.birthDate}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="cpf"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>CPF</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="000.000.000-00"
-                    className="pl-9"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="birthDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Data de Nascimento</FormLabel>
+                <FormControl>
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
                     disabled={isLoading || disabled}
-                    maxLength={14}
-                    onChange={(e) =>
-                      handleCpfChange(e.target.value, field.onChange)
-                    }
+                    maxDate={new Date()}
+                    placeholder="dd/mm/aaaa"
+                    error={!!form.formState.errors.birthDate}
                   />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="cpf"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      {...field}
+                      type="text"
+                      placeholder="000.000.000-00"
+                      className="pl-9"
+                      disabled={isLoading || disabled}
+                      maxLength={14}
+                      onChange={(e) =>
+                        handleCpfChange(e.target.value, field.onChange)
+                      }
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="flex justify-end gap-2 pt-4">
           {onBack && (

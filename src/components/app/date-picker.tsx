@@ -182,7 +182,7 @@ export function DatePicker({
             </PopoverTrigger>
           </div>
         </div>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0" align="end">
           <Calendar
             mode="single"
             selected={selectedDate}
