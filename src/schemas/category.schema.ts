@@ -1,8 +1,8 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const categorySchema = z.object({
-  id: z.string().uuid().optional(), 
-  
+  id: z.string().uuid().optional(),
+
   description: z
     .string()
     .min(1, "A Descrição é obrigatória")

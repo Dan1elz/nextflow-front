@@ -1,5 +1,4 @@
-export interface ICategory{
-    id?: string;
-    description: string;
+export interface ICategory {
+  id?: string;
+  description: string;
 }
-

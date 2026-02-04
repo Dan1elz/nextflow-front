@@ -36,7 +36,7 @@ function EditCategory() {
 
     try {
       setIsLoading(true);
-      
+
       const categoryData: ICategory = {
         id: id,
         description: data.description,
@@ -74,13 +74,19 @@ function EditCategory() {
         </CardHeader>
         <CardContent>
           <CategoryForm
-                      onSubmit={handleSubmit}
-                      onBack={handleBack}
-                      isLoading={isLoading}
-                      initialData={selectedCategory}
-                      isEdit={true} data={[]} onSearch={function (): Promise<IOption[] | void> | IOption[] | void {
-                          throw new Error("Function not implemented.");
-                      } }          />
+            onSubmit={handleSubmit}
+            onBack={handleBack}
+            isLoading={isLoading}
+            initialData={selectedCategory}
+            isEdit={true}
+            data={[]}
+            onSearch={function ():
+              | Promise<IOption[] | void>
+              | IOption[]
+              | void {
+              throw new Error("Function not implemented.");
+            }}
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,5 +1,5 @@
 import { BaseService } from "./base.service";
-import type { ICategory } from "@/interfaces/category.interface"; 
+import type { ICategory } from "@/interfaces/category.interface";
 
 const baseService = new BaseService<ICategory>("categories");
 

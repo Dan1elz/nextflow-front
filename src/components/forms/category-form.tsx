@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { ButtonLoader } from "@/components/ui/button-loader";
-import type { ICategory } from "@/interfaces/category.interface"; 
+import type { ICategory } from "@/interfaces/category.interface";
 import { categorySchema, type CategorySchema } from "@/schemas/category.schema";
 
 interface CategoryFormProps {
@@ -78,7 +78,7 @@ export function CategoryForm({
         <FormField
           control={form.control}
           name="description"
-          render={({ field }) => (  
+          render={({ field }) => (
             <FormItem>
               <FormLabel>Descrição</FormLabel>
               <FormControl>

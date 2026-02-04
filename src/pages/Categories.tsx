@@ -9,13 +9,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DataTable } from "@/components/app/data-table";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import { useCategories } from "@/hooks/use-categories"; 
-import type { ICategory } from "@/interfaces/category.interface"; 
+import { useCategories } from "@/hooks/use-categories";
+import type { ICategory } from "@/interfaces/category.interface";
 import { CategoriesProvider } from "@/providers/categories.provider";
 
 function Categories() {
   const navigate = useNavigate();
-  const { categories, pagination, searchCategories, deleteCategory } = useCategories();
+  const { categories, pagination, searchCategories, deleteCategory } =
+    useCategories();
   const [perPage, setPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,11 +82,9 @@ function Categories() {
     [deleteCategory, handleSearch]
   );
 
-  const handleExport = useCallback((_ids?: string[]) => {
-  }, []);
+  const handleExport = useCallback((_ids?: string[]) => {}, []);
 
-  const handleDeleteMultiple = useCallback((_ids: string[]) => {
-  }, []);
+  const handleDeleteMultiple = useCallback((_ids: string[]) => {}, []);
 
   const handleImport = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,7 +197,8 @@ function Categories() {
               <CardTitle>Categorias</CardTitle>
               {selectedIds.length > 0 && (
                 <span className="text-sm text-muted-foreground">
-                  {selectedIds.length} selecionada{selectedIds.length > 1 ? "s" : ""}
+                  {selectedIds.length} selecionada
+                  {selectedIds.length > 1 ? "s" : ""}
                 </span>
               )}
             </div>

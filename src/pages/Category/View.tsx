@@ -50,14 +50,20 @@ function ViewCategory() {
         </CardHeader>
         <CardContent>
           <CategoryForm
-                      onSubmit={() => { } }
-                      onBack={handleBack}
-                      isLoading={false}
-                      initialData={selectedCategory}
-                      disabled={true}
-                      isEdit={true} data={[]} onSearch={function (): Promise<IOption[] | void> | IOption[] | void {
-                          throw new Error("Function not implemented.");
-                      } }          />
+            onSubmit={() => {}}
+            onBack={handleBack}
+            isLoading={false}
+            initialData={selectedCategory}
+            disabled={true}
+            isEdit={true}
+            data={[]}
+            onSearch={function ():
+              | Promise<IOption[] | void>
+              | IOption[]
+              | void {
+              throw new Error("Function not implemented.");
+            }}
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { ICategory } from "@/interfaces/category.interface"; 
+import type { ICategory } from "@/interfaces/category.interface";
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 
 export type CategoriesContextType = {
@@ -18,4 +18,6 @@ export type CategoriesContextType = {
   deleteCategory: (id: string) => Promise<void>;
 };
 
-export const CategoriesContext = createContext<CategoriesContextType | null>(null);
+export const CategoriesContext = createContext<CategoriesContextType | null>(
+  null
+);

@@ -21,7 +21,7 @@ function CreateCategory() {
   const handleSubmit = async (data: CategorySchema) => {
     try {
       setIsLoading(true);
-      
+
       const categoryData: Partial<ICategory> = {
         description: data.description,
       };
@@ -44,12 +44,18 @@ function CreateCategory() {
         </CardHeader>
         <CardContent>
           <CategoryForm
-                      onSubmit={handleSubmit}
-                      onBack={handleBack}
-                      isLoading={isLoading}
-                      isEdit={false} data={[]} onSearch={function (): Promise<IOption[] | void> | IOption[] | void {
-                          throw new Error("Function not implemented.");
-                      } }          />
+            onSubmit={handleSubmit}
+            onBack={handleBack}
+            isLoading={isLoading}
+            isEdit={false}
+            data={[]}
+            onSearch={function ():
+              | Promise<IOption[] | void>
+              | IOption[]
+              | void {
+              throw new Error("Function not implemented.");
+            }}
+          />
         </CardContent>
       </Card>
     </div>

@@ -2,14 +2,16 @@ import { useState, useCallback, type ReactNode } from "react";
 
 import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
-import type { ICategory } from "@/interfaces/category.interface"; 
+import type { ICategory } from "@/interfaces/category.interface";
 import { categoryService } from "@/services/category.service";
 import { CategoriesContext } from "@/contexts/categories.context";
 
 export function CategoriesProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<ICategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<ICategory | null>(
+    null
+  );
   const { token } = useAuth();
 
   const searchCategories = useCallback(
