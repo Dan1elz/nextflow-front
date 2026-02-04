@@ -1,5 +1,5 @@
 import { BaseService } from "./base.service";
-import type { IProduct } from "@/interfaces/locations.interface";
+import type { IProduct } from "@/interfaces/product.interface";
 
 const baseService = new BaseService<IProduct>("products");
 

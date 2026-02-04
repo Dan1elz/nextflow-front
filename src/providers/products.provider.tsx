@@ -1,15 +1,14 @@
 import { useState, useCallback, type ReactNode } from "react";
-
 import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
-import type { ICountry } from "@/interfaces/locations.interface";
-import { ProductsContext } from "@/contexts/countries.context";
-import { countryService } from "@/services/country.service";
+import type { IProduct, IProductRequest } from "@/interfaces/product.interface";
+import { ProductsContext } from "@/contexts/products.context";
+import { productService } from "@/services/product.service";
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<ICountry[]>([]);
+  const [products, setProducts] = useState<IProduct[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<ICountry | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
   const { token } = useAuth();
 
   const searchProducts = useCallback(
@@ -17,7 +16,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
 
-      const response = await countryService.getAll(query, token ?? undefined);
+      const response = await productService.getAll(query, token ?? undefined);
       setProducts(response.data || []);
       setPagination({
         currentPage: page,
@@ -29,51 +28,51 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
-  const selectCountry = useCallback(
+  const selectProduct = useCallback(
     async (id: string): Promise<void> => {
-      const data = await countryService.getById(id, token ?? undefined);
-      setSelectedCountry(data);
+      const data = await productService.getById(id, token ?? undefined);
+      setSelectedProduct(data);
     },
     [token]
   );
 
-  const createCountry = useCallback(
-    async (country: ICountry): Promise<ICountry> => {
-      const data = await countryService.create(country, token ?? undefined);
+  const createProduct = useCallback(
+    async (product: IProductRequest): Promise<IProduct> => {
+      const data = await productService.create(product, token ?? undefined);
       return data;
     },
     [token]
   );
 
-  const updateCountry = useCallback(
-    async (id: string, country: ICountry): Promise<ICountry> => {
-      const data = await countryService.update(id, country, token ?? undefined);
+  const updateProduct = useCallback(
+    async (id: string, product: IProductRequest): Promise<IProduct> => {
+      const data = await productService.update(id, product, token ?? undefined);
       return data;
     },
     [token]
   );
 
-  const deleteCountry = useCallback(
+  const deleteProduct = useCallback(
     async (id: string): Promise<void> => {
-      await countryService.delete(id, token ?? undefined);
+      await productService.delete(id, token ?? undefined);
     },
     [token]
   );
 
   return (
-    <CountriesContext.Provider
+    <ProductsContext.Provider
       value={{
-        countries,
+        products,
         pagination,
-        selectedCountry,
-        searchCountries,
-        selectCountry,
-        createCountry,
-        updateCountry,
-        deleteCountry,
+        selectedProduct,
+        searchProducts,
+        selectProduct,
+        createProduct,
+        updateProduct,
+        deleteProduct,
       }}
     >
       {children}
-    </CountriesContext.Provider>
+    </ProductsContext.Provider>
   );
 }
