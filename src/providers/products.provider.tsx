@@ -1,7 +1,7 @@
 import { useState, useCallback, type ReactNode } from "react";
 import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
-import type { IProduct, IProductRequest } from "@/interfaces/product.interface";
+import type { IProduct } from "@/interfaces/product.interface";
 import { ProductsContext } from "@/contexts/products.context";
 import { productService } from "@/services/product.service";
 
@@ -37,7 +37,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   );
 
   const createProduct = useCallback(
-    async (product: IProductRequest): Promise<IProduct> => {
+    async (product: IProduct): Promise<IProduct> => {
       const data = await productService.create(product, token ?? undefined);
       return data;
     },
@@ -45,7 +45,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   );
 
   const updateProduct = useCallback(
-    async (id: string, product: IProductRequest): Promise<IProduct> => {
+    async (id: string, product: IProduct): Promise<IProduct> => {
       const data = await productService.update(id, product, token ?? undefined);
       return data;
     },

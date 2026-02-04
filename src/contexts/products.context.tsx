@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { IProduct, IProductRequest } from "@/interfaces/product.interface";
+import type { IProduct } from "@/interfaces/product.interface";
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 
 export type ProductsContextType = {
@@ -12,8 +12,8 @@ export type ProductsContextType = {
   ) => Promise<{ data: IProduct[]; totalItems: number }>;
   selectProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Promise<IProduct>;
-  createProduct: (product: IProductRequest) => Promise<IProduct>;
-  updateProduct: (id: string, product: IProductRequest) => Promise<IProduct>;
+  createProduct: (product: IProduct) => Promise<IProduct>;
+  updateProduct: (id: string, product: IProduct) => Promise<IProduct>;
   deleteProduct: (id: string) => Promise<void>;
 };
 

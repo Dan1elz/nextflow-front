@@ -48,11 +48,14 @@ export function ProductForm({
           productCode: initialData.productCode,
           name: initialData.name,
           description: initialData.description,
-          categoryIds: initialData.categoryIds,
+          categoryIds:
+            initialData.categoryIds ??
+            initialData.categories?.map((c) => c.id) ??
+            [],
           quantity: initialData.quantity,
           unitType: initialData.unitType,
           price: initialData.price,
-          validity: initialData.validity,
+          validity: initialData.validity ?? "",
         }
       : {
           supplierId: "",
@@ -61,7 +64,7 @@ export function ProductForm({
           description: "",
           categoryIds: [],
           quantity: 0,
-          unitType: "",
+          unitType: 0,
           price: 0,
           validity: "",
         },
