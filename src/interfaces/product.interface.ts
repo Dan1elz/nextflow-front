@@ -1,14 +1,6 @@
 import type { TUnitType } from "@/types/general";
+import type { ICategory } from "./category.interface";
 import type { ISupplier } from "./supplier.interface";
-
-/**
- * Categoria retornada pela API (GET).
- * Alinhado com CategoryResponseDto do backend.
- */
-export interface ICategory {
-  id: string;
-  description: string;
-}
 
 /**
  * Interface unificada de produto para o frontend.
