@@ -6,6 +6,7 @@ import {
   UserCircle,
   ChevronDown,
   Settings,
+  Tag,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,6 +42,7 @@ const items: SidebarMenuGroup[] = [
       { name: "Home", url: "/", icon: Home },
       { name: "Usuários", url: "/users", icon: Users },
       { name: "Clientes", url: "/clients", icon: UserCircle },
+      { name: "Categorias", url: "/categories", icon: Tag  },
       {
         name: "Localidades",
         icon: MapPin,
