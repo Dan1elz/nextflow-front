@@ -160,15 +160,6 @@ function Categories() {
         cell: ({ row }) => row.original.description,
       },
       {
-        accessorKey: "id",
-        header: "Código Identificador",
-        cell: ({ row }) => (
-          <span className="text-xs font-mono text-muted-foreground">
-            {row.original.id}
-          </span>
-        ),
-      },
-      {
         id: "actions",
         header: "Ações",
         cell: ({ row }) => {
@@ -234,7 +225,7 @@ function Categories() {
                 </Button>
               )}
               <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 mr-2" /> Novo
+                <Plus className="h-4 w-4 " /> 
               </Button>
             </div>
           </div>
