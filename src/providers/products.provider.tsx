@@ -28,10 +28,30 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const searchProductsForOptions = useCallback(
+    async (
+      query?: IIndexParams
+    ): Promise<{ data: IProduct[]; totalItems: number }> => {
+      const response = await productService.getAll(query, token ?? undefined);
+      return {
+        data: response.data || [],
+        totalItems: response.totalItems,
+      };
+    },
+    [token]
+  );
+
   const selectProduct = useCallback(
     async (id: string): Promise<void> => {
       const data = await productService.getById(id, token ?? undefined);
       setSelectedProduct(data);
+    },
+    [token]
+  );
+
+  const getProductById = useCallback(
+    async (id: string): Promise<IProduct> => {
+      return productService.getById(id, token ?? undefined);
     },
     [token]
   );
@@ -66,7 +86,9 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         pagination,
         selectedProduct,
         searchProducts,
+        searchProductsForOptions,
         selectProduct,
+        getProductById,
         createProduct,
         updateProduct,
         deleteProduct,

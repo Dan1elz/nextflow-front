@@ -25,6 +25,9 @@ export {
   formatNumber,
 } from "./format.helpers";
 
+// Date helpers
+export { dateOnlyOptionalSchema } from "./date.helpers";
+
 // Validators
 export {
   validateCpf,

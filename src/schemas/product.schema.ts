@@ -1,12 +1,14 @@
 import { z } from "zod";
+import { TUnitType } from "@/types/enums";
+import { dateOnlyOptionalSchema } from "@/utils/date.helpers";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = [
+export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/webp",
-];
+] as const;
 
 export const productSchema = z.object({
   supplierId: z
@@ -35,20 +37,25 @@ export const productSchema = z.object({
     }, "O tamanho máximo da imagem é 5MB.")
     .refine((file) => {
       if (!file || !(file instanceof File)) return true;
-      return ACCEPTED_IMAGE_TYPES.includes(file.type);
+      return ACCEPTED_IMAGE_TYPES.includes(
+        file.type as (typeof ACCEPTED_IMAGE_TYPES)[number]
+      );
     }, "Formatos aceitos: .jpg, .jpeg, .png e .webp."),
 
-  categoryIds: z.array(z.string().uuid()).optional().default([]),
+  categoryIds: z.array(z.string().uuid()).default([]),
 
   quantity: z.coerce
     .number()
     .min(0, "A quantidade em estoque não pode ser negativa"),
 
-  unitType: z.coerce.number().min(0, "O tipo de unidade é obrigatório"),
+  unitType: z.coerce
+    .number()
+    .min(TUnitType.Unit, "O tipo de unidade é obrigatório.")
+    .max(TUnitType.Meter, "Tipo de unidade inválido."),
 
   price: z.coerce.number().min(0, "O preço não pode ser negativo"),
 
-  validity: z.string().nullish().or(z.literal("")),
+  validity: dateOnlyOptionalSchema,
 });
 
 export type ProductSchema = z.infer<typeof productSchema>;
