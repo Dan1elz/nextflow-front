@@ -6,10 +6,10 @@ Este documento descreve o que implementar no **backend** e no **frontend** para 
 
 ## Regras do fluxo
 
-| Ação do usuário | Comportamento esperado |
-|-----------------|------------------------|
-| **Editar produto e não mexer na imagem** | Backend mantém a imagem atual. Frontend não envia o campo `image` (ou envia vazio). |
-| **Editar produto e selecionar nova imagem** | Backend substitui a imagem antiga pela nova. Frontend envia o novo arquivo no PUT. |
+| Ação do usuário                                 | Comportamento esperado                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Editar produto e não mexer na imagem**        | Backend mantém a imagem atual. Frontend não envia o campo `image` (ou envia vazio).                           |
+| **Editar produto e selecionar nova imagem**     | Backend substitui a imagem antiga pela nova. Frontend envia o novo arquivo no PUT.                            |
 | **Editar produto e clicar em "Remover imagem"** | Frontend chama a nova rota de remoção. Backend remove a imagem do produto (e do armazenamento, se aplicável). |
 
 ---
@@ -79,9 +79,9 @@ Este documento descreve o que implementar no **backend** e no **frontend** para 
 1. **Criação:** enviar imagem apenas se houver arquivo selecionado (como hoje).
 2. **Edição – usuário não mexe na imagem:** PUT sem campo `image` → backend mantém a atual.
 3. **Edição – usuário escolhe nova imagem:** PUT com o novo arquivo → backend substitui.
-4. **Edição – usuário clica em “Remover imagem”:**  
-   - Chamar `DELETE /api/products/{id}/image` (ou equivalente).  
-   - Após sucesso, atualizar UI e estado (sem imagem).  
+4. **Edição – usuário clica em “Remover imagem”:**
+   - Chamar `DELETE /api/products/{id}/image` (ou equivalente).
+   - Após sucesso, atualizar UI e estado (sem imagem).
    - No próximo submit do formulário (se houver), não enviar `image` no PUT.
 
 ---
@@ -106,9 +106,9 @@ Este documento descreve o que implementar no **backend** e no **frontend** para 
 
 ## 4. Contrato da API (resumo)
 
-| Método | Rota | Corpo | Comportamento |
-|--------|------|--------|----------------|
-| PUT | `/api/products/{id}` | JSON ou multipart com campos do produto | Se `Image` não for enviada: mantém imagem atual. Se `Image` for enviada: substitui pela nova. |
-| DELETE | `/api/products/{id}/image` | — | Remove a imagem do produto (campo + arquivo, se houver). Retorno: 200 com produto ou 204. |
+| Método | Rota                       | Corpo                                   | Comportamento                                                                                 |
+| ------ | -------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| PUT    | `/api/products/{id}`       | JSON ou multipart com campos do produto | Se `Image` não for enviada: mantém imagem atual. Se `Image` for enviada: substitui pela nova. |
+| DELETE | `/api/products/{id}/image` | —                                       | Remove a imagem do produto (campo + arquivo, se houver). Retorno: 200 com produto ou 204.     |
 
 Com isso, o backend deixa de remover a imagem quando “não tem nada” no update, a remoção fica explícita na nova rota e a substituição ocorre apenas quando o frontend envia outra imagem no PUT.
