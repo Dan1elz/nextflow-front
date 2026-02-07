@@ -1,4 +1,4 @@
-import { useMemo, useCallback, type ChangeEvent } from "react";
+import { useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search } from "lucide-react";
@@ -122,26 +122,6 @@ function Clients() {
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
     void _ids;
     // Função vazia conforme solicitado
-  }, []);
-
-  const handleImport = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.endsWith(".csv")) {
-      handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result;
-      if (typeof result === "string") {
-        const base64 = btoa(result);
-        console.log("Arquivo em base64:", base64);
-      }
-    };
-    reader.readAsText(file);
   }, []);
 
   const columns = useMemo<ColumnDef<IClient>[]>(
@@ -315,7 +295,6 @@ function Clients() {
       onPageChange={handlePageChange}
       onPerPageChange={setPerPage}
       onCreate={handleCreate}
-      onImport={handleImport}
       onExport={handleExport}
       onDeleteMultiple={handleDeleteMultiple}
     />
