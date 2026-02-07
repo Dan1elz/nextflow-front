@@ -13,23 +13,29 @@ import {
 } from "@/components/ui/input-group";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
+import { SearchSelect } from "@/components/app/search-select";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
+import { useSearchOptions } from "@/hooks/use-search-options";
+import type { IOption } from "@/interfaces/api.interface";
+import { useCountries } from "@/hooks/use-countries";
 import { useStates } from "@/hooks/use-states";
 import { useIndexSearch } from "@/hooks/use-index-search";
-import type { IState } from "@/interfaces/locations.interface";
+import type { ICountry, IState } from "@/interfaces/locations.interface";
+import { CountriesProvider } from "@/providers/countries.provider";
 import { StatesProvider } from "@/providers/states.provider";
 
 type StateFilters = {
   search: string;
-  countryName: string;
   acronym: string;
   ibgeCode: string;
+  countryId: string;
 };
 
 function States() {
   const navigate = useNavigate();
   const { states, pagination, searchStates, deleteState } = useStates();
+  const { searchCountriesForOptions, getCountryById } = useCountries();
   const {
     setPerPage,
     selectedIds,
@@ -45,9 +51,9 @@ function States() {
     search: searchStates,
     initialFilters: {
       search: "",
-      countryName: "",
       acronym: "",
       ibgeCode: "",
+      countryId: "",
     },
     quickSearchKey: "search",
     perPageInitial: 10,
@@ -56,6 +62,19 @@ function States() {
       handleError(error, "Erro desconhecido ao buscar estados");
     },
   });
+
+  const { options: countriesOptions, handleSearch: handleSearchCountries } =
+    useSearchOptions<ICountry>({
+      searchFn: searchCountriesForOptions,
+      mapFn: (country) => ({
+        value: country.id ?? "",
+        label: country.name,
+      }),
+      selectFn: getCountryById,
+      errorLabel: "países",
+      autoLoad: false,
+      perPage: 50,
+    });
 
   const handleCreate = () => navigate("/states/create");
 
@@ -283,17 +302,19 @@ function States() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="stateFilterCountryName">País</Label>
-              <Input
-                id="stateFilterCountryName"
-                value={filters.countryName}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    countryName: e.target.value,
-                  }))
-                }
-                placeholder="Ex.: Brasil"
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.countryId,
+                  onChange: (value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      countryId: value ? String(value) : "",
+                    })),
+                }}
+                label="País"
+                data={countriesOptions}
+                onSearch={handleSearchCountries}
+                placeholder="País"
               />
             </div>
           </ListFiltersSheet>
@@ -314,8 +335,10 @@ function States() {
 
 export default function StatesPageWrapper() {
   return (
-    <StatesProvider>
-      <States />
-    </StatesProvider>
+    <CountriesProvider>
+      <StatesProvider>
+        <States />
+      </StatesProvider>
+    </CountriesProvider>
   );
 }

@@ -20,6 +20,7 @@ export interface IApiResponseTable<T> {
 export interface IOption {
   value: string;
   label: string;
+  [key: string]: unknown;
 }
 
 export interface IListIdsGuid {
