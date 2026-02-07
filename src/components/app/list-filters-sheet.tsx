@@ -4,6 +4,11 @@ import { Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -39,9 +44,18 @@ export function ListFiltersSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="outline" type="button" aria-label={triggerAriaLabel}>
-          <Filter className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              type="button"
+              aria-label={triggerAriaLabel}
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6}>Filtros</TooltipContent>
+        </Tooltip>
       </SheetTrigger>
       <SheetContent
         side="right"

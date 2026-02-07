@@ -4,6 +4,11 @@ import { Download, Plus, Trash2, Upload } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DataTable } from "@/components/app/data-table";
 import type { IPaginationInfo } from "@/interfaces/api.interface";
 
@@ -76,45 +81,67 @@ export function EntityIndexPage<TData>({
                     onChange={onImport}
                     className="hidden"
                   />
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    aria-label="Importar"
-                  >
-                    <Upload className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        aria-label="Importar"
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={6}>Importar</TooltipContent>
+                  </Tooltip>
                 </>
               )}
 
               {onExport && (
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() =>
-                    onExport(selectedCount > 0 ? selectedIds : undefined)
-                  }
-                  aria-label="Exportar"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() =>
+                        onExport(selectedCount > 0 ? selectedIds : undefined)
+                      }
+                      aria-label="Exportar"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={6}>Exportar</TooltipContent>
+                </Tooltip>
               )}
 
               {onDeleteMultiple && selectedCount > 0 && (
-                <Button
-                  variant="outline"
-                  type="button"
-                  className="text-destructive border-destructive hover:text-destructive"
-                  onClick={() => onDeleteMultiple(selectedIds)}
-                  aria-label="Excluir selecionados"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      className="text-destructive border-destructive hover:text-destructive"
+                      onClick={() => onDeleteMultiple(selectedIds)}
+                      aria-label="Excluir selecionados"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={6}>
+                    Excluir selecionados
+                  </TooltipContent>
+                </Tooltip>
               )}
 
-              <Button type="button" onClick={onCreate} aria-label="Novo">
-                <Plus className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" onClick={onCreate} aria-label="Novo">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={6}>Novo</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </CardHeader>
