@@ -81,9 +81,10 @@ function Categories() {
     },
     [deleteCategory, handleSearch]
   );
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {}, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {}, []);
 
   const handleImport = useCallback(
@@ -225,7 +226,7 @@ function Categories() {
                 </Button>
               )}
               <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 " /> 
+                <Plus className="h-4 w-4 " />
               </Button>
             </div>
           </div>

@@ -1,11 +1,27 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Download, Trash2, Upload } from "lucide-react";
+import { Plus, Download, Trash2, Upload, Search, Filter } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { DataTable } from "@/components/app/data-table";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
@@ -13,17 +29,32 @@ import { useCountries } from "@/hooks/use-countries";
 import type { ICountry } from "@/interfaces/locations.interface";
 import { CountriesProvider } from "@/providers/countries.provider";
 
+type CountryFilters = {
+  name: string;
+  acronymIso: string;
+  bacenCode: string;
+};
+
 function Countries() {
   const navigate = useNavigate();
   const { countries, pagination, searchCountries, deleteCountry } =
     useCountries();
   const [perPage, setPerPage] = useState(10);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [filters, setFilters] = useState<CountryFilters>({
+    name: "",
+    acronymIso: "",
+    bacenCode: "",
+  });
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasSearched = useRef(false);
+  const didTypeSearchOnceRef = useRef(false);
 
   const searchCountriesRef = useRef(searchCountries);
   const perPageRef = useRef(perPage);
+  const filtersRef = useRef(filters);
+  const isFiltersOpenRef = useRef(isFiltersOpen);
 
   useEffect(() => {
     searchCountriesRef.current = searchCountries;
@@ -33,17 +64,41 @@ function Countries() {
     perPageRef.current = perPage;
   }, [perPage]);
 
-  const handleSearch = useCallback((page = 1) => {
-    searchCountriesRef
-      .current({
-        filters: {},
-        page,
-        perPage: perPageRef.current,
-      })
-      .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar países");
-      });
+  const handleFiltersOpenChange = (open: boolean) => {
+    isFiltersOpenRef.current = open;
+    setIsFiltersOpen(open);
+  };
+
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+
+  const buildQueryFilters = useCallback((): Record<string, string> => {
+    const { name, acronymIso, bacenCode } = filtersRef.current;
+
+    const queryFilters: Record<string, string> = {};
+
+    if (name.trim()) queryFilters.name = name.trim();
+    if (acronymIso.trim()) queryFilters.acronymIso = acronymIso.trim();
+    if (bacenCode.trim()) queryFilters.bacenCode = bacenCode.trim();
+
+    return queryFilters;
   }, []);
+
+  const handleSearch = useCallback(
+    (page = 1) => {
+      searchCountriesRef
+        .current({
+          filters: buildQueryFilters(),
+          page,
+          perPage: perPageRef.current,
+        })
+        .catch((error) => {
+          handleError(error, "Erro desconhecido ao buscar países");
+        });
+    },
+    [buildQueryFilters]
+  );
 
   const handlePageChange = (page: number) => handleSearch(page);
 
@@ -120,7 +175,7 @@ function Countries() {
     if (hasSearched.current) {
       searchCountriesRef
         .current({
-          filters: {},
+          filters: buildQueryFilters(),
           page: 1,
           perPage,
         })
@@ -131,7 +186,25 @@ function Countries() {
       hasSearched.current = true;
       handleSearch(1);
     }
-  }, [perPage, handleSearch]);
+  }, [perPage, buildQueryFilters, handleSearch]);
+
+  // Pesquisa rápida (campo de busca) → mapeia para filters.name
+  useEffect(() => {
+    if (!didTypeSearchOnceRef.current) {
+      didTypeSearchOnceRef.current = true;
+      return;
+    }
+
+    // Evita buscar enquanto o painel de filtros estiver aberto.
+    // Importante: não depende de isFiltersOpen, para não disparar busca ao fechar.
+    if (isFiltersOpenRef.current) return;
+
+    const timer = setTimeout(() => {
+      handleSearch(1);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [filters.name, handleSearch]);
 
   const columns = useMemo<ColumnDef<ICountry>[]>(
     () => [
@@ -209,7 +282,7 @@ function Countries() {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2">
               <CardTitle>Países</CardTitle>
               {selectedIds.length > 0 && (
@@ -219,7 +292,115 @@ function Countries() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <InputGroup className="w-full md:w-[280px]">
+                <InputGroupAddon>
+                  <Search className="h-4 w-4" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  value={filters.name}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="Pesquisar país..."
+                  aria-label="Pesquisar país"
+                />
+              </InputGroup>
+              <Sheet
+                open={isFiltersOpen}
+                onOpenChange={handleFiltersOpenChange}
+              >
+                <SheetTrigger asChild>
+                  <Button variant="outline" type="button" aria-label="Filtros">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  className="w-[320px] max-w-[90vw] sm:w-[380px] sm:max-w-none"
+                >
+                  <SheetHeader>
+                    <SheetTitle>Filtros</SheetTitle>
+                    <SheetDescription>
+                      Filtre a listagem de países.
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  <div className="grid gap-4 px-4 pb-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="countryFilterName">Nome</Label>
+                      <Input
+                        id="countryFilterName"
+                        value={filters.name}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        placeholder="Ex.: Brasil"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="countryFilterAcronymIso">
+                        Acrônimo ISO
+                      </Label>
+                      <Input
+                        id="countryFilterAcronymIso"
+                        value={filters.acronymIso}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            acronymIso: e.target.value,
+                          }))
+                        }
+                        placeholder="Ex.: BR"
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="countryFilterBacenCode">
+                        Código BACEN
+                      </Label>
+                      <Input
+                        id="countryFilterBacenCode"
+                        value={filters.bacenCode}
+                        onChange={(e) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            bacenCode: e.target.value,
+                          }))
+                        }
+                        placeholder="Ex.: 1058"
+                      />
+                    </div>
+                  </div>
+
+                  <SheetFooter>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        handleSearch(1);
+                        handleFiltersOpenChange(false);
+                      }}
+                    >
+                      Aplicar filtros
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setFilters({ name: "", acronymIso: "", bacenCode: "" });
+                        handleSearch(1);
+                        handleFiltersOpenChange(false);
+                      }}
+                    >
+                      Limpar
+                    </Button>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
               <input
                 ref={fileInputRef}
                 type="file"
