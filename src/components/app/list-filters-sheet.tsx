@@ -43,9 +43,9 @@ export function ListFiltersSheet({
 }: ListFiltersSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>
-        <Tooltip>
-          <TooltipTrigger asChild>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <SheetTrigger asChild>
             <Button
               variant="outline"
               type="button"
@@ -53,10 +53,10 @@ export function ListFiltersSheet({
             >
               <Filter className="h-4 w-4" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6}>Filtros</TooltipContent>
-        </Tooltip>
-      </SheetTrigger>
+          </SheetTrigger>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={6}>Filtros</TooltipContent>
+      </Tooltip>
       <SheetContent
         side="right"
         className={cn(
