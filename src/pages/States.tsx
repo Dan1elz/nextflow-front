@@ -1,50 +1,61 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Download, Trash2, Upload } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DataTable } from "@/components/app/data-table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { useStates } from "@/hooks/use-states";
+import { useIndexSearch } from "@/hooks/use-index-search";
 import type { IState } from "@/interfaces/locations.interface";
 import { StatesProvider } from "@/providers/states.provider";
+
+type StateFilters = {
+  search: string;
+  countryName: string;
+  acronym: string;
+  ibgeCode: string;
+};
 
 function States() {
   const navigate = useNavigate();
   const { states, pagination, searchStates, deleteState } = useStates();
-  const [perPage, setPerPage] = useState(10);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasSearched = useRef(false);
-
-  const searchStatesRef = useRef(searchStates);
-  const perPageRef = useRef(perPage);
-
-  useEffect(() => {
-    searchStatesRef.current = searchStates;
-  }, [searchStates]);
-
-  useEffect(() => {
-    perPageRef.current = perPage;
-  }, [perPage]);
-
-  const handleSearch = useCallback((page = 1) => {
-    searchStatesRef
-      .current({
-        filters: {},
-        page,
-        perPage: perPageRef.current,
-      })
-      .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar estados");
-      });
-  }, []);
-
-  const handlePageChange = (page: number) => handleSearch(page);
+  const {
+    setPerPage,
+    selectedIds,
+    setSelectedIds,
+    filters,
+    setFilters,
+    resetFilters,
+    isFiltersOpen,
+    handleFiltersOpenChange,
+    handleSearch,
+    handlePageChange,
+  } = useIndexSearch<StateFilters, "search">({
+    search: searchStates,
+    initialFilters: {
+      search: "",
+      countryName: "",
+      acronym: "",
+      ibgeCode: "",
+    },
+    quickSearchKey: "search",
+    perPageInitial: 10,
+    debounceMs: 400,
+    onError: (error) => {
+      handleError(error, "Erro desconhecido ao buscar estados");
+    },
+  });
 
   const handleCreate = () => navigate("/states/create");
 
@@ -73,63 +84,43 @@ function States() {
       try {
         await deleteState(state.id);
         handleSuccess("Estado excluído com sucesso");
-        handleSearch(1);
+        await handleSearch(1);
       } catch (error) {
         handleError(error, "Erro ao excluir estado");
       }
     },
     [deleteState, handleSearch]
   );
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  const handleImport = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+  const handleImport = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      if (!file.name.endsWith(".csv")) {
-        handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === "string") {
-          const base64 = btoa(result);
-          // Arquivo convertido para base64, pronto para enviar
-          console.log("Arquivo em base64:", base64);
-        }
-      };
-      reader.readAsText(file);
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (hasSearched.current) {
-      searchStatesRef
-        .current({
-          filters: {},
-          page: 1,
-          perPage,
-        })
-        .catch((error) =>
-          handleError(error, "Erro desconhecido ao buscar estados")
-        );
-    } else {
-      hasSearched.current = true;
-      handleSearch(1);
+    if (!file.name.endsWith(".csv")) {
+      handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
+      return;
     }
-  }, [perPage, handleSearch]);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === "string") {
+        const base64 = btoa(result);
+        // Arquivo convertido para base64, pronto para enviar
+        console.log("Arquivo em base64:", base64);
+      }
+    };
+    reader.readAsText(file);
+  }, []);
 
   const columns = useMemo<ColumnDef<IState>[]>(
     () => [
@@ -212,71 +203,112 @@ function States() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle>Estados</CardTitle>
-              {selectedIds.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedIds.length} selecionado
-                  {selectedIds.length > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleImport}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  handleExport(selectedIds.length > 0 ? selectedIds : undefined)
+    <EntityIndexPage
+      title="Estados"
+      selectedIds={selectedIds}
+      onSelectionChange={setSelectedIds}
+      toolbar={
+        <>
+          <InputGroup className="w-full md:w-[280px]">
+            <InputGroupAddon>
+              <Search className="h-4 w-4" />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={filters.search}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
+              placeholder="Pesquisar estado..."
+              aria-label="Pesquisar estado"
+            />
+          </InputGroup>
+
+          <ListFiltersSheet
+            open={isFiltersOpen}
+            onOpenChange={handleFiltersOpenChange}
+            description="Filtre a listagem de estados."
+            onApply={() => {
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+            onClear={() => {
+              resetFilters();
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="stateFilterSearch">Nome</Label>
+              <Input
+                id="stateFilterSearch"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    search: e.target.value,
+                  }))
                 }
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              {selectedIds.length > 0 && (
-                <Button
-                  // variant="destructive"
-                  variant="outline"
-                  className="text-destructive border-destructive hover:text-destructive"
-                  onClick={() => handleDeleteMultiple(selectedIds)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={handleCreate}>
-                <Plus />
-              </Button>
+                placeholder="Ex.: São Paulo"
+              />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={states}
-            page={pagination?.currentPage ?? 1}
-            totalPages={pagination?.lastPage ?? 1}
-            total={pagination?.total ?? 0}
-            onPageChange={handlePageChange}
-            onPerPageChange={setPerPage}
-            onSelectionChange={setSelectedIds}
-          />
-        </CardContent>
-      </Card>
-    </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="stateFilterAcronym">Acrônimo</Label>
+              <Input
+                id="stateFilterAcronym"
+                value={filters.acronym}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    acronym: e.target.value,
+                  }))
+                }
+                placeholder="Ex.: SP"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="stateFilterIbgeCode">IBGE Code</Label>
+              <Input
+                id="stateFilterIbgeCode"
+                value={filters.ibgeCode}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    ibgeCode: e.target.value,
+                  }))
+                }
+                placeholder="Ex.: 35"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="stateFilterCountryName">País</Label>
+              <Input
+                id="stateFilterCountryName"
+                value={filters.countryName}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    countryName: e.target.value,
+                  }))
+                }
+                placeholder="Ex.: Brasil"
+              />
+            </div>
+          </ListFiltersSheet>
+        </>
+      }
+      columns={columns}
+      data={states}
+      pagination={pagination}
+      onPageChange={handlePageChange}
+      onPerPageChange={setPerPage}
+      onCreate={handleCreate}
+      onImport={handleImport}
+      onExport={handleExport}
+      onDeleteMultiple={handleDeleteMultiple}
+    />
   );
 }
 
