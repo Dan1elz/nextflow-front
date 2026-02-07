@@ -63,9 +63,18 @@ function AppRoutes() {
         <Route path="clients/:id/view" element={<ViewClientPageWrapper />} />
 
         <Route path="categories" element={<CategoriesPageWrapper />} />
-        <Route path="categories/create" element={<CreateCategoryPageWrapper />} />
-        <Route path="categories/:id/edit" element={<EditCategoryPageWrapper />} />
-        <Route path="categories/:id/view" element={<ViewCategoryPageWrapper />} />
+        <Route
+          path="categories/create"
+          element={<CreateCategoryPageWrapper />}
+        />
+        <Route
+          path="categories/:id/edit"
+          element={<EditCategoryPageWrapper />}
+        />
+        <Route
+          path="categories/:id/view"
+          element={<ViewCategoryPageWrapper />}
+        />
 
         <Route path="states" element={<StatesPageWrapper />} />
         <Route path="states/create" element={<CreateStatePageWrapper />} />

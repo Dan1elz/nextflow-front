@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "@/components/app/data-table";
@@ -12,6 +12,7 @@ import { useStates } from "@/hooks/use-states";
 import { useCities } from "@/hooks/use-cities";
 import { useSearchOptions } from "@/hooks/use-search-options";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
+import { viaCepService } from "@/services/viacep.service";
 import type { IAddress } from "@/interfaces/address.interface";
 import type { AddressFormData } from "@/schemas/address.schema";
 import { formatCep, formatOnlyNumbers } from "@/utils/format.helpers";
@@ -45,6 +46,7 @@ function AddressesTabContent({
     createAddress,
     updateAddress,
     deleteAddress,
+    resolveFromCep,
   } = useAddresses();
   const { searchStatesForOptions, getStateById } = useStates();
   const { searchCitiesForOptions, getCityById } = useCities();
@@ -52,18 +54,22 @@ function AddressesTabContent({
   const [editingAddress, setEditingAddress] = useState<IAddress | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [stateId, setStateId] = useState<string>("");
+  const selectedCityIdRef = useRef<string>("");
   const [addFormKey, setAddFormKey] = useState(0);
   const [, setSelectedIds] = useState<string[]>([]);
 
-  const { options: statesOptions, handleSearch: handleSearchStates } =
-    useSearchOptions<IState>({
-      searchFn: searchStatesForOptions,
-      mapFn: mapStateToOption,
-      selectFn: getStateById,
-      errorLabel: "estados",
-      autoLoad: false,
-      perPage: 50,
-    });
+  const {
+    options: statesOptions,
+    handleSearch: handleSearchStates,
+    setOptions: setStatesOptions,
+  } = useSearchOptions<IState>({
+    searchFn: searchStatesForOptions,
+    mapFn: mapStateToOption,
+    selectFn: getStateById,
+    errorLabel: "estados",
+    autoLoad: false,
+    perPage: 50,
+  });
 
   const citiesInitialFilters = useMemo(
     () => (stateId ? { stateId } : undefined),
@@ -85,15 +91,68 @@ function AddressesTabContent({
     enabled: Boolean(stateId),
   });
 
+  const handleCityChange = useCallback((id: string) => {
+    selectedCityIdRef.current = id;
+  }, []);
+
+  const handleStateChange = useCallback((id: string) => {
+    setStateId(id);
+    selectedCityIdRef.current = "";
+  }, []);
+
+  const handleAutoFillByCep = useCallback(
+    async (zipCodeNumbers: string) => {
+      const via = await viaCepService.getByCep(zipCodeNumbers);
+      const resolved = await resolveFromCep({
+        stateAcronym: via.uf,
+        cityName: via.localidade,
+        cityIbgeCode: via.ibge,
+      });
+
+      if (resolved.stateId && resolved.stateName) {
+        setStatesOptions((prev) => {
+          const exists = prev.some((o) => String(o.value) === resolved.stateId);
+          if (exists) return prev;
+          return [
+            { value: resolved.stateId, label: resolved.stateName },
+            ...prev,
+          ];
+        });
+      }
+
+      if (resolved.cityId && resolved.cityName) {
+        setCitiesOptions((prev) => {
+          const exists = prev.some((o) => String(o.value) === resolved.cityId);
+          if (exists) return prev;
+          return [
+            { value: resolved.cityId, label: resolved.cityName },
+            ...prev,
+          ];
+        });
+      }
+
+      return {
+        street: via.logradouro,
+        district: via.bairro,
+        complement: via.complemento,
+        stateId: resolved.stateId,
+        cityId: resolved.cityId,
+      };
+    },
+    [resolveFromCep, setCitiesOptions, setStatesOptions]
+  );
+
   useEffect(() => {
     if (!stateId) {
       setCitiesOptions([]);
       return;
     }
     setCitiesOptions([]);
-    handleSearchCities("").catch((err) => {
-      handleError(err, "Erro ao buscar cidades");
-    });
+    handleSearchCities("", selectedCityIdRef.current || undefined).catch(
+      (err) => {
+        handleError(err, "Erro ao buscar cidades");
+      }
+    );
   }, [stateId, handleSearchCities, setCitiesOptions]);
 
   const fetchAddresses = useCallback(() => {
@@ -163,6 +222,7 @@ function AddressesTabContent({
   const handleEdit = useCallback((row: IAddress) => {
     setEditingAddress(row);
     setStateId(row.stateId ?? "");
+    selectedCityIdRef.current = row.cityId ?? "";
   }, []);
 
   const handleDelete = useCallback(
@@ -179,10 +239,6 @@ function AddressesTabContent({
     },
     [deleteAddress, editingAddress, fetchAddresses]
   );
-
-  const handleStateChange = useCallback((id: string) => {
-    setStateId(id);
-  }, []);
 
   const handleSearchCity = useCallback(
     (q: string) => handleSearchCities(q, editingAddress?.cityId ?? undefined),
@@ -246,7 +302,7 @@ function AddressesTabContent({
             editingAddress && !disabled
               ? () => {
                   setEditingAddress(null);
-                  setStateId("");
+                  handleStateChange("");
                 }
               : undefined
           }
@@ -255,6 +311,8 @@ function AddressesTabContent({
           cityData={citiesOptions}
           onSearchCity={handleSearchCity}
           onStateChange={handleStateChange}
+          onCityChange={handleCityChange}
+          onAutoFillByCep={handleAutoFillByCep}
         />
       </div>
 
