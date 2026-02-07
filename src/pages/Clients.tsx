@@ -1,53 +1,69 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Download, Trash2, Upload } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/app/data-table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { SearchSelect } from "@/components/app/search-select";
+import type { IOption } from "@/interfaces/api.interface";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { useClients } from "@/hooks/use-clients";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { IClient } from "@/interfaces/client.interface";
 import { formatCpfCnpj, formatDateOnly } from "@/utils/format.helpers";
 import { ClientsProvider } from "@/providers/clients.provider";
+import { useIndexSearch } from "@/hooks/use-index-search";
+
+type ClientFilters = {
+  search: string;
+  cpf: string;
+  isActive: string;
+};
+
+const statusOptions: IOption[] = [
+  { value: "true", label: "Ativo" },
+  { value: "false", label: "Inativo" },
+];
 
 function Clients() {
   const navigate = useNavigate();
   const { clients, pagination, searchClients, deleteClient, reactivateClient } =
     useClients();
-  const [perPage, setPerPage] = useState(10);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasSearched = useRef(false);
-
-  const searchClientsRef = useRef(searchClients);
-  const perPageRef = useRef(perPage);
-
-  useEffect(() => {
-    searchClientsRef.current = searchClients;
-  }, [searchClients]);
-
-  useEffect(() => {
-    perPageRef.current = perPage;
-  }, [perPage]);
-
-  const handleSearch = useCallback((page = 1) => {
-    searchClientsRef
-      .current({
-        filters: {},
-        page,
-        perPage: perPageRef.current,
-      })
-      .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar clientes");
-      });
-  }, []);
-
-  const handlePageChange = (page: number) => handleSearch(page);
+  const {
+    setPerPage,
+    selectedIds,
+    setSelectedIds,
+    filters,
+    setFilters,
+    resetFilters,
+    isFiltersOpen,
+    handleFiltersOpenChange,
+    handleSearch,
+    handlePageChange,
+  } = useIndexSearch<ClientFilters, "search">({
+    search: searchClients,
+    initialFilters: {
+      search: "",
+      cpf: "",
+      isActive: "",
+    },
+    quickSearchKey: "search",
+    perPageInitial: 10,
+    debounceMs: 400,
+    onError: (error) => {
+      handleError(error, "Erro desconhecido ao buscar clientes");
+    },
+  });
 
   const handleCreate = () => navigate("/clients/create");
 
@@ -76,7 +92,7 @@ function Clients() {
       try {
         await reactivateClient(client.id);
         handleSuccess("Cliente reativado com sucesso");
-        handleSearch(1);
+        await handleSearch(1);
       } catch (error) {
         handleError(error, "Erro ao reativar cliente");
       }
@@ -91,62 +107,42 @@ function Clients() {
       try {
         await deleteClient(client.id);
         handleSuccess("Cliente excluído com sucesso");
-        handleSearch(1);
+        await handleSearch(1);
       } catch (error) {
         handleError(error, "Erro ao excluir cliente");
       }
     },
     [deleteClient, handleSearch]
   );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  const handleImport = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+  const handleImport = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      if (!file.name.endsWith(".csv")) {
-        handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === "string") {
-          const base64 = btoa(result);
-          console.log("Arquivo em base64:", base64);
-        }
-      };
-      reader.readAsText(file);
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (hasSearched.current) {
-      searchClientsRef
-        .current({
-          filters: {},
-          page: 1,
-          perPage,
-        })
-        .catch((error) =>
-          handleError(error, "Erro desconhecido ao buscar clientes")
-        );
-    } else {
-      hasSearched.current = true;
-      handleSearch(1);
+    if (!file.name.endsWith(".csv")) {
+      handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
+      return;
     }
-  }, [perPage, handleSearch]);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === "string") {
+        const base64 = btoa(result);
+        console.log("Arquivo em base64:", base64);
+      }
+    };
+    reader.readAsText(file);
+  }, []);
 
   const columns = useMemo<ColumnDef<IClient>[]>(
     () => [
@@ -230,70 +226,99 @@ function Clients() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle>Clientes</CardTitle>
-              {selectedIds.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedIds.length} selecionado
-                  {selectedIds.length > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleImport}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  handleExport(selectedIds.length > 0 ? selectedIds : undefined)
+    <EntityIndexPage
+      title="Clientes"
+      selectedIds={selectedIds}
+      onSelectionChange={setSelectedIds}
+      toolbar={
+        <>
+          <InputGroup className="w-full md:w-[280px]">
+            <InputGroupAddon>
+              <Search className="h-4 w-4" />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={filters.search}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
+              placeholder="Pesquisar cliente..."
+              aria-label="Pesquisar cliente"
+            />
+          </InputGroup>
+
+          <ListFiltersSheet
+            open={isFiltersOpen}
+            onOpenChange={handleFiltersOpenChange}
+            description="Filtre a listagem de clientes."
+            onApply={() => {
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+            onClear={() => {
+              resetFilters();
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="clientFilterSearch">Nome</Label>
+              <Input
+                id="clientFilterSearch"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    search: e.target.value,
+                  }))
                 }
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              {selectedIds.length > 0 && (
-                <Button
-                  variant="outline"
-                  className="text-destructive border-destructive hover:text-destructive"
-                  onClick={() => handleDeleteMultiple(selectedIds)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={handleCreate}>
-                <Plus />
-              </Button>
+                placeholder="Ex.: João"
+              />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={clients}
-            page={pagination?.currentPage ?? 1}
-            totalPages={pagination?.lastPage ?? 1}
-            total={pagination?.total ?? 0}
-            onPageChange={handlePageChange}
-            onPerPageChange={setPerPage}
-            onSelectionChange={setSelectedIds}
-          />
-        </CardContent>
-      </Card>
-    </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="clientFilterCpf">CPF</Label>
+              <Input
+                id="clientFilterCpf"
+                value={filters.cpf}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    cpf: e.target.value,
+                  }))
+                }
+                placeholder="Ex.: 000.000.000-00"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.isActive,
+                  onChange: (value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      isActive: value ? String(value) : "",
+                    })),
+                }}
+                label="Status"
+                data={statusOptions}
+                placeholder="Todos"
+              />
+            </div>
+          </ListFiltersSheet>
+        </>
+      }
+      columns={columns}
+      data={clients}
+      pagination={pagination}
+      onPageChange={handlePageChange}
+      onPerPageChange={setPerPage}
+      onCreate={handleCreate}
+      onImport={handleImport}
+      onExport={handleExport}
+      onDeleteMultiple={handleDeleteMultiple}
+    />
   );
 }
 
