@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MapPin, Hash, Building2, Navigation, Mail } from "lucide-react";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchSelect } from "@/components/app/search-select";
 import type { IOption } from "@/interfaces/api.interface";
+import { handleError } from "@/utils/toast.helpers";
 import {
   Form,
   FormControl,
@@ -39,6 +40,14 @@ interface AddressFormProps {
   cityData: IOption[];
   onSearchCity: (query: string) => Promise<IOption[] | void> | IOption[] | void;
   onStateChange?: (stateId: string) => void;
+  onCityChange?: (cityId: string) => void;
+  onAutoFillByCep?: (zipCode: string) => Promise<{
+    street?: string;
+    district?: string;
+    complement?: string;
+    stateId?: string;
+    cityId?: string;
+  }>;
 }
 
 export function AddressForm({
@@ -52,6 +61,8 @@ export function AddressForm({
   cityData,
   onSearchCity,
   onStateChange,
+  onCityChange,
+  onAutoFillByCep,
 }: AddressFormProps) {
   const isEdit = Boolean(initialData?.id);
 
@@ -70,6 +81,10 @@ export function AddressForm({
   });
 
   const stateId = useWatch({ control: form.control, name: "stateId" });
+  const zipCode = useWatch({ control: form.control, name: "zipCode" });
+
+  const lastAutoFilledZipCodeRef = useRef<string>("");
+  const isResolvingZipCodeRef = useRef(false);
 
   useEffect(() => {
     if (initialData) {
@@ -84,6 +99,7 @@ export function AddressForm({
         zipCode: formatZipCode(initialData.zipCode),
       });
       onStateChange?.(initialData.stateId);
+      onCityChange?.(initialData.cityId);
     } else {
       form.reset({
         description: "",
@@ -96,8 +112,63 @@ export function AddressForm({
         zipCode: "",
       });
       onStateChange?.("");
+      onCityChange?.("");
     }
-  }, [initialData, form, onStateChange]);
+  }, [initialData, form, onStateChange, onCityChange]);
+
+  useEffect(() => {
+    if (!onAutoFillByCep) return;
+    if (isLoading || disabled) return;
+
+    const zipCodeNumbers = formatOnlyNumbers(zipCode ?? "");
+    if (zipCodeNumbers.length !== 8) return;
+    if (lastAutoFilledZipCodeRef.current === zipCodeNumbers) return;
+
+    const timer = setTimeout(async () => {
+      if (isResolvingZipCodeRef.current) return;
+      isResolvingZipCodeRef.current = true;
+
+      try {
+        const result = await onAutoFillByCep(zipCodeNumbers);
+
+        if (result.street && !form.getValues("street").trim()) {
+          form.setValue("street", result.street, { shouldDirty: true });
+        }
+        if (result.district && !form.getValues("district").trim()) {
+          form.setValue("district", result.district, { shouldDirty: true });
+        }
+        if (result.complement && !form.getValues("complement").trim()) {
+          form.setValue("complement", result.complement, { shouldDirty: true });
+        }
+
+        if (result.stateId) {
+          form.setValue("stateId", result.stateId, { shouldValidate: true });
+          onStateChange?.(result.stateId);
+        }
+
+        if (result.cityId) {
+          form.setValue("cityId", result.cityId, { shouldValidate: true });
+          onCityChange?.(result.cityId);
+        }
+
+        lastAutoFilledZipCodeRef.current = zipCodeNumbers;
+      } catch (error) {
+        handleError(error, "Erro ao buscar CEP");
+      } finally {
+        isResolvingZipCodeRef.current = false;
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [
+    zipCode,
+    onAutoFillByCep,
+    isLoading,
+    disabled,
+    form,
+    onStateChange,
+    onCityChange,
+  ]);
 
   return (
     <Form {...form}>
@@ -257,6 +328,7 @@ export function AddressForm({
                         field.onChange(v);
                         form.setValue("cityId", "");
                         onStateChange?.(String(v ?? ""));
+                        onCityChange?.("");
                       },
                     }}
                     label="Estado"
