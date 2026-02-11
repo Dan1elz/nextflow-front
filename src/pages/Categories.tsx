@@ -1,51 +1,56 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Download, Trash2, Upload } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DataTable } from "@/components/app/data-table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { useCategories } from "@/hooks/use-categories";
+import { useIndexSearch } from "@/hooks/use-index-search";
 import type { ICategory } from "@/interfaces/category.interface";
 import { CategoriesProvider } from "@/providers/categories.provider";
+
+type CategoryFilters = {
+  search: string;
+};
 
 function Categories() {
   const navigate = useNavigate();
   const { categories, pagination, searchCategories, deleteCategory } =
     useCategories();
-  const [perPage, setPerPage] = useState(10);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasSearched = useRef(false);
-
-  const searchCategoriesRef = useRef(searchCategories);
-  const perPageRef = useRef(perPage);
-
-  useEffect(() => {
-    searchCategoriesRef.current = searchCategories;
-  }, [searchCategories]);
-
-  useEffect(() => {
-    perPageRef.current = perPage;
-  }, [perPage]);
-
-  const handleSearch = useCallback((page = 1) => {
-    searchCategoriesRef
-      .current({
-        filters: {},
-        page,
-        perPage: perPageRef.current,
-      })
-      .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar categorias");
-      });
-  }, []);
-
-  const handlePageChange = (page: number) => handleSearch(page);
+  const {
+    setPerPage,
+    selectedIds,
+    setSelectedIds,
+    filters,
+    setFilters,
+    resetFilters,
+    isFiltersOpen,
+    handleFiltersOpenChange,
+    handleSearch,
+    handlePageChange,
+  } = useIndexSearch<CategoryFilters, "search">({
+    search: searchCategories,
+    initialFilters: {
+      search: "",
+    },
+    quickSearchKey: "search",
+    perPageInitial: 10,
+    debounceMs: 400,
+    onError: (error) => {
+      handleError(error, "Erro desconhecido ao buscar categorias");
+    },
+  });
 
   const handleCreate = () => navigate("/categories/create");
 
@@ -74,18 +79,18 @@ function Categories() {
       try {
         await deleteCategory(category.id);
         handleSuccess("Categoria excluída com sucesso");
-        handleSearch(1);
+        await handleSearch(1);
       } catch (error) {
         handleError(error, "Erro ao excluir categoria");
       }
     },
     [deleteCategory, handleSearch]
   );
-
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
-    // Função vazia conforme solicitado
+    void _ids;
   }, []);
+
 
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
@@ -97,40 +102,21 @@ function Categories() {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      if (!file.name.endsWith(".csv")) {
-        handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === "string") {
-          const base64 = btoa(result);
-          console.log("Arquivo em base64:", base64);
-        }
-      };
-      reader.readAsText(file);
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (hasSearched.current) {
-      searchCategoriesRef
-        .current({
-          filters: {},
-          page: 1,
-          perPage,
-        })
-        .catch((error) =>
-          handleError(error, "Erro desconhecido ao buscar categorias")
-        );
-    } else {
-      hasSearched.current = true;
-      handleSearch(1);
+    if (!file.name.endsWith(".csv")) {
+      handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
+      return;
     }
-  }, [perPage, handleSearch]);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === "string") {
+        const base64 = btoa(result);
+        console.log("Arquivo em base64:", base64);
+      }
+    };
+    reader.readAsText(file);
+  }, []);
 
   const columns = useMemo<ColumnDef<ICategory>[]>(
     () => [
@@ -231,25 +217,22 @@ function Categories() {
                 </Button>
               )}
               <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 " />
+                <Plus className="h-4 w-4 " /> 
               </Button>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={categories}
-            page={pagination?.currentPage ?? 1}
-            totalPages={pagination?.lastPage ?? 1}
-            total={pagination?.total ?? 0}
-            onPageChange={handlePageChange}
-            onPerPageChange={setPerPage}
-            onSelectionChange={setSelectedIds}
-          />
-        </CardContent>
-      </Card>
-    </div>
+          </ListFiltersSheet>
+        </>
+      }
+      columns={columns}
+      data={categories}
+      pagination={pagination}
+      onPageChange={handlePageChange}
+      onPerPageChange={setPerPage}
+      onCreate={handleCreate}
+      onImport={handleImport}
+      onExport={handleExport}
+      onDeleteMultiple={handleDeleteMultiple}
+    />
   );
 }
 

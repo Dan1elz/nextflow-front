@@ -1,53 +1,71 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Download, Trash2, Upload } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/app/data-table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { SearchSelect } from "@/components/app/search-select";
+import type { IOption } from "@/interfaces/api.interface";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { useUsers } from "@/hooks/use-users";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { IUser } from "@/interfaces/user.interface";
 import { formatCpfCnpj, formatDateOnly } from "@/utils/format.helpers";
 import { UsersProvider } from "@/providers/users.provider";
+import { useIndexSearch } from "@/hooks/use-index-search";
+
+type UserFilters = {
+  search: string;
+  email: string;
+  cpf: string;
+  isActive: string;
+};
+
+const statusOptions: IOption[] = [
+  { value: "true", label: "Ativo" },
+  { value: "false", label: "Inativo" },
+];
 
 function Users() {
   const navigate = useNavigate();
   const { users, pagination, searchUsers, deleteUser, reactivateUser } =
     useUsers();
-  const [perPage, setPerPage] = useState(10);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasSearched = useRef(false);
-
-  const searchUsersRef = useRef(searchUsers);
-  const perPageRef = useRef(perPage);
-
-  useEffect(() => {
-    searchUsersRef.current = searchUsers;
-  }, [searchUsers]);
-
-  useEffect(() => {
-    perPageRef.current = perPage;
-  }, [perPage]);
-
-  const handleSearch = useCallback((page = 1) => {
-    searchUsersRef
-      .current({
-        filters: {},
-        page,
-        perPage: perPageRef.current,
-      })
-      .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar usuários");
-      });
-  }, []);
-
-  const handlePageChange = (page: number) => handleSearch(page);
+  const {
+    setPerPage,
+    selectedIds,
+    setSelectedIds,
+    filters,
+    setFilters,
+    resetFilters,
+    isFiltersOpen,
+    handleFiltersOpenChange,
+    handleSearch,
+    handlePageChange,
+  } = useIndexSearch<UserFilters, "search">({
+    search: searchUsers,
+    initialFilters: {
+      search: "",
+      email: "",
+      cpf: "",
+      isActive: "",
+    },
+    quickSearchKey: "search",
+    perPageInitial: 10,
+    debounceMs: 400,
+    onError: (error) => {
+      handleError(error, "Erro desconhecido ao buscar usuários");
+    },
+  });
 
   const handleCreate = () => navigate("/users/create");
 
@@ -67,7 +85,7 @@ function Users() {
       try {
         await reactivateUser(user.id);
         handleSuccess("Usuário reativado com sucesso");
-        handleSearch(1);
+        await handleSearch(1);
       } catch (error) {
         handleError(error, "Erro ao reativar usuário");
       }
@@ -91,63 +109,43 @@ function Users() {
       try {
         await deleteUser(user.id);
         handleSuccess("Usuário excluído com sucesso");
-        handleSearch(1);
+        await handleSearch(1);
       } catch (error) {
         handleError(error, "Erro ao excluir usuário");
       }
     },
     [deleteUser, handleSearch]
   );
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  const handleImport = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+  const handleImport = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      if (!file.name.endsWith(".csv")) {
-        handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === "string") {
-          const base64 = btoa(result);
-          // Arquivo convertido para base64, pronto para enviar
-          console.log("Arquivo em base64:", base64);
-        }
-      };
-      reader.readAsText(file);
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (hasSearched.current) {
-      searchUsersRef
-        .current({
-          filters: {},
-          page: 1,
-          perPage,
-        })
-        .catch((error) =>
-          handleError(error, "Erro desconhecido ao buscar usuários")
-        );
-    } else {
-      hasSearched.current = true;
-      handleSearch(1);
+    if (!file.name.endsWith(".csv")) {
+      handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
+      return;
     }
-  }, [perPage, handleSearch]);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === "string") {
+        const base64 = btoa(result);
+        // Arquivo convertido para base64, pronto para enviar
+        console.log("Arquivo em base64:", base64);
+      }
+    };
+    reader.readAsText(file);
+  }, []);
 
   const columns = useMemo<ColumnDef<IUser>[]>(
     () => [
@@ -239,71 +237,116 @@ function Users() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle>Usuários</CardTitle>
-              {selectedIds.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedIds.length} selecionado
-                  {selectedIds.length > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleImport}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  handleExport(selectedIds.length > 0 ? selectedIds : undefined)
+    <EntityIndexPage
+      title="Usuários"
+      selectedIds={selectedIds}
+      onSelectionChange={setSelectedIds}
+      toolbar={
+        <>
+          <InputGroup className="w-full md:w-[280px]">
+            <InputGroupAddon>
+              <Search className="h-4 w-4" />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={filters.search}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
+              placeholder="Pesquisar usuário..."
+              aria-label="Pesquisar usuário"
+            />
+          </InputGroup>
+
+          <ListFiltersSheet
+            open={isFiltersOpen}
+            onOpenChange={handleFiltersOpenChange}
+            description="Filtre a listagem de usuários."
+            onApply={() => {
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+            onClear={() => {
+              resetFilters();
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="userFilterSearch">Nome</Label>
+              <Input
+                id="userFilterSearch"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    search: e.target.value,
+                  }))
                 }
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              {selectedIds.length > 0 && (
-                <Button
-                  // variant="destructive"
-                  variant="outline"
-                  className="text-destructive border-destructive hover:text-destructive"
-                  onClick={() => handleDeleteMultiple(selectedIds)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={handleCreate}>
-                <Plus />
-              </Button>
+                placeholder="Ex.: Maria"
+              />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={users}
-            page={pagination?.currentPage ?? 1}
-            totalPages={pagination?.lastPage ?? 1}
-            total={pagination?.total ?? 0}
-            onPageChange={handlePageChange}
-            onPerPageChange={setPerPage}
-            onSelectionChange={setSelectedIds}
-          />
-        </CardContent>
-      </Card>
-    </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="userFilterEmail">Email</Label>
+              <Input
+                id="userFilterEmail"
+                value={filters.email}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    email: e.target.value,
+                  }))
+                }
+                placeholder="Ex.: maria@empresa.com"
+                inputMode="email"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="userFilterCpf">CPF</Label>
+              <Input
+                id="userFilterCpf"
+                value={filters.cpf}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    cpf: e.target.value,
+                  }))
+                }
+                placeholder="Ex.: 000.000.000-00"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.isActive,
+                  onChange: (value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      isActive: value ? String(value) : "",
+                    })),
+                }}
+                label="Status"
+                data={statusOptions}
+                placeholder="Todos"
+              />
+            </div>
+          </ListFiltersSheet>
+        </>
+      }
+      columns={columns}
+      data={users}
+      pagination={pagination}
+      onPageChange={handlePageChange}
+      onPerPageChange={setPerPage}
+      onCreate={handleCreate}
+      onImport={handleImport}
+      onExport={handleExport}
+      onDeleteMultiple={handleDeleteMultiple}
+    />
   );
 }
 

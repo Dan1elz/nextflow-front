@@ -1,50 +1,79 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, type ChangeEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Download, Trash2, Upload } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DataTable } from "@/components/app/data-table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { NavActionColumn } from "@/components/app/nav-action-column";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
+import { SearchSelect } from "@/components/app/search-select";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { useCities } from "@/hooks/use-cities";
+import { useStates } from "@/hooks/use-states";
+import { useIndexSearch } from "@/hooks/use-index-search";
+import { useSearchOptions } from "@/hooks/use-search-options";
+import type { IOption } from "@/interfaces/api.interface";
 import type { ICity } from "@/interfaces/locations.interface";
+import type { IState } from "@/interfaces/locations.interface";
 import { CitiesProvider } from "@/providers/cities.provider";
+import { StatesProvider } from "@/providers/states.provider";
+
+type CityFilters = {
+  search: string;
+  ibgeCode: string;
+  stateId: string;
+};
 
 function Cities() {
   const navigate = useNavigate();
   const { cities, pagination, searchCities, deleteCity } = useCities();
-  const [perPage, setPerPage] = useState(10);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasSearched = useRef(false);
+  const { searchStatesForOptions, getStateById } = useStates();
+  const {
+    setPerPage,
+    selectedIds,
+    setSelectedIds,
+    filters,
+    setFilters,
+    resetFilters,
+    isFiltersOpen,
+    handleFiltersOpenChange,
+    handleSearch,
+    handlePageChange,
+  } = useIndexSearch<CityFilters, "search">({
+    search: searchCities,
+    initialFilters: {
+      search: "",
+      ibgeCode: "",
+      stateId: "",
+    },
+    quickSearchKey: "search",
+    perPageInitial: 10,
+    debounceMs: 400,
+    onError: (error) => {
+      handleError(error, "Erro desconhecido ao buscar cidades");
+    },
+  });
 
-  const searchCitiesRef = useRef(searchCities);
-  const perPageRef = useRef(perPage);
-
-  useEffect(() => {
-    searchCitiesRef.current = searchCities;
-  }, [searchCities]);
-
-  useEffect(() => {
-    perPageRef.current = perPage;
-  }, [perPage]);
-
-  const handleSearch = useCallback((page = 1) => {
-    searchCitiesRef
-      .current({
-        filters: {},
-        page,
-        perPage: perPageRef.current,
-      })
-      .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar cidades");
-      });
-  }, []);
-
-  const handlePageChange = (page: number) => handleSearch(page);
+  const { options: statesOptions, handleSearch: handleSearchStates } =
+    useSearchOptions<IState>({
+      searchFn: searchStatesForOptions,
+      mapFn: (state) => ({
+        value: state.id ?? "",
+        label: state.name,
+      }),
+      selectFn: getStateById,
+      errorLabel: "estados",
+      autoLoad: false,
+      perPage: 50,
+    });
 
   const handleCreate = () => navigate("/cities/create");
 
@@ -73,7 +102,7 @@ function Cities() {
       try {
         await deleteCity(city.id);
         handleSuccess("Cidade excluída com sucesso");
-        handleSearch(1);
+        await handleSearch(1);
       } catch (error) {
         handleError(error, "Erro ao excluir cidade");
       }
@@ -81,56 +110,36 @@ function Cities() {
     [deleteCity, handleSearch]
   );
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
+    void _ids;
     // Função vazia conforme solicitado
   }, []);
 
-  const handleImport = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+  const handleImport = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      if (!file.name.endsWith(".csv")) {
-        handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (typeof result === "string") {
-          const base64 = btoa(result);
-          // Arquivo convertido para base64, pronto para enviar
-          console.log("Arquivo em base64:", base64);
-        }
-      };
-      reader.readAsText(file);
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (hasSearched.current) {
-      searchCitiesRef
-        .current({
-          filters: {},
-          page: 1,
-          perPage,
-        })
-        .catch((error) =>
-          handleError(error, "Erro desconhecido ao buscar cidades")
-        );
-    } else {
-      hasSearched.current = true;
-      handleSearch(1);
+    if (!file.name.endsWith(".csv")) {
+      handleError(new Error("Arquivo deve ser CSV"), "Formato inválido");
+      return;
     }
-  }, [perPage, handleSearch]);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result;
+      if (typeof result === "string") {
+        const base64 = btoa(result);
+        // Arquivo convertido para base64, pronto para enviar
+        console.log("Arquivo em base64:", base64);
+      }
+    };
+    reader.readAsText(file);
+  }, []);
 
   const columns = useMemo<ColumnDef<ICity>[]>(
     () => [
@@ -205,77 +214,109 @@ function Cities() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle>Cidades</CardTitle>
-              {selectedIds.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedIds.length} selecionado
-                  {selectedIds.length > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleImport}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  handleExport(selectedIds.length > 0 ? selectedIds : undefined)
+    <EntityIndexPage
+      title="Cidades"
+      selectedIds={selectedIds}
+      onSelectionChange={setSelectedIds}
+      toolbar={
+        <>
+          <InputGroup className="w-full md:w-[280px]">
+            <InputGroupAddon>
+              <Search className="h-4 w-4" />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={filters.search}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, search: e.target.value }))
+              }
+              placeholder="Pesquisar cidade..."
+              aria-label="Pesquisar cidade"
+            />
+          </InputGroup>
+
+          <ListFiltersSheet
+            open={isFiltersOpen}
+            onOpenChange={handleFiltersOpenChange}
+            description="Filtre a listagem de cidades."
+            onApply={() => {
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+            onClear={() => {
+              resetFilters();
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="cityFilterSearch">Nome</Label>
+              <Input
+                id="cityFilterSearch"
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    search: e.target.value,
+                  }))
                 }
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              {selectedIds.length > 0 && (
-                <Button
-                  variant="outline"
-                  className="text-destructive border-destructive hover:text-destructive"
-                  onClick={() => handleDeleteMultiple(selectedIds)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={handleCreate}>
-                <Plus />
-              </Button>
+                placeholder="Ex.: Campinas"
+              />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={cities}
-            page={pagination?.currentPage ?? 1}
-            totalPages={pagination?.lastPage ?? 1}
-            total={pagination?.total ?? 0}
-            onPageChange={handlePageChange}
-            onPerPageChange={setPerPage}
-            onSelectionChange={setSelectedIds}
-          />
-        </CardContent>
-      </Card>
-    </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="cityFilterIbgeCode">IBGE Code</Label>
+              <Input
+                id="cityFilterIbgeCode"
+                value={filters.ibgeCode}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    ibgeCode: e.target.value,
+                  }))
+                }
+                placeholder="Ex.: 3509502"
+                maxLength={7}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.stateId,
+                  onChange: (value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      stateId: value ? String(value) : "",
+                    })),
+                }}
+                label="Estado"
+                data={statesOptions}
+                onSearch={handleSearchStates}
+                placeholder="Estado"
+              />
+            </div>
+          </ListFiltersSheet>
+        </>
+      }
+      columns={columns}
+      data={cities}
+      pagination={pagination}
+      onPageChange={handlePageChange}
+      onPerPageChange={setPerPage}
+      onCreate={handleCreate}
+      onImport={handleImport}
+      onExport={handleExport}
+      onDeleteMultiple={handleDeleteMultiple}
+    />
   );
 }
 
 export default function CitiesPageWrapper() {
   return (
     <CitiesProvider>
-      <Cities />
+      <StatesProvider>
+        <Cities />
+      </StatesProvider>
     </CitiesProvider>
   );
 }
