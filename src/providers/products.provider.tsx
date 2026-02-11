@@ -57,7 +57,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   );
 
   const createProduct = useCallback(
-    async (product: IProduct): Promise<IProduct> => {
+    async (product: Partial<IProduct>): Promise<IProduct> => {
       const data = await productService.create(product, token ?? undefined);
       return data;
     },
@@ -65,8 +65,33 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   );
 
   const updateProduct = useCallback(
-    async (id: string, product: IProduct): Promise<IProduct> => {
+    async (id: string, product: Partial<IProduct>): Promise<IProduct> => {
       const data = await productService.update(id, product, token ?? undefined);
+      return data;
+    },
+    [token]
+  );
+
+  const updateProductImage = useCallback(
+    async (id: string, image: File): Promise<IProduct> => {
+      const data = await productService.updateProductImage(
+        id,
+        image,
+        token ?? undefined
+      );
+      setSelectedProduct((prev) => (prev?.id === id ? data : prev));
+      return data;
+    },
+    [token]
+  );
+
+  const removeProductImage = useCallback(
+    async (id: string): Promise<IProduct> => {
+      const data = await productService.removeProductImage(
+        id,
+        token ?? undefined
+      );
+      setSelectedProduct((prev) => (prev?.id === id ? data : prev));
       return data;
     },
     [token]
@@ -91,6 +116,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         getProductById,
         createProduct,
         updateProduct,
+        updateProductImage,
+        removeProductImage,
         deleteProduct,
       }}
     >

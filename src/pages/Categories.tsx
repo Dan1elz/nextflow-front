@@ -82,9 +82,15 @@ function Categories() {
     [deleteCategory, handleSearch]
   );
 
-  const handleExport = useCallback((_ids?: string[]) => {}, []);
+  //eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleExport = useCallback((_ids?: string[]) => {
+    // Função vazia conforme solicitado
+  }, []);
 
-  const handleDeleteMultiple = useCallback((_ids: string[]) => {}, []);
+  //eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDeleteMultiple = useCallback((_ids: string[]) => {
+    // Função vazia conforme solicitado
+  }, []);
 
   const handleImport = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {

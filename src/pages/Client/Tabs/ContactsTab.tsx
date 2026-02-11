@@ -62,7 +62,7 @@ function ContactsTabContent({ clientId, disabled = false }: ContactsTabProps) {
         const payload: IContact = {
           clientId,
           description: data.description,
-          fone: data.fone,
+          fone: data.fone ?? "",
           email: data.email?.trim() || "",
         };
         if (editingContact?.id) {

@@ -1,9 +1,5 @@
 export interface ISupplier {
-  id: string; // Guid
+  id?: string;
   name: string;
-  contactEmail: string;
-  contactPhone?: string;
-  address?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  cnpj: string;
 }

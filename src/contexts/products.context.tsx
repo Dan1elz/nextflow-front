@@ -12,8 +12,10 @@ export type ProductsContextType = {
   ) => Promise<{ data: IProduct[]; totalItems: number }>;
   selectProduct: (id: string) => Promise<void>;
   getProductById: (id: string) => Promise<IProduct>;
-  createProduct: (product: IProduct) => Promise<IProduct>;
-  updateProduct: (id: string, product: IProduct) => Promise<IProduct>;
+  createProduct: (product: Partial<IProduct>) => Promise<IProduct>;
+  updateProduct: (id: string, product: Partial<IProduct>) => Promise<IProduct>;
+  updateProductImage: (id: string, image: File) => Promise<IProduct>;
+  removeProductImage: (id: string) => Promise<IProduct>;
   deleteProduct: (id: string) => Promise<void>;
 };
 

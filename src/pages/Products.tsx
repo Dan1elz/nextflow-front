@@ -13,6 +13,7 @@ import { useProducts } from "@/hooks/use-products";
 import type { IProduct } from "@/interfaces/product.interface";
 import { ProductsProvider } from "@/providers/products.provider";
 import { formatCurrency, formatDateOnly, formatNumber } from "@/utils";
+import { UNIT_TYPE_LABELS, type TUnitType } from "@/types/enums";
 
 function Products() {
   const navigate = useNavigate();
@@ -162,12 +163,43 @@ function Products() {
         enableHiding: false,
       },
       {
+        id: "image",
+        header: "Imagem",
+        cell: ({ row }) => {
+          const img = row.original.image;
+          const src = typeof img === "string" && img.trim() ? img : null;
+          return (
+            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+              {src ? (
+                <img src={src} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                  —
+                </span>
+              )}
+            </div>
+          );
+        },
+        enableSorting: false,
+      },
+      {
         accessorKey: "productCode",
         header: "Código",
       },
       {
         accessorKey: "name",
         header: "Nome",
+      },
+      {
+        id: "supplier",
+        header: "Fornecedor",
+        cell: ({ row }) => row.original.supplier?.name ?? "-",
+      },
+      {
+        id: "categories",
+        header: "Categorias",
+        cell: ({ row }) =>
+          row.original.categories?.map((c) => c.description).join(", ") || "-",
       },
       {
         accessorKey: "price",
@@ -178,7 +210,10 @@ function Products() {
         accessorKey: "quantity",
         header: "Estoque",
         cell: ({ row }) =>
-          `${formatNumber(Number(row.original.quantity))} ${row.original.unitType}`,
+          `${formatNumber(Number(row.original.quantity))} ${
+            UNIT_TYPE_LABELS[row.original.unitType as TUnitType] ??
+            String(row.original.unitType)
+          }`,
       },
       {
         accessorKey: "validity",

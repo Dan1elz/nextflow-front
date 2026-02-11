@@ -167,8 +167,13 @@ export class ApiService {
     return this.request<T>("GET", uri, undefined, token, params);
   }
 
-  public put<T>(uri: string, body: object, token?: string) {
-    return this.request<T>("PUT", uri, body, token);
+  public put<T>(
+    uri: string,
+    body: object | FormData,
+    token?: string,
+    isFormData?: boolean
+  ) {
+    return this.request<T>("PUT", uri, body, token, undefined, isFormData);
   }
 
   public patch<T>(uri: string, body: object, token?: string) {

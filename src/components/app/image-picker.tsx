@@ -55,13 +55,18 @@ export function ImagePicker({
       onChange(null);
       return;
     }
-    if (file.size > MAX_FILE_SIZE) return;
+    if (file.size > MAX_FILE_SIZE) {
+      e.target.value = "";
+      return;
+    }
     if (
       !ACCEPTED_IMAGE_TYPES.includes(
         file.type as (typeof ACCEPTED_IMAGE_TYPES)[number]
       )
-    )
+    ) {
+      e.target.value = "";
       return;
+    }
     onChange(file);
     e.target.value = "";
   };
@@ -81,6 +86,16 @@ export function ImagePicker({
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPT_STRING}
+        onChange={handleFileChange}
+        disabled={disabled}
+        className="sr-only"
+        aria-label="Selecionar imagem"
+        tabIndex={-1}
+      />
       <button
         type="button"
         onClick={handleClick}
@@ -94,18 +109,6 @@ export function ImagePicker({
         )}
         style={{ width: size, height: size }}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPT_STRING}
-          onChange={handleFileChange}
-          disabled={disabled}
-          className={cn(
-            "absolute inset-0 z-0 cursor-pointer opacity-0",
-            hasImage && "pointer-events-none"
-          )}
-          aria-label="Selecionar imagem"
-        />
         {previewUrl ? (
           <>
             <img
@@ -133,7 +136,7 @@ export function ImagePicker({
           </div>
         )}
       </button>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground mt-0.5">
         Máx. 5MB • JPG, PNG ou WebP
       </p>
     </div>

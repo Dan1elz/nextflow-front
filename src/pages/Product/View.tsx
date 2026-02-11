@@ -5,30 +5,48 @@ import { ProductForm } from "@/components/forms/product-form";
 import { useProducts } from "@/hooks/use-products";
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { useCategories } from "@/hooks/use-categories";
+import { useSearchOptions } from "@/hooks/use-search-options";
+import { handleError } from "@/utils/toast.helpers";
 import { ProductsProvider } from "@/providers/products.provider";
 import { SuppliersProvider } from "@/providers/suppliers.provider";
 import { CategoriesProvider } from "@/providers/categories.provider";
-import { handleError } from "@/utils/toast.helpers";
+import type { ISupplier } from "@/interfaces/supplier.interface";
+import type { ICategory } from "@/interfaces/category.interface";
 
 function ViewProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedProduct, selectProduct } = useProducts();
+  const { searchSuppliersForOptions, getSupplierById } = useSuppliers();
+  const { searchCategoriesForOptions, getCategoryById } = useCategories();
 
-  // Hooks necessários para carregar os dados contextuais (labels de fornecedor/categoria)
-  const { suppliers, searchSuppliers } = useSuppliers();
-  const { categories, searchCategories } = useCategories();
+  const { options: supplierOptions, handleSearch: handleSearchSuppliers } =
+    useSearchOptions<ISupplier>({
+      searchFn: searchSuppliersForOptions,
+      mapFn: (s) => ({ value: s.id ?? "", label: s.name ?? "" }),
+      selectFn: getSupplierById,
+      errorLabel: "fornecedores",
+      autoLoad: false,
+      perPage: 50,
+    });
 
-  const handleBack = () => {
-    navigate("/products");
-  };
+  const { options: categoryOptions, handleSearch: handleSearchCategories } =
+    useSearchOptions<ICategory>({
+      searchFn: searchCategoriesForOptions,
+      mapFn: (c) => ({ value: c.id ?? "", label: c.description ?? "" }),
+      selectFn: getCategoryById,
+      errorLabel: "categorias",
+      autoLoad: false,
+      perPage: 50,
+    });
+
+  const handleBack = () => navigate("/products");
 
   useEffect(() => {
     if (!id) {
       navigate("/products");
       return;
     }
-
     selectProduct(id).catch((error) => {
       handleError(error, "Erro ao buscar detalhes do produto");
       navigate("/products");
@@ -57,17 +75,16 @@ function ViewProduct() {
         </CardHeader>
         <CardContent>
           <ProductForm
-            onSubmit={() => {}} // Função vazia pois é apenas visualização
+            onSubmit={() => {}}
             onBack={handleBack}
             isLoading={false}
             initialData={selectedProduct}
             isEdit={false}
-            disabled={true} // Bloqueia todos os campos do formulário
-            // Props para que o formulário exiba os labels corretamente
-            suppliers={suppliers}
-            onSearchSuppliers={searchSuppliers}
-            categories={categories}
-            onSearchCategories={searchCategories}
+            disabled={true}
+            supplierOptions={supplierOptions}
+            onSearchSuppliers={handleSearchSuppliers}
+            categoryOptions={categoryOptions}
+            onSearchCategory={handleSearchCategories}
           />
         </CardContent>
       </Card>
@@ -75,7 +92,6 @@ function ViewProduct() {
   );
 }
 
-// Wrapper consolidado com todos os contextos necessários
 export default function ViewProductPageWrapper() {
   return (
     <ProductsProvider>
