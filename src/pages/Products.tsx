@@ -272,7 +272,7 @@ function Products() {
   );
 }
 
-export default function CountriesPageWrapper() {
+export default function ProductsPageWrapper() {
   return (
     <ProductsProvider>
       <Products />
