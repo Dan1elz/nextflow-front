@@ -3,3 +3,5 @@ export interface IBreadcrumb {
   path: string;
   isLast: boolean;
 }
+
+export { TUnitType, UNIT_TYPE_LABELS } from "./enums";

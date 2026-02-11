@@ -28,6 +28,10 @@ import CategoriesPageWrapper from "@/pages/Categories";
 import CreateCategoryPageWrapper from "@/pages/Category/Create";
 import EditCategoryPageWrapper from "@/pages/Category/Edit";
 import ViewCategoryPageWrapper from "@/pages/Category/View";
+import ProductsPageWrapper from "@/pages/Products";
+import CreateProductPageWrapper from "@/pages/Product/Create";
+import EditProductPageWrapper from "@/pages/Product/Edit";
+import ViewProductPageWrapper from "@/pages/Product/View";
 
 function AppRoutes() {
   return (
@@ -90,6 +94,11 @@ function AppRoutes() {
         <Route path="countries/create" element={<CreateCountryPageWrapper />} />
         <Route path="countries/:id/edit" element={<EditCountryPageWrapper />} />
         <Route path="countries/:id/view" element={<ViewCountryPageWrapper />} />
+
+        <Route path="products" element={<ProductsPageWrapper />} />
+        <Route path="products/create" element={<CreateProductPageWrapper />} />
+        <Route path="products/:id/edit" element={<EditProductPageWrapper />} />
+        <Route path="products/:id/view" element={<ViewProductPageWrapper />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
