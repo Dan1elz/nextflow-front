@@ -20,3 +20,18 @@ export interface IAddress {
   complement: string;
   zipCode: string;
 }
+
+export type IResolveAddressFromCepPayload = {
+  stateAcronym?: string;
+  cityName?: string;
+  cityIbgeCode?: string;
+};
+
+export type IResolveAddressFromCepResult = {
+  stateId?: string;
+  stateName?: string;
+  stateAcronym?: string;
+  cityId?: string;
+  cityName?: string;
+  cityIbgeCode?: string;
+};
