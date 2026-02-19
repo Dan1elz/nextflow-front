@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { SupplierTab } from "@/pages/Supplier/Tabs/SupplierTab";
@@ -6,8 +6,9 @@ import { AddressesTab } from "@/pages/Supplier/Tabs/AddressesTab";
 import { ContactsTab } from "@/pages/Supplier/Tabs/ContactsTab";
 import { SuppliersProvider } from "@/providers/suppliers.provider";
 
-function CreateSupplier() {
+function ViewSupplier() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
 
   const handleBack = () => navigate("/suppliers");
 
@@ -15,38 +16,37 @@ function CreateSupplier() {
     {
       value: "supplier",
       label: "Fornecedor",
-      content: <SupplierTab mode="create" />,
+      // O modo "view" já desabilita as ações de submit no formulário base
+      content: <SupplierTab mode="view" />,
     },
     {
       value: "addresses",
       label: "Endereços",
-      // supplierId como null pois o registro ainda não existe
-      content: <AddressesTab supplierId={null} disabled />,
+      // Passamos o supplierId para listar e disabled para ocultar ações de edição/exclusão
+      content: <AddressesTab supplierId={id ?? null} disabled />,
     },
     {
       value: "contacts",
       label: "Contatos",
-      // supplierId como null pois o registro ainda não existe
-      content: <ContactsTab supplierId={null} disabled />,
+      // Passamos o supplierId para listar e disabled para ocultar ações de edição/exclusão
+      content: <ContactsTab supplierId={id ?? null} disabled />,
     },
   ];
 
   return (
     <EntityTabsLayout
-      title="Criar Fornecedor"
+      title="Visualizar Fornecedor"
       tabs={tabs}
       defaultTab="supplier"
-      // Mantemos o bloqueio das abas dependentes até que o fornecedor seja criado
-      disabledTabs={["addresses", "contacts"]}
       onBack={handleBack}
     />
   );
 }
 
-export default function CreateSupplierPageWrapper() {
+export default function ViewSupplierPageWrapper() {
   return (
     <SuppliersProvider>
-      <CreateSupplier />
+      <ViewSupplier />
     </SuppliersProvider>
   );
 }
