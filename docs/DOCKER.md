@@ -22,8 +22,8 @@ A estrutura baseia-se nos seguintes arquivos:
 
 - **Dockerfile:** Gerencia a criação da imagem da aplicação (base para produção).
 - **Dockerfile.development:** Gerencia a criação da imagem com dependências e ferramentas úteis para o estágio de desenvolvimento.
-- **docker-compose.staging.yml:** Orquestrador do container frontend para ambientes de homologação/produção.
-- **docker-compose.development.yml:** Orquestrador do container frontend para ambiente de desenvolvimento.
+- **compose.staging.yaml:** Orquestrador do container frontend para ambientes de homologação/produção.
+- **compose.development.yaml:** Orquestrador do container frontend para ambiente de desenvolvimento.
 
 ---
 
@@ -40,7 +40,7 @@ Este ambiente habilita:
 Para iniciar:
 
 ```bash
-docker compose -f docker-compose.development.yml up -d --build
+docker compose -f compose.development.yaml up -d --build
 ```
 
 > **Acesso:** [http://localhost:5173](http://localhost:5173)
@@ -51,7 +51,7 @@ Por se tratar de um ambiente idêntico ao de produção, o servidor Nginx serve 
 
 ```bash
 # 1. Buildar a imagem injetando a variável de ambiente (Build Args)
-set VITE_API_URL=http://localhost:8080& docker compose -f docker-compose.staging.yml up -d --build
+set VITE_API_URL=http://localhost:8080& docker compose -f compose.staging.yaml up -d --build
 ```
 
 > **Acesso:** [http://localhost:80](http://localhost:80)
@@ -66,10 +66,10 @@ set VITE_API_URL=http://localhost:8080& docker compose -f docker-compose.staging
 
 ```bash
 # Para Dev (Logs do Vite)
-docker compose -f docker-compose.development.yml logs -f front
+docker compose -f compose.development.yaml logs -f front
 
 # Para Homolog (Logs do Nginx)
-docker compose -f docker-compose.staging.yml logs -f front
+docker compose -f compose.staging.yaml logs -f front
 ```
 
 ### Acessar o Terminal do Container
@@ -87,7 +87,7 @@ docker exec -it -e TERM=xterm nextflow-staging-front-1 sh
 ### Parar o Ambiente
 
 ```bash
-docker compose -f docker-compose.development.yml down
+docker compose -f compose.development.yaml down
 ```
 
 _(Nota: O nome do container pode variar dependendo do nome da pasta raiz. Se falhar, verifique o nome correto com `docker ps` ou execute dentro da raiz do frontend)_

@@ -87,12 +87,10 @@ function Categories() {
     [deleteCategory, handleSearch]
   );
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleExport = useCallback((_ids?: string[]) => {
     void _ids;
   }, []);
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteMultiple = useCallback((_ids: string[]) => {
     void _ids;
   }, []);

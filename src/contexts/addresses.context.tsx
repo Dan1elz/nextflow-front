@@ -1,11 +1,11 @@
 import { createContext } from "react";
 
-import type { IAddress } from "@/interfaces/address.interface";
-import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 import type {
-  ResolveAddressFromCepPayload,
-  ResolveAddressFromCepResult,
-} from "@/services/address.service";
+  IAddress,
+  IResolveAddressFromCepPayload,
+  IResolveAddressFromCepResult,
+} from "@/interfaces/address.interface";
+import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 
 export type AddressesContextType = {
   addresses: IAddress[];
@@ -17,8 +17,8 @@ export type AddressesContextType = {
   updateAddress: (id: string, address: IAddress) => Promise<IAddress>;
   deleteAddress: (id: string) => Promise<void>;
   resolveFromCep: (
-    payload: ResolveAddressFromCepPayload
-  ) => Promise<ResolveAddressFromCepResult>;
+    payload: IResolveAddressFromCepPayload
+  ) => Promise<IResolveAddressFromCepResult>;
 };
 
 export const AddressesContext = createContext<AddressesContextType | null>(

@@ -84,6 +84,13 @@ export function SuppliersProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const reactivateSupplier = useCallback(
+    async (id: string): Promise<void> => {
+      await supplierService.reactivate(id, token ?? undefined);
+    },
+    [token]
+  );
+
   return (
     <SuppliersContext.Provider
       value={{
@@ -97,6 +104,7 @@ export function SuppliersProvider({ children }: { children: ReactNode }) {
         createSupplier,
         updateSupplier,
         deleteSupplier,
+        reactivateSupplier,
       }}
     >
       {children}

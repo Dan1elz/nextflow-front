@@ -7,6 +7,8 @@ import {
   ChevronDown,
   Settings,
   Tag,
+  Truck,
+  Package,
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,7 +45,8 @@ const items: SidebarMenuGroup[] = [
       { name: "Usuários", url: "/users", icon: Users },
       { name: "Clientes", url: "/clients", icon: UserCircle },
       { name: "Categorias", url: "/categories", icon: Tag },
-      { name: "Produtos", url: "/products", icon: Tag },
+      { name: "Produtos", url: "/products", icon: Package },
+      { name: "Fornecedores", url: "/suppliers", icon: Truck },
       {
         name: "Localidades",
         icon: MapPin,

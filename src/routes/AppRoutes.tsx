@@ -32,6 +32,10 @@ import ProductsPageWrapper from "@/pages/Products";
 import CreateProductPageWrapper from "@/pages/Product/Create";
 import EditProductPageWrapper from "@/pages/Product/Edit";
 import ViewProductPageWrapper from "@/pages/Product/View";
+import SuppliersPageWrapper from "@/pages/Suppliers";
+import CreateSupplierPageWrapper from "@/pages/Supplier/Create";
+import EditSupplierPageWrapper from "@/pages/Supplier/Edit";
+import ViewSupplierPageWrapper from "@/pages/Supplier/View";
 
 function AppRoutes() {
   return (
@@ -65,6 +69,20 @@ function AppRoutes() {
         <Route path="clients/create" element={<CreateClientPageWrapper />} />
         <Route path="clients/:id/edit" element={<EditClientPageWrapper />} />
         <Route path="clients/:id/view" element={<ViewClientPageWrapper />} />
+
+        <Route path="suppliers" element={<SuppliersPageWrapper />} />
+        <Route
+          path="suppliers/create"
+          element={<CreateSupplierPageWrapper />}
+        />
+        <Route
+          path="suppliers/:id/edit"
+          element={<EditSupplierPageWrapper />}
+        />
+        <Route
+          path="suppliers/:id/view"
+          element={<ViewSupplierPageWrapper />}
+        />
 
         <Route path="categories" element={<CategoriesPageWrapper />} />
         <Route

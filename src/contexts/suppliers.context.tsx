@@ -15,6 +15,7 @@ export type SuppliersContextType = {
   createSupplier: (supplier: ISupplier) => Promise<ISupplier>;
   updateSupplier: (id: string, supplier: ISupplier) => Promise<ISupplier>;
   deleteSupplier: (id: string) => Promise<void>;
+  reactivateSupplier: (id: string) => Promise<void>;
 };
 
 export const SuppliersContext = createContext<SuppliersContextType | null>(

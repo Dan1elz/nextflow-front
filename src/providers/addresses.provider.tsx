@@ -2,12 +2,12 @@ import { useState, useCallback, type ReactNode } from "react";
 
 import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
-import type { IAddress } from "@/interfaces/address.interface";
-import {
-  addressService,
-  type ResolveAddressFromCepPayload,
-  type ResolveAddressFromCepResult,
-} from "@/services/address.service";
+import type {
+  IAddress,
+  IResolveAddressFromCepPayload,
+  IResolveAddressFromCepResult,
+} from "@/interfaces/address.interface";
+import { addressService } from "@/services/address.service";
 import { AddressesContext } from "@/contexts/addresses.context";
 
 export function AddressesProvider({ children }: { children: ReactNode }) {
@@ -67,8 +67,8 @@ export function AddressesProvider({ children }: { children: ReactNode }) {
 
   const resolveFromCep = useCallback(
     async (
-      payload: ResolveAddressFromCepPayload
-    ): Promise<ResolveAddressFromCepResult> => {
+      payload: IResolveAddressFromCepPayload
+    ): Promise<IResolveAddressFromCepResult> => {
       return await addressService.resolveFromCep(payload, token ?? undefined);
     },
     [token]
