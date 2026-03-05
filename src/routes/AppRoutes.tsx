@@ -36,6 +36,7 @@ import SuppliersPageWrapper from "@/pages/Suppliers";
 import CreateSupplierPageWrapper from "@/pages/Supplier/Create";
 import EditSupplierPageWrapper from "@/pages/Supplier/Edit";
 import ViewSupplierPageWrapper from "@/pages/Supplier/View";
+import StockMovementsPageWrapper from "@/pages/StockMovements";
 
 function AppRoutes() {
   return (
@@ -117,6 +118,8 @@ function AppRoutes() {
         <Route path="products/create" element={<CreateProductPageWrapper />} />
         <Route path="products/:id/edit" element={<EditProductPageWrapper />} />
         <Route path="products/:id/view" element={<ViewProductPageWrapper />} />
+
+        <Route path="stock-movements" element={<StockMovementsPageWrapper />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
