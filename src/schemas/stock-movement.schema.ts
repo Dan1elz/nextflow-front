@@ -27,9 +27,7 @@ export const stockMovementSchema = z.object({
     .number()
     .min(0.01, "A quantidade deve ser maior que zero."),
 
-  quote: z.coerce
-    .number()
-    .min(0, "A cotação não pode ser negativa."),
+  quote: z.coerce.number().min(0, "A cotação não pode ser negativa."),
 });
 
 export type StockMovementSchema = z.infer<typeof stockMovementSchema>;

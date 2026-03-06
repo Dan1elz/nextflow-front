@@ -8,7 +8,8 @@ import { stockMovementService } from "@/services/stock-movement.service";
 export function StockMovementsProvider({ children }: { children: ReactNode }) {
   const [stockMovements, setStockMovements] = useState<IStockMovement[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedStockMovement, setSelectedStockMovement] = useState<IStockMovement | null>(null);
+  const [selectedStockMovement, setSelectedStockMovement] =
+    useState<IStockMovement | null>(null);
   const { token } = useAuth();
 
   const searchStockMovements = useCallback(
@@ -16,7 +17,10 @@ export function StockMovementsProvider({ children }: { children: ReactNode }) {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
 
-      const response = await stockMovementService.getAll(query, token ?? undefined);
+      const response = await stockMovementService.getAll(
+        query,
+        token ?? undefined
+      );
       setStockMovements(response.data || []);
       setPagination({
         currentPage: page,
@@ -32,7 +36,10 @@ export function StockMovementsProvider({ children }: { children: ReactNode }) {
     async (
       query?: IIndexParams
     ): Promise<{ data: IStockMovement[]; totalItems: number }> => {
-      const response = await stockMovementService.getAll(query, token ?? undefined);
+      const response = await stockMovementService.getAll(
+        query,
+        token ?? undefined
+      );
       return {
         data: response.data || [],
         totalItems: response.totalItems || 0,
@@ -58,7 +65,10 @@ export function StockMovementsProvider({ children }: { children: ReactNode }) {
 
   const createStockMovement = useCallback(
     async (stockMovement: Partial<IStockMovement>): Promise<IStockMovement> => {
-      const data = await stockMovementService.create(stockMovement, token ?? undefined);
+      const data = await stockMovementService.create(
+        stockMovement,
+        token ?? undefined
+      );
       return data;
     },
     [token]

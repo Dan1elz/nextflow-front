@@ -12,8 +12,11 @@ export type StockMovementsContextType = {
   ) => Promise<{ data: IStockMovement[]; totalItems: number }>;
   selectStockMovement: (id: string) => Promise<void>;
   getStockMovementById: (id: string) => Promise<IStockMovement>;
-  createStockMovement: (stockMovement: Partial<IStockMovement>) => Promise<IStockMovement>;
+  createStockMovement: (
+    stockMovement: Partial<IStockMovement>
+  ) => Promise<IStockMovement>;
   deleteStockMovement: (id: string) => Promise<void>;
 };
 
-export const StockMovementsContext = createContext<StockMovementsContextType | null>(null);
+export const StockMovementsContext =
+  createContext<StockMovementsContextType | null>(null);

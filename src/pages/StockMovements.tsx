@@ -11,7 +11,12 @@ import { MOVEMENT_TYPE_LABELS, type TMovementType } from "@/types/enums";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 
 function StockMovements() {
-  const { stockMovements, pagination, searchStockMovements, deleteStockMovement } = useStockMovements();
+  const {
+    stockMovements,
+    pagination,
+    searchStockMovements,
+    deleteStockMovement,
+  } = useStockMovements();
   const [perPage, setPerPage] = useState(10);
   const hasSearched = useRef(false);
 
@@ -53,18 +58,24 @@ function StockMovements() {
     },
     [deleteStockMovement, handleSearch]
   );
-  
+
   // Como o usuário pediu para apenas listar neste momento, usaremos hooks mockados ou apenas visualização
-  const handleEdit = useCallback(() => { /* Funcionalidade futura */ }, []);
-  const handleView = useCallback(() => { /* Funcionalidade futura */ }, []);
+  const handleEdit = useCallback(() => {
+    /* Funcionalidade futura */
+  }, []);
+  const handleView = useCallback(() => {
+    /* Funcionalidade futura */
+  }, []);
 
   useEffect(() => {
     if (hasSearched.current) {
-      searchStockMovementsRef.current({
-        filters: {},
-        page: 1,
-        perPage,
-      }).catch((error) => handleError(error, "Erro desconhecido"));
+      searchStockMovementsRef
+        .current({
+          filters: {},
+          page: 1,
+          perPage,
+        })
+        .catch((error) => handleError(error, "Erro desconhecido"));
     } else {
       hasSearched.current = true;
       handleSearch(1);
@@ -76,7 +87,8 @@ function StockMovements() {
       {
         accessorKey: "createdAt",
         header: "Data",
-        cell: ({ row }) => (row.original.createdAt ? formatDateOnly(row.original.createdAt) : "-"),
+        cell: ({ row }) =>
+          row.original.createdAt ? formatDateOnly(row.original.createdAt) : "-",
       },
       {
         id: "product",
@@ -87,7 +99,8 @@ function StockMovements() {
         accessorKey: "movementType",
         header: "Tipo",
         cell: ({ row }) =>
-          MOVEMENT_TYPE_LABELS[row.original.movementType as TMovementType] ?? String(row.original.movementType),
+          MOVEMENT_TYPE_LABELS[row.original.movementType as TMovementType] ??
+          String(row.original.movementType),
       },
       {
         accessorKey: "quantity",
@@ -107,7 +120,10 @@ function StockMovements() {
       {
         id: "user",
         header: "Usuário",
-        cell: ({ row }) => (row.original.user ? `${row.original.user.name} ${row.original.user.lastName}` : "-"),
+        cell: ({ row }) =>
+          row.original.user
+            ? `${row.original.user.name} ${row.original.user.lastName}`
+            : "-",
       },
       {
         id: "actions",

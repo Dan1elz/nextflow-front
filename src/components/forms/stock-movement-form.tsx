@@ -1,7 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-
 import {
   Form,
   FormControl,
@@ -23,7 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { stockMovementSchema, type StockMovementSchema } from "@/schemas/stock-movement.schema";
+import {
+  stockMovementSchema,
+  type StockMovementSchema,
+} from "@/schemas/stock-movement.schema";
 import { TMovementType, MOVEMENT_TYPE_LABELS } from "@/types/enums";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
 
@@ -34,7 +36,9 @@ interface StockMovementFormProps {
   hideProduct?: boolean; // Usuário solicitou que isso pudesse ser oculto caso venha da tela de produto
   productId?: string;
   productOptions?: IOption[];
-  onSearchProducts?: (query: string) => Promise<IOption[] | void> | IOption[] | void;
+  onSearchProducts?: (
+    query: string
+  ) => Promise<IOption[] | void> | IOption[] | void;
   disabled?: boolean;
 }
 
@@ -104,7 +108,11 @@ export function StockMovementForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {(Object.keys(TMovementType) as Array<keyof typeof TMovementType>).map((key) => {
+                    {(
+                      Object.keys(TMovementType) as Array<
+                        keyof typeof TMovementType
+                      >
+                    ).map((key) => {
                       const type = TMovementType[key];
                       return (
                         <SelectItem key={type} value={String(type)}>
@@ -173,15 +181,16 @@ export function StockMovementForm({
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => window.history.back()}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => window.history.back()}
+          >
             Cancelar
           </Button>
           {!disabled && (
             <Button type="submit" disabled={isLoading || disabled}>
-              <ButtonLoader
-                isLoading={!!isLoading}
-                loadingText={"Salvando..."}
-              >
+              <ButtonLoader isLoading={!!isLoading} loadingText={"Salvando..."}>
                 Salvar
               </ButtonLoader>
             </Button>

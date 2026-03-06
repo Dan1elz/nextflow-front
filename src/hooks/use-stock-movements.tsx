@@ -5,7 +5,9 @@ export function useStockMovements() {
   const context = useContext(StockMovementsContext);
 
   if (!context) {
-    throw new Error("useStockMovements must be used within a StockMovementsProvider");
+    throw new Error(
+      "useStockMovements must be used within a StockMovementsProvider"
+    );
   }
 
   return context;
