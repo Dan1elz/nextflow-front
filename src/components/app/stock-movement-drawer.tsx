@@ -23,6 +23,7 @@ interface StockMovementDrawerProps {
   isViewing?: boolean;
   onSuccess?: () => void;
   productId?: string;
+  productName?: string;
   hideProduct?: boolean;
 }
 
@@ -33,6 +34,7 @@ export function StockMovementDrawer({
   isViewing = false,
   onSuccess,
   productId: fixedProductId,
+  productName,
   hideProduct = false,
 }: StockMovementDrawerProps) {
   const { createStockMovement } = useStockMovements();
@@ -106,6 +108,7 @@ export function StockMovementDrawer({
             disabled={isViewing}
             hideProduct={hideProduct}
             productId={fixedProductId}
+            productName={productName}
             productOptions={hideProduct ? [] : productOptions}
             onSearchProducts={hideProduct ? undefined : handleSearchProducts}
             onCancel={() => onOpenChange(false)}

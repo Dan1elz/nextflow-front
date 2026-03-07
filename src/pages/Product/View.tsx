@@ -6,10 +6,12 @@ import { StockMovementsTab } from "@/pages/Product/Tabs/StockMovementsTab";
 import { ProductsProvider } from "@/providers/products.provider";
 import { SuppliersProvider } from "@/providers/suppliers.provider";
 import { CategoriesProvider } from "@/providers/categories.provider";
+import { useProducts } from "@/hooks/use-products";
 
 function ViewProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { selectedProduct } = useProducts();
 
   const handleBack = () => navigate("/products");
 
@@ -22,7 +24,13 @@ function ViewProduct() {
     {
       value: "stock-movements",
       label: "Movimentações",
-      content: <StockMovementsTab productId={id ?? null} disabled />,
+      content: (
+        <StockMovementsTab
+          productId={id ?? null}
+          productName={selectedProduct?.name}
+          disabled
+        />
+      ),
     },
   ];
 

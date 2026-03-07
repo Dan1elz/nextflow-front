@@ -23,11 +23,13 @@ import { Plus } from "lucide-react";
 
 type StockMovementsTabProps = {
   productId: string | null;
+  productName?: string;
   disabled?: boolean;
 };
 
 function StockMovementsTabContent({
   productId,
+  productName,
   disabled = false,
 }: StockMovementsTabProps) {
   const {
@@ -248,6 +250,7 @@ function StockMovementsTabContent({
         isViewing={isViewing}
         onSuccess={() => fetchMovements(1)}
         productId={productId}
+        productName={productName}
         hideProduct
       />
     </div>

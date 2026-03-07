@@ -34,7 +34,8 @@ interface StockMovementFormProps {
   initialData?: IStockMovement;
   onSubmit: (data: StockMovementSchema) => Promise<void>;
   isLoading?: boolean;
-  hideProduct?: boolean; // Usuário solicitou que isso pudesse ser oculto caso venha da tela de produto
+  hideProduct?: boolean;
+  productName?: string;
   productId?: string;
   productOptions?: IOption[];
   onSearchProducts?: (
@@ -50,6 +51,7 @@ export function StockMovementForm({
   isLoading,
   hideProduct,
   productId,
+  productName,
   productOptions = [],
   onSearchProducts,
   disabled = false,
@@ -75,28 +77,38 @@ export function StockMovementForm({
         className="space-y-6"
       >
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {!hideProduct && onSearchProducts && (
-            <FormField
-              control={form.control}
-              name="productId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <SearchSelect
-                      field={field}
-                      value={field.value as string}
-                      onChange={field.onChange}
-                      label="Produto"
-                      data={productOptions}
-                      onSearch={onSearchProducts}
-                      placeholder="Produto"
-                      disabled={isLoading || disabled}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {hideProduct ? (
+            <div className="space-y-2">
+              <Label>Produto</Label>
+              <Input
+                disabled
+                value={initialData?.product?.name || productName || ""}
+              />
+            </div>
+          ) : (
+            onSearchProducts && (
+              <FormField
+                control={form.control}
+                name="productId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <SearchSelect
+                        field={field}
+                        value={field.value as string}
+                        onChange={field.onChange}
+                        label="Produto"
+                        data={productOptions}
+                        onSearch={onSearchProducts}
+                        placeholder="Produto"
+                        disabled={isLoading || disabled}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )
           )}
 
           {disabled && initialData?.user && (
@@ -118,6 +130,7 @@ export function StockMovementForm({
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={String(field.value)}
+                  disabled={isLoading || disabled}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -158,7 +171,12 @@ export function StockMovementForm({
               <FormItem>
                 <FormLabel>Quantidade</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" {...field} />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    {...field}
+                    disabled={isLoading || disabled}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
