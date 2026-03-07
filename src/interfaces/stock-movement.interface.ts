@@ -12,5 +12,5 @@ export interface IStockMovement {
   movementType: TMovementType;
   quantity: number | string;
   quote: number | string;
-  createdAt?: string;
+  createAt?: string;
 }

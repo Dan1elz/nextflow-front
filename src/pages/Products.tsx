@@ -1,52 +1,154 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Plus, Download, Trash2, Upload } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DataTable } from "@/components/app/data-table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
+import { SearchSelect } from "@/components/app/search-select";
+
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import { useProducts } from "@/hooks/use-products";
-import type { IProduct } from "@/interfaces/product.interface";
-import { ProductsProvider } from "@/providers/products.provider";
 import { formatCurrency, formatDateOnly, formatNumber } from "@/utils";
-import { UNIT_TYPE_LABELS, type TUnitType } from "@/types/enums";
+import { useProducts } from "@/hooks/use-products";
+import { useSuppliers } from "@/hooks/use-suppliers";
+import { useCategories } from "@/hooks/use-categories";
+import { useIndexSearch } from "@/hooks/use-index-search";
+import { useSearchOptions } from "@/hooks/use-search-options";
+import type { IProduct } from "@/interfaces/product.interface";
+import type { ISupplier } from "@/interfaces/supplier.interface";
+import type { ICategory } from "@/interfaces/category.interface";
+import type { IOption } from "@/interfaces/api.interface";
+import { ProductsProvider } from "@/providers/products.provider";
+import { SuppliersProvider } from "@/providers/suppliers.provider";
+import { CategoriesProvider } from "@/providers/categories.provider";
+import {
+  UNIT_TYPE_LABELS,
+  TUnitType,
+  type TUnitType as TUnitTypeAlias,
+} from "@/types/enums";
+
+type ProductFilters = {
+  search: string;
+  productCode: string;
+  name: string;
+  supplierId: string;
+  categoryId: string;
+  unitType: string;
+  priceMin: string;
+  priceMax: string;
+  quantityMin: string;
+  quantityMax: string;
+  validity: string;
+};
 
 function Products() {
   const navigate = useNavigate();
   const { products, pagination, searchProducts, deleteProduct } = useProducts();
-  const [perPage, setPerPage] = useState(10);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasSearched = useRef(false);
+  const { searchSuppliersForOptions, getSupplierById } = useSuppliers();
+  const { searchCategoriesForOptions, getCategoryById } = useCategories();
 
-  const searchProductsRef = useRef(searchProducts);
-  const perPageRef = useRef(perPage);
+  // Busca customizada para filtros
+  const customSearch = useCallback(
+    async (params?: import("@/interfaces/api.interface").IIndexParams) => {
+      const activeFilters = { ...params?.filters } as Record<string, string>;
 
-  useEffect(() => {
-    searchProductsRef.current = searchProducts;
-  }, [searchProducts]);
+      if (activeFilters.unitType === "ALL") {
+        delete activeFilters.unitType;
+      }
 
-  useEffect(() => {
-    perPageRef.current = perPage;
-  }, [perPage]);
-
-  const handleSearch = useCallback((page = 1) => {
-    searchProductsRef
-      .current({
-        filters: {},
-        page,
-        perPage: perPageRef.current,
-      })
-      .catch((error) => {
-        handleError(error, "Erro desconhecido ao buscar produtos");
+      await searchProducts({
+        ...params,
+        filters: activeFilters,
       });
-  }, []);
+    },
+    [searchProducts]
+  );
 
-  const handlePageChange = (page: number) => handleSearch(page);
+  const {
+    setPerPage,
+    selectedIds,
+    setSelectedIds,
+    filters,
+    setFilters,
+    resetFilters,
+    isFiltersOpen,
+    handleFiltersOpenChange,
+    handleSearch,
+    handlePageChange,
+  } = useIndexSearch<ProductFilters, "search">({
+    search: customSearch,
+    initialFilters: {
+      search: "",
+      productCode: "",
+      name: "",
+      supplierId: "",
+      categoryId: "",
+      unitType: "ALL",
+      priceMin: "",
+      priceMax: "",
+      quantityMin: "",
+      quantityMax: "",
+      validity: "",
+    },
+    quickSearchKey: "search",
+    perPageInitial: 10,
+    debounceMs: 400,
+    onError: (error) => {
+      handleError(error, "Erro ao buscar produtos");
+    },
+  });
+
+  // SearchSelect: Fornecedores
+  const { options: supplierOptions, handleSearch: handleSearchSuppliers } =
+    useSearchOptions<ISupplier>({
+      searchFn: async (params) => {
+        return await searchSuppliersForOptions(params);
+      },
+      mapFn: (supplier) => ({
+        value: supplier.id ?? "",
+        label: supplier.name,
+      }),
+      selectFn: async (id) => {
+        return await getSupplierById(id);
+      },
+      errorLabel: "fornecedores",
+      autoLoad: false,
+      perPage: 50,
+    });
+
+  // SearchSelect: Categorias
+  const { options: categoryOptions, handleSearch: handleSearchCategories } =
+    useSearchOptions<ICategory>({
+      searchFn: async (params) => {
+        return await searchCategoriesForOptions(params);
+      },
+      mapFn: (category) => ({
+        value: category.id ?? "",
+        label: category.description,
+      }),
+      selectFn: async (id) => {
+        return await getCategoryById(id);
+      },
+      errorLabel: "categorias",
+      autoLoad: false,
+      perPage: 50,
+    });
 
   const handleCreate = () => navigate("/products/create");
 
@@ -83,14 +185,12 @@ function Products() {
     [deleteProduct, handleSearch]
   );
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleExport = useCallback((_ids?: string[]) => {
-    // Função vazia conforme solicitado
+  const handleExport = useCallback(() => {
+    // Função vazia (mock)
   }, []);
 
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDeleteMultiple = useCallback((_ids: string[]) => {
-    // Função vazia conforme solicitado
+  const handleDeleteMultiple = useCallback(() => {
+    // Função vazia (mock)
   }, []);
 
   const handleImport = useCallback(
@@ -108,7 +208,6 @@ function Products() {
         const result = e.target?.result;
         if (typeof result === "string") {
           const base64 = btoa(result);
-          // Arquivo convertido para base64, pronto para enviar
           console.log("Arquivo em base64:", base64);
         }
       };
@@ -116,23 +215,6 @@ function Products() {
     },
     []
   );
-
-  useEffect(() => {
-    if (hasSearched.current) {
-      searchProductsRef
-        .current({
-          filters: {},
-          page: 1,
-          perPage,
-        })
-        .catch((error) =>
-          handleError(error, "Erro desconhecido ao buscar produtos")
-        );
-    } else {
-      hasSearched.current = true;
-      handleSearch(1);
-    }
-  }, [perPage, handleSearch]);
 
   const columns = useMemo<ColumnDef<IProduct>[]>(
     () => [
@@ -211,7 +293,7 @@ function Products() {
         header: "Estoque",
         cell: ({ row }) =>
           `${formatNumber(Number(row.original.quantity))} ${
-            UNIT_TYPE_LABELS[row.original.unitType as TUnitType] ??
+            UNIT_TYPE_LABELS[row.original.unitType as TUnitTypeAlias] ??
             String(row.original.unitType)
           }`,
       },
@@ -240,77 +322,241 @@ function Products() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CardTitle>Produtos</CardTitle>
-              {selectedIds.length > 0 && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedIds.length} selecionado
-                  {selectedIds.length > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleImport}
-                className="hidden"
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  handleExport(selectedIds.length > 0 ? selectedIds : undefined)
+    <>
+      <EntityIndexPage
+        title="Produtos"
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        toolbar={
+          <>
+            <InputGroup className="w-full md:w-[280px]">
+              <InputGroupAddon>
+                <Search className="h-4 w-4" />
+              </InputGroupAddon>
+              <InputGroupInput
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, search: e.target.value }))
                 }
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-              {selectedIds.length > 0 && (
-                <Button
-                  variant="outline"
-                  className="text-destructive border-destructive hover:text-destructive"
-                  onClick={() => handleDeleteMultiple(selectedIds)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button onClick={handleCreate}>
-                <Plus />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            columns={columns}
-            data={products}
-            page={pagination?.currentPage ?? 1}
-            totalPages={pagination?.lastPage ?? 1}
-            total={pagination?.total ?? 0}
-            onPageChange={handlePageChange}
-            onPerPageChange={setPerPage}
-            onSelectionChange={setSelectedIds}
-          />
-        </CardContent>
-      </Card>
-    </div>
+                placeholder="Pesquisar produto..."
+                aria-label="Pesquisar"
+              />
+            </InputGroup>
+
+            <ListFiltersSheet
+              open={isFiltersOpen}
+              onOpenChange={handleFiltersOpenChange}
+              description="Filtre a listagem de produtos."
+              onApply={() => {
+                handleSearch(1);
+                handleFiltersOpenChange(false);
+              }}
+              onClear={() => {
+                resetFilters();
+                handleSearch(1);
+                handleFiltersOpenChange(false);
+              }}
+            >
+              <div className="grid gap-4 py-2">
+                <div className="grid gap-2">
+                  <SearchSelect<IOption>
+                    field={{
+                      value: filters.supplierId,
+                      onChange: (value) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          supplierId: value ? String(value) : "",
+                        })),
+                    }}
+                    data={supplierOptions}
+                    onSearch={handleSearchSuppliers}
+                    placeholder="Selecione um fornecedor..."
+                    label="Fornecedor"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <SearchSelect<IOption>
+                    field={{
+                      value: filters.categoryId,
+                      onChange: (value) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          categoryId: value ? String(value) : "",
+                        })),
+                    }}
+                    data={categoryOptions}
+                    onSearch={handleSearchCategories}
+                    placeholder="Selecione uma categoria..."
+                    label="Categoria"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Unidade de Medida</Label>
+                  <Select
+                    value={filters.unitType}
+                    onValueChange={(val) =>
+                      setFilters((prev) => ({ ...prev, unitType: val }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a unidade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Todas</SelectItem>
+                      {(
+                        Object.keys(TUnitType) as Array<keyof typeof TUnitType>
+                      ).map((key) => {
+                        const type = TUnitType[key];
+                        return (
+                          <SelectItem key={type} value={String(type)}>
+                            {UNIT_TYPE_LABELS[type as TUnitTypeAlias]}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="productCodeFilter">Código</Label>
+                  <Input
+                    id="productCodeFilter"
+                    value={filters.productCode}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        productCode: e.target.value,
+                      }))
+                    }
+                    placeholder="Filtrar por código..."
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="nameFilter">Nome</Label>
+                  <Input
+                    id="nameFilter"
+                    value={filters.name}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    placeholder="Filtrar por nome..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="priceMinFilter">Preço Mín.</Label>
+                    <Input
+                      id="priceMinFilter"
+                      type="number"
+                      step="0.01"
+                      value={filters.priceMin}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          priceMin: e.target.value,
+                        }))
+                      }
+                      placeholder="0,00"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="priceMaxFilter">Preço Máx.</Label>
+                    <Input
+                      id="priceMaxFilter"
+                      type="number"
+                      step="0.01"
+                      value={filters.priceMax}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          priceMax: e.target.value,
+                        }))
+                      }
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="quantityMinFilter">Estoque Mín.</Label>
+                    <Input
+                      id="quantityMinFilter"
+                      type="number"
+                      value={filters.quantityMin}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          quantityMin: e.target.value,
+                        }))
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="quantityMaxFilter">Estoque Máx.</Label>
+                    <Input
+                      id="quantityMaxFilter"
+                      type="number"
+                      value={filters.quantityMax}
+                      onChange={(e) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          quantityMax: e.target.value,
+                        }))
+                      }
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="validityFilter">Validade</Label>
+                  <Input
+                    id="validityFilter"
+                    type="date"
+                    value={filters.validity}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        validity: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </ListFiltersSheet>
+          </>
+        }
+        columns={columns}
+        data={products}
+        pagination={pagination}
+        onPageChange={handlePageChange}
+        onPerPageChange={setPerPage}
+        onCreate={handleCreate}
+        onExport={handleExport}
+        onDeleteMultiple={handleDeleteMultiple}
+        onImport={handleImport}
+      />
+    </>
   );
 }
 
 export default function ProductsPageWrapper() {
   return (
-    <ProductsProvider>
-      <Products />
-    </ProductsProvider>
+    <SuppliersProvider>
+      <CategoriesProvider>
+        <ProductsProvider>
+          <Products />
+        </ProductsProvider>
+      </CategoriesProvider>
+    </SuppliersProvider>
   );
 }

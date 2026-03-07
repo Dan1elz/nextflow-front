@@ -9,6 +9,7 @@ import {
   Tag,
   Truck,
   Package,
+  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,6 +47,11 @@ const items: SidebarMenuGroup[] = [
       { name: "Clientes", url: "/clients", icon: UserCircle },
       { name: "Categorias", url: "/categories", icon: Tag },
       { name: "Produtos", url: "/products", icon: Package },
+      {
+        name: "Movimentações de Estoque",
+        url: "/stock-movements",
+        icon: Activity,
+      },
       { name: "Fornecedores", url: "/suppliers", icon: Truck },
       {
         name: "Localidades",

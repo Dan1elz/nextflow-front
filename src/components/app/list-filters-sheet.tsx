@@ -60,7 +60,7 @@ export function ListFiltersSheet({
       <SheetContent
         side="right"
         className={cn(
-          "w-[320px] max-w-[90vw] sm:w-[380px] sm:max-w-none",
+          "flex w-[320px] max-w-[90vw] flex-col sm:w-[380px] sm:max-w-none",
           contentClassName
         )}
       >
@@ -69,7 +69,9 @@ export function ListFiltersSheet({
           {description && <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
 
-        <div className="grid gap-4 px-4 pb-4">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="grid gap-4">{children}</div>
+        </div>
 
         <SheetFooter>
           <Button type="button" onClick={onApply}>

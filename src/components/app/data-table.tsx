@@ -151,7 +151,7 @@ export function DataTable<TData, TValue>({
             const cells = row.getVisibleCells();
             const firstCell = cells[1];
             const actionCell = cells[cells.length - 1];
-            const otherCells = cells.slice(1, -1);
+            const otherCells = cells.slice(2, -1);
 
             return (
               <Card

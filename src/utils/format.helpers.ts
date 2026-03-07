@@ -80,6 +80,28 @@ export function formatDateOnly(value: Date | string): string {
 }
 
 /**
+ * Formata data e hora (DD/MM/YYYY HH:mm)
+ * @param value - Data (Date, string ISO YYYY-MM-DD ou string formatada)
+ * @returns string - Data e hora formatada (DD/MM/YYYY HH:mm)
+ */
+export function formatDateTime(value: Date | string): string {
+  const dateStr = value instanceof Date ? value.toISOString() : value;
+  const date = new Date(dateStr);
+
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+
+  return `${day}/${month}/${year} as ${hours}:${minutes}`;
+}
+
+/**
  * Formata telefone
  * @param value - Telefone sem formatação
  * @returns string - Telefone formatado ((00) 00000-0000 ou (00) 0000-0000)

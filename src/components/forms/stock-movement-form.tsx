@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { SearchSelect } from "@/components/app/search-select";
 import type { IOption } from "@/interfaces/api.interface";
 import { ButtonLoader } from "@/components/ui/button-loader";
@@ -40,6 +41,7 @@ interface StockMovementFormProps {
     query: string
   ) => Promise<IOption[] | void> | IOption[] | void;
   disabled?: boolean;
+  onCancel?: () => void;
 }
 
 export function StockMovementForm({
@@ -51,22 +53,27 @@ export function StockMovementForm({
   productOptions = [],
   onSearchProducts,
   disabled = false,
+  onCancel,
 }: StockMovementFormProps) {
   const form = useForm<StockMovementSchema>({
     resolver: zodResolver(stockMovementSchema) as never,
     defaultValues: {
       productId: initialData?.productId || productId || "",
-      userId: initialData?.userId || "", // Este valor pode vir contextualmente do usuário logado se for o padrão
+
       description: initialData?.description || "",
       movementType: initialData?.movementType || TMovementType.Entry,
       quantity: Number(initialData?.quantity) || 0,
-      quote: Number(initialData?.quote) || 0,
     },
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit, (errors) =>
+          console.log("Erros no Form:", errors)
+        )}
+        className="space-y-6"
+      >
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {!hideProduct && onSearchProducts && (
             <FormField
@@ -92,6 +99,16 @@ export function StockMovementForm({
             />
           )}
 
+          {disabled && initialData?.user && (
+            <div className="space-y-2">
+              <Label>Usuário</Label>
+              <Input
+                disabled
+                value={`${initialData.user.name} ${initialData.user.lastName}`}
+              />
+            </div>
+          )}
+
           <FormField
             control={form.control}
             name="movementType"
@@ -112,14 +129,21 @@ export function StockMovementForm({
                       Object.keys(TMovementType) as Array<
                         keyof typeof TMovementType
                       >
-                    ).map((key) => {
-                      const type = TMovementType[key];
-                      return (
-                        <SelectItem key={type} value={String(type)}>
-                          {MOVEMENT_TYPE_LABELS[type as TMovementType]}
-                        </SelectItem>
-                      );
-                    })}
+                    )
+                      .filter(
+                        (key) =>
+                          TMovementType[key] === TMovementType.Entry ||
+                          TMovementType[key] === TMovementType.Exit ||
+                          TMovementType[key] === TMovementType.Adjustment
+                      )
+                      .map((key) => {
+                        const type = TMovementType[key];
+                        return (
+                          <SelectItem key={type} value={String(type)}>
+                            {MOVEMENT_TYPE_LABELS[type as TMovementType]}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -133,20 +157,6 @@ export function StockMovementForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Quantidade</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="quote"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cotação</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>
@@ -181,13 +191,15 @@ export function StockMovementForm({
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => window.history.back()}
-          >
-            Cancelar
-          </Button>
+          {(!disabled || onCancel) && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => (onCancel ? onCancel() : window.history.back())}
+            >
+              {disabled ? "Fechar" : "Cancelar"}
+            </Button>
+          )}
           {!disabled && (
             <Button type="submit" disabled={isLoading || disabled}>
               <ButtonLoader isLoading={!!isLoading} loadingText={"Salvando..."}>

@@ -44,6 +44,21 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const getUserById = useCallback(
+    async (id: string): Promise<IUser> => {
+      return await userService.getById(id, token ?? undefined);
+    },
+    [token]
+  );
+
+  const searchUsersForOptions = useCallback(
+    async (query?: IIndexParams) => {
+      const response = await userService.getAll(query, token ?? undefined);
+      return { data: response.data || [], totalItems: response.totalItems };
+    },
+    [token]
+  );
+
   const createUser = useCallback(
     async (user: ICreateUser): Promise<IUser> => {
       const data = await userService.create(user, token ?? undefined);
@@ -94,7 +109,9 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         pagination,
         selectedUser,
         searchUsers,
+        searchUsersForOptions,
         selectUser,
+        getUserById,
         createUser,
         updateUser,
         deleteUser,

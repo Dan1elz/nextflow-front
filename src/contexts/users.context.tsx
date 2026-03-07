@@ -14,7 +14,11 @@ export type UsersContextType = {
   selectedUser: IUser | null;
   pagination: IPaginationInfo | null;
   searchUsers: (query?: IIndexParams) => Promise<void>;
+  searchUsersForOptions: (
+    query?: IIndexParams
+  ) => Promise<{ data: IUser[]; totalItems: number }>;
   selectUser: (id: string) => Promise<void>;
+  getUserById: (id: string) => Promise<IUser>;
   createUser: (user: ICreateUser) => Promise<IUser>;
   updateUser: (id: string, user: IUpdateUser) => Promise<IUser>;
   deleteUser: (id: string) => Promise<void>;

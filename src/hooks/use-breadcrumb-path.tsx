@@ -17,6 +17,7 @@ const routeNameMap: Record<string, string> = {
   products: "Produtos",
   orders: "Pedidos",
   categories: "Categorias",
+  "stock-movements": "Movimentações de Estoque",
 };
 
 export function useBreadcrumbPath(): IBreadcrumb[] | null {

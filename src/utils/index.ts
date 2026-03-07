@@ -23,6 +23,7 @@ export {
   formatPercentage,
   formatCurrency,
   formatNumber,
+  formatDateTime,
 } from "./format.helpers";
 
 // Date helpers
