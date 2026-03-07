@@ -120,7 +120,7 @@ export function ProductForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {/* Grid 3 colunas: imagem 1x2 | nome+código linha1 | fornecedor+categorias linha2 */}
-        <div className="grid grid-cols-3 grid-rows-2 gap-4">
+        <div className="grid grid-cols-[160px_1fr_1fr] grid-rows-2 gap-4">
           <FormField
             control={form.control}
             name="image"
