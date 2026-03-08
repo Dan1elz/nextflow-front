@@ -119,13 +119,14 @@ export function ProductForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {/* Grid 3 colunas: imagem 1x2 | nome+código linha1 | fornecedor+categorias linha2 */}
-        <div className="grid grid-cols-[160px_1fr_1fr] grid-rows-2 gap-4">
-          <FormField
-            control={form.control}
-            name="image"
-            render={({ field }) => (
-              <FormItem className="row-span-2 self-start">
+        <div className="grid grid-cols-1 md:grid-cols-[160px_1fr] gap-6">
+          {/* Coluna da Imagem */}
+          <div className="flex flex-col items-center md:items-start">
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem className="self-start">
                 <FormLabel>Imagem do produto</FormLabel>
                 <FormControl>
                   <ImagePicker
@@ -154,9 +155,14 @@ export function ProductForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="name"
+          </div>
+
+          {/* Coluna dos outros campos */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Nome</FormLabel>
@@ -201,9 +207,11 @@ export function ProductForm({
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="supplierId"
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="supplierId"
             render={({ field }) => (
               <FormItem>
                 <FormControl>
@@ -248,10 +256,10 @@ export function ProductForm({
               </FormItem>
             )}
           />
-        </div>
+            </div>
 
-        {/* Preço, unidade, quantidade, validade: 4 x 1 */}
-        <div className="grid grid-cols-4 gap-4">
+            {/* Preço, unidade, quantidade, validade: 4 x 1 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <FormField
             control={form.control}
             name="price"
@@ -394,6 +402,9 @@ export function ProductForm({
             </FormItem>
           )}
         />
+          </div>
+        </div>
+
         <div className="flex justify-end gap-2 pt-4">
           {onBack && (
             <Button type="button" onClick={onBack} variant="secondary">
