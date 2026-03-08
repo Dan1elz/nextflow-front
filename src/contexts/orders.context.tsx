@@ -12,6 +12,7 @@ export type OrdersContextType = {
   createOrder: (order: Partial<IOrder>) => Promise<IOrder>;
   updateOrder: (id: string, data: IUpdateOrder) => Promise<IOrder>;
   cancelOrder: (id: string, reason: string) => Promise<void>;
+  refundOrder: (id: string, reason: string) => Promise<void>;
 };
 
 export const OrdersContext = createContext<OrdersContextType | null>(null);

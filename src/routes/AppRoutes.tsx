@@ -38,6 +38,9 @@ import EditSupplierPageWrapper from "@/pages/Supplier/Edit";
 import ViewSupplierPageWrapper from "@/pages/Supplier/View";
 import StockMovementsPageWrapper from "@/pages/StockMovements";
 import OrdersPageWrapper from "@/pages/Orders";
+import CreateOrderPageWrapper from "@/pages/Order/Create";
+import EditOrderPageWrapper from "@/pages/Order/Edit";
+import ViewOrderPageWrapper from "@/pages/Order/View";
 
 function AppRoutes() {
   return (
@@ -123,6 +126,9 @@ function AppRoutes() {
         <Route path="stock-movements" element={<StockMovementsPageWrapper />} />
         
         <Route path="orders" element={<OrdersPageWrapper />} />
+        <Route path="orders/create" element={<CreateOrderPageWrapper />} />
+        <Route path="orders/:id/edit" element={<EditOrderPageWrapper />} />
+        <Route path="orders/:id/view" element={<ViewOrderPageWrapper />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

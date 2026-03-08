@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -18,6 +17,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   CircleFadingArrowUp,
   EditIcon,
   EllipsisVertical,
@@ -25,6 +31,8 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface IHasId {
   id?: string;
@@ -33,14 +41,23 @@ interface IHasId {
 interface NavActionColumnProps<T extends IHasId> {
   object: T;
   onEdit?: (object: T) => void;
-  onDelete?: (object: T) => void;
+  onDelete?: (object: T, reason?: string) => void;
   onView?: (object: T) => void;
   onReactivate?: (object: T) => void;
   disableDelete?: boolean;
   disableEdit?: boolean;
   disableView?: boolean;
   disableReactivate?: boolean;
+  deleteRequiresReason?: boolean;
+  deleteReasonLabel?: string;
+  deleteLabel?: string;
+  deleteDialogTitle?: string;
+  deleteDialogDescription?: string;
+  deleteButtonLabel?: string;
+  deleteReasonOptions?: string[];
 }
+
+const OTHER_OPTION = "__other__";
 
 export function NavActionColumn<T extends IHasId>({
   object,
@@ -52,19 +69,41 @@ export function NavActionColumn<T extends IHasId>({
   disableEdit = false,
   disableView = false,
   disableReactivate = false,
+  deleteRequiresReason = false,
+  deleteReasonLabel = "Motivo da exclusão:",
+  deleteLabel = "Excluir",
+  deleteDialogTitle = "Deseja realmente excluir?",
+  deleteDialogDescription = "Esta ação não pode ser desfeita. Todos os dados serão permanentemente deletados.",
+  deleteButtonLabel = "Excluir",
+  deleteReasonOptions,
 }: NavActionColumnProps<T>) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState("");
 
   const handleDeleteClick = () => {
+    setDeleteReason("");
+    setSelectedPreset("");
     setIsDeleteDialogOpen(true);
+  };
+
+  const handlePresetChange = (value: string) => {
+    setSelectedPreset(value);
+    if (value !== OTHER_OPTION) {
+      setDeleteReason(value);
+    } else {
+      setDeleteReason("");
+    }
   };
 
   const handleConfirmDelete = () => {
     if (onDelete) {
-      onDelete(object);
+      onDelete(object, deleteReason);
     }
     setIsDeleteDialogOpen(false);
   };
+
+  const isReasonValid = !deleteRequiresReason || deleteReason.trim().length > 0;
 
   return (
     <>
@@ -106,7 +145,7 @@ export function NavActionColumn<T extends IHasId>({
               className="text-destructive focus:text-destructive"
             >
               <TrashIcon className="mr-2 h-4 w-4" />
-              Excluir
+              {deleteLabel}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -118,21 +157,59 @@ export function NavActionColumn<T extends IHasId>({
           onOpenChange={setIsDeleteDialogOpen}
         >
           <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Deseja realmente excluir?</AlertDialogTitle>
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle>{deleteDialogTitle}</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Todos os dados serão
-                permanentemente deletados.
+                {deleteDialogDescription}
               </AlertDialogDescription>
+              {deleteRequiresReason && (
+                <div className="grid gap-3 mt-4 py-2 text-left">
+                  <Label>{deleteReasonLabel}</Label>
+                  {deleteReasonOptions && deleteReasonOptions.length > 0 ? (
+                    <>
+                      <Select
+                        value={selectedPreset}
+                        onValueChange={handlePresetChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um motivo..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {deleteReasonOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value={OTHER_OPTION}>Outros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {selectedPreset === OTHER_OPTION && (
+                        <Input
+                          value={deleteReason}
+                          onChange={(e) => setDeleteReason(e.target.value)}
+                          placeholder="Descreva o motivo..."
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <Input
+                      value={deleteReason}
+                      onChange={(e) => setDeleteReason(e.target.value)}
+                      placeholder="Descreva o motivo..."
+                    />
+                  )}
+                </div>
+              )}
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
+              <Button
+                variant="destructive"
                 onClick={handleConfirmDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={!isReasonValid}
               >
-                Excluir
-              </AlertDialogAction>
+                {deleteButtonLabel}
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

@@ -35,7 +35,7 @@ import { useClients } from "@/hooks/use-clients";
 import { useUsers } from "@/hooks/use-users";
 import { Badge } from "@/components/ui/badge";
 import type { IOption } from "@/interfaces/api.interface";
-import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS } from "@/types/enums";
+import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, TOrderStatus } from "@/types/enums";
 
 type OrderFilters = {
   search: string;
@@ -50,7 +50,7 @@ type OrderFilters = {
 
 function Orders() {
   const navigate = useNavigate();
-  const { orders, pagination, searchOrders, cancelOrder } = useOrders();
+  const { orders, pagination, searchOrders, cancelOrder, refundOrder } = useOrders();
   const { searchClientsForOptions, getClientById } = useClients();
   const { searchUsersForOptions, getUserById } = useUsers();
 
@@ -135,23 +135,27 @@ function Orders() {
   );
 
   const handleDelete = useCallback(
-    async (order: IOrder) => {
+    async (order: IOrder, reason?: string) => {
       if (!order.id) return;
       try {
-        // Pedimos um motivo genérico ou predefinido como exemplo
-        const reason = window.prompt("Por favor, informe o motivo do cancelamento:");
         if (!reason) {
-            handleError(new Error("Motivo obrigatório para cancelar."), "");
+            handleError(new Error("Motivo obrigatório."), "");
             return;
         }
-        await cancelOrder(order.id, reason);
-        handleSuccess("Pedido cancelado com sucesso");
+        const status = order.status as number;
+        if (status === TOrderStatus.PaymentConfirmed) {
+          await refundOrder(order.id, reason);
+          handleSuccess("Pedido reembolsado com sucesso");
+        } else {
+          await cancelOrder(order.id, reason);
+          handleSuccess("Pedido cancelado com sucesso");
+        }
         await handleSearch(1);
       } catch (error) {
-        handleError(error, "Erro ao cancelar pedido");
+        handleError(error, "Erro ao processar pedido");
       }
     },
-    [cancelOrder, handleSearch]
+    [cancelOrder, refundOrder, handleSearch]
   );
 
   const columns = useMemo<ColumnDef<IOrder>[]>(
@@ -231,14 +235,52 @@ function Orders() {
         id: "actions",
         header: "Ações",
         cell: ({ row }) => {
-          // Exemplo: so podemos cancelar se nao for cancelado / reembolsado
-          // Regras da API definirão o erro, mas no front podemos habilitar
+          const status = row.original.status as number;
+          const isCanceled = status === TOrderStatus.Canceled;
+          const isRefunded = status === TOrderStatus.Refunded;
+          const isConfirmed = status === TOrderStatus.PaymentConfirmed;
+          const canAct = !isCanceled && !isRefunded;
+
+          const deleteLabel = isConfirmed ? "Reembolsar" : "Cancelar";
+          const dialogTitle = isConfirmed
+            ? "Reembolsar Pedido"
+            : "Cancelar Pedido";
+          const dialogDesc = isConfirmed
+            ? "Esta ação reembolsará o pedido e retornará os itens ao estoque. O reembolso só é permitido até 7 dias após o pagamento."
+            : "Esta ação cancelará o pedido. Itens de vendas serão retornados ao estoque.";
+          const buttonLabel = isConfirmed
+            ? "Confirmar Reembolso"
+            : "Confirmar Cancelamento";
+          const reasonOptions = isConfirmed
+            ? [
+                "Produto com defeito",
+                "Produto divergente do anunciado",
+                "Insatisfação do cliente",
+                "Entrega com atraso",
+                "Cobrança indevida",
+              ]
+            : [
+                "Cliente desistiu da compra",
+                "Produto indisponível",
+                "Erro no pedido",
+                "Pedido duplicado",
+                "Prazo de entrega não atendido",
+              ];
+
           return (
             <NavActionColumn
               object={row.original}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={canAct ? handleDelete : undefined}
               onView={handleView}
+              disableEdit={!canAct}
+              deleteRequiresReason={true}
+              deleteReasonLabel="Informe o motivo:"
+              deleteLabel={deleteLabel}
+              deleteDialogTitle={dialogTitle}
+              deleteDialogDescription={dialogDesc}
+              deleteButtonLabel={buttonLabel}
+              deleteReasonOptions={reasonOptions}
             />
           );
         },

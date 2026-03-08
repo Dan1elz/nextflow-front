@@ -64,6 +64,13 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const refundOrder = useCallback(
+    async (id: string, reason: string): Promise<void> => {
+      await orderService.refundOrder(id, reason, token ?? undefined);
+    },
+    [token]
+  );
+
   return (
     <OrdersContext.Provider
       value={{
@@ -76,6 +83,7 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
         createOrder,
         updateOrder,
         cancelOrder,
+        refundOrder,
       }}
     >
       {children}

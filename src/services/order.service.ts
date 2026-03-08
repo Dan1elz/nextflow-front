@@ -14,4 +14,8 @@ export const orderService = {
   cancelOrder: async (id: string, reason: string, token?: string): Promise<void> => {
     await apiService.delete(`orders/${id}`, token, { reason });
   },
+
+  refundOrder: async (id: string, reason: string, token?: string): Promise<void> => {
+    await apiService.patch(`orders/${id}/refund`, { reason }, token);
+  },
 };
