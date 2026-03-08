@@ -10,6 +10,7 @@ import {
   Truck,
   Package,
   Activity,
+  ShoppingCart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const items: SidebarMenuGroup[] = [
       { name: "Home", url: "/", icon: Home },
       { name: "Usuários", url: "/users", icon: Users },
       { name: "Clientes", url: "/clients", icon: UserCircle },
+      { name: "Pedidos", url: "/orders", icon: ShoppingCart },
       { name: "Categorias", url: "/categories", icon: Tag },
       { name: "Produtos", url: "/products", icon: Package },
       {

@@ -54,23 +54,36 @@ export const PAYMENT_METHOD_LABELS: Record<TPaymentMethod, string> = {
   [TPaymentMethod.Ticket]: "Vale",
 };
 
+/** OrderType - Tipo de pedido */
+export const TOrderType = {
+  Budget: 1,
+  Sale: 2,
+} as const;
+
+export type TOrderType = (typeof TOrderType)[keyof typeof TOrderType];
+
+export const ORDER_TYPE_LABELS: Record<TOrderType, string> = {
+  [TOrderType.Budget]: "Orçamento",
+  [TOrderType.Sale]: "Venda",
+};
+
 /** OrderStatus - Status do pedido */
 export const TOrderStatus = {
-  PendingPayment: 1,
-  PaymentConfirmed: 2,
-  Canceled: 3,
-  Refunded: 4,
-  Returned: 5,
+  Budget: 1,
+  PendingPayment: 2,
+  PaymentConfirmed: 3,
+  Canceled: 4,
+  Refunded: 5,
 } as const;
 
 export type TOrderStatus = (typeof TOrderStatus)[keyof typeof TOrderStatus];
 
 export const ORDER_STATUS_LABELS: Record<TOrderStatus, string> = {
+  [TOrderStatus.Budget]: "Orçamento",
   [TOrderStatus.PendingPayment]: "Aguardando pagamento",
   [TOrderStatus.PaymentConfirmed]: "Pagamento confirmado",
   [TOrderStatus.Canceled]: "Pedido cancelado",
   [TOrderStatus.Refunded]: "Pedido reembolsado",
-  [TOrderStatus.Returned]: "Pedido devolvido",
 };
 
 /** MovementType - Tipo de movimento de estoque */

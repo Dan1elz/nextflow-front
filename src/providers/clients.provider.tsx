@@ -38,6 +38,26 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const getClientById = useCallback(
+    async (id: string): Promise<IClient> => {
+      return await clientService.getById(id, token ?? undefined);
+    },
+    [token]
+  );
+
+  const searchClientsForOptions = useCallback(
+    async (
+      query?: IIndexParams
+    ): Promise<{ data: IClient[]; totalItems: number }> => {
+      const response = await clientService.getAll(query, token ?? undefined);
+      return {
+        data: response.data || [],
+        totalItems: response.totalItems || 0,
+      };
+    },
+    [token]
+  );
+
   const createClient = useCallback(
     async (client: IClient): Promise<IClient> => {
       const data = await clientService.create(client, token ?? undefined);
@@ -75,7 +95,9 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
         pagination,
         selectedClient,
         searchClients,
+        searchClientsForOptions,
         selectClient,
+        getClientById,
         createClient,
         updateClient,
         deleteClient,

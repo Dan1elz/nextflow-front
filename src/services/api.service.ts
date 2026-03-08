@@ -180,7 +180,7 @@ export class ApiService {
     return this.request<T>("PATCH", uri, body, token);
   }
 
-  public delete<T>(uri: string, token?: string) {
-    return this.request<T>("DELETE", uri, undefined, token);
+  public delete<T>(uri: string, token?: string, body?: object) {
+    return this.request<T>("DELETE", uri, body, token);
   }
 }
