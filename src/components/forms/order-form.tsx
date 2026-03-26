@@ -55,14 +55,18 @@ import { useSearchOptions } from "@/hooks/use-search-options";
 import type { IClient } from "@/interfaces/client.interface";
 import type { IProduct } from "@/interfaces/product.interface";
 import type { IOrder, IOrderItem } from "@/interfaces/order.interface";
+import type { ISale, IPayment } from "@/interfaces/sale.interface";
 import {
   TOrderType,
   TOrderStatus,
   ORDER_STATUS_LABELS,
   ORDER_TYPE_LABELS,
+  PAYMENT_METHOD_LABELS,
+  TPaymentMethod,
 } from "@/types/enums";
 import { API_URL } from "@/configs/api";
 import type { IOption } from "@/interfaces/api.interface";
+import { SaleCheckoutDrawer } from "@/components/app/sale-checkout-drawer";
 
 type CartItem = {
   id: string;
@@ -94,8 +98,11 @@ const REFUND_REASON_OPTIONS = [
   "Cobrança indevida",
 ];
 
+import { useAuth } from "@/hooks/use-auth";
+
 export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const { createOrder, updateOrder, getOrderById, cancelOrder, refundOrder } =
     useOrders();
   const { searchClientsForOptions, getClientById } = useClients();
@@ -111,6 +118,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
   const [orderStatus, setOrderStatus] = useState<number>(TOrderStatus.Budget);
   const [loadedOrder, setLoadedOrder] = useState<IOrder | null>(null);
   const [loading, setLoading] = useState(false);
+  const [associatedSale, setAssociatedSale] = useState<ISale | null>(null);
 
   // Cart Management
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -125,6 +133,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
   // Cancel/Refund modal
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showCheckoutDrawer, setShowCheckoutDrawer] = useState(false);
   const [actionReason, setActionReason] = useState("");
   const [actionPreset, setActionPreset] = useState("");
 
@@ -194,6 +203,20 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
         .finally(() => setLoading(false));
     }
   }, [isEdit, isView, orderId, getOrderById, getProductById]);
+
+  useEffect(() => {
+    if (loadedOrder?.id && orderStatus === TOrderStatus.PaymentConfirmed) {
+      import("@/services/sale.service").then(({ saleService }) => {
+        saleService
+          .getAll({ filters: { orderId: loadedOrder.id! }, perPage: 1 }, token || undefined)
+          .then((res) => {
+            if (res?.data && res.data.length > 0) {
+              setAssociatedSale(res.data[0]);
+            }
+          });
+      });
+    }
+  }, [loadedOrder?.id, orderStatus]);
 
   const handleProductSelect = useCallback(
     async (val: string | number | boolean | undefined) => {
@@ -291,14 +314,16 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
     };
   }, [cartItems]);
 
-  const handleSaveOrder = async () => {
+  const prepareAndSaveOrder = async (): Promise<IOrder | undefined> => {
     try {
       if (!clientId) throw new Error("Por favor, selecione o cliente.");
       if (cartItems.length === 0)
         throw new Error("Adicione pelo menos um produto ao pedido.");
 
       if (isCreate) {
-        const payload: Omit<IOrder, "orderItems"> & { items: any[] } = {
+        const payload: Omit<IOrder, "orderItems"> & {
+          items: Partial<IOrderItem>[];
+        } = {
           clientId,
           type: orderType as TOrderType,
           items: cartItems.map((c) => ({
@@ -308,8 +333,9 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
           })),
         };
 
-        await createOrder(payload);
+        const created = await createOrder(payload);
         handleSuccess("Pedido salvo com sucesso!");
+        return created;
       } else if (isEdit && orderId) {
         const items: IOrderItem[] = cartItems.map((c) => ({
           productId: c.product.id!,
@@ -317,13 +343,23 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
           discount: c.discount,
         }));
 
-        await updateOrder(orderId, { items });
+        const updated = await updateOrder(orderId, { items });
         handleSuccess("Pedido atualizado com sucesso!");
+        return updated;
       }
-
-      navigate("/orders");
+      return loadedOrder || undefined;
     } catch (error) {
       handleError(error, "Erro ao salvar o pedido");
+      throw error;
+    }
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      await prepareAndSaveOrder();
+      navigate("/orders");
+    } catch {
+      // Error handled inside
     }
   };
 
@@ -365,13 +401,24 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
   const canRefund = orderStatus === TOrderStatus.PaymentConfirmed;
   const isFinalized =
     orderStatus === TOrderStatus.Canceled ||
-    orderStatus === TOrderStatus.Refunded;
+    orderStatus === TOrderStatus.Refunded ||
+    orderStatus === TOrderStatus.PaymentConfirmed;
+  const canFinalizeCheckout = !isFinalized;
 
-  const handleFinalizeSale = () => {
-    handleError(
-      new Error("Função de faturamento ainda será implementada."),
-      ""
-    );
+  const handleFinalizeSale = async () => {
+    try {
+      if (isCreate || isEdit) {
+        const savedOrder = await prepareAndSaveOrder();
+        if (savedOrder) {
+          setLoadedOrder(savedOrder);
+          setShowCheckoutDrawer(true);
+        }
+      } else {
+        setShowCheckoutDrawer(true);
+      }
+    } catch {
+      // error handled in prepareAndSaveOrder
+    }
   };
 
   // Titles
@@ -413,7 +460,14 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                         "Desconhecido"}
                     </Badge>
                     <Badge
-                      variant={isFinalized ? "destructive" : "secondary"}
+                      variant={
+                        orderStatus === TOrderStatus.PaymentConfirmed
+                          ? "default"
+                          : orderStatus === TOrderStatus.Canceled ||
+                              orderStatus === TOrderStatus.Refunded
+                            ? "destructive"
+                            : "secondary"
+                      }
                     >
                       {ORDER_STATUS_LABELS[orderStatus as TOrderStatus] ??
                         "Desconhecido"}
@@ -461,9 +515,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Deseja mesmo sair?
-                      </AlertDialogTitle>
+                      <AlertDialogTitle>Deseja mesmo sair?</AlertDialogTitle>
                       <AlertDialogDescription>
                         {isView
                           ? "Você será redirecionado para a listagem de pedidos."
@@ -474,9 +526,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                       <AlertDialogCancel>
                         {isView ? "Continuar" : "Continuar Editando"}
                       </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => navigate("/orders")}
-                      >
+                      <AlertDialogAction onClick={() => navigate("/orders")}>
                         Sim, Sair
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -504,8 +554,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                   <SearchSelect<IOption>
                     field={{
                       value: clientId,
-                      onChange: (val) =>
-                        setClientId(String(val ?? "")),
+                      onChange: (val) => setClientId(String(val ?? "")),
                     }}
                     data={clientOptions}
                     onSearch={handleSearchClients}
@@ -547,23 +596,54 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
             </div>
 
             {/* Loss reason if finalized */}
-            {isFinalized && loadedOrder?.lossReason && (
-              <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4">
-                <Label className="text-destructive font-semibold">
-                  Motivo:{" "}
-                </Label>
-                <span className="text-sm">{loadedOrder.lossReason}</span>
-              </div>
-            )}
+            {(orderStatus === TOrderStatus.Canceled ||
+              orderStatus === TOrderStatus.Refunded) &&
+              loadedOrder?.lossReason && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4">
+                  <Label className="text-destructive font-semibold">
+                    Motivo:{" "}
+                  </Label>
+                  <span className="text-sm">{loadedOrder.lossReason}</span>
+                </div>
+              )}
+
+            {/* Payment Methods Visualizer */}
+            {associatedSale &&
+              associatedSale.payments &&
+              associatedSale.payments.length > 0 && (
+                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex flex-col gap-3">
+                  <h3 className="font-semibold text-sm">
+                    Métodos de Pagamento Utilizados
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {associatedSale.payments.map((p: IPayment) => (
+                      <div
+                        key={p.id}
+                        className="flex flex-col bg-background border p-3 rounded-lg"
+                      >
+                        <span className="text-xs text-muted-foreground">
+                          Método
+                        </span>
+                        <span className="font-medium">
+                          {PAYMENT_METHOD_LABELS[
+                            p.paymentMethod as TPaymentMethod
+                          ] ?? p.paymentMethod}
+                        </span>
+                        <span className="font-bold text-primary mt-1">
+                          {formatCurrency(p.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             <Separator />
 
             {/* Mini form for adding product - hidden in view mode or when finalized */}
             {!isView && !isFinalized && (
               <div className="bg-muted/30 p-4 rounded-xl border border-dashed flex flex-col gap-4">
-                <h3 className="font-semibold text-sm">
-                  Adicionar Produto
-                </h3>
+                <h3 className="font-semibold text-sm">Adicionar Produto</h3>
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-end">
                   <div className="xl:col-span-6 grid gap-2">
                     <SearchSelect<IOption>
@@ -631,25 +711,20 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                   {cartItems.map((item) => {
                     const price = isView
                       ? Number(
-                          (item as any).unitPrice ??
+                          (item as Partial<IOrderItem>).unitPrice ??
                             item.product.price ??
                             0
                         )
                       : Number(item.product.price || 0);
-                    const lineTotal =
-                      price * item.quantity - item.discount;
+                    const lineTotal = price * item.quantity - item.discount;
 
                     let imgUrl: string | null = null;
                     if (typeof item.product.image === "string") {
                       imgUrl = item.product.image.startsWith("http")
                         ? item.product.image
                         : `${API_URL}/assets/${item.product.image}`;
-                    } else if (
-                      item.product.image instanceof File
-                    ) {
-                      imgUrl = URL.createObjectURL(
-                        item.product.image
-                      );
+                    } else if (item.product.image instanceof File) {
+                      imgUrl = URL.createObjectURL(item.product.image);
                     }
 
                     return (
@@ -694,7 +769,8 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                                 {formatCurrency(price)}
                               </span>
                               <span className="text-xs text-muted-foreground">
-                                Estoque: {Number(item.product.quantity ?? 0)} un.
+                                Estoque: {Number(item.product.quantity ?? 0)}{" "}
+                                un.
                               </span>
                             </div>
                           </div>
@@ -716,10 +792,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                                     size="icon"
                                     className="h-6 w-6 rounded-full hover:bg-background"
                                     onClick={() =>
-                                      updateCartItemQuantity(
-                                        item.id,
-                                        -1
-                                      )
+                                      updateCartItemQuantity(item.id, -1)
                                     }
                                   >
                                     <Minus className="w-3 h-3" />
@@ -732,10 +805,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                                     size="icon"
                                     className="h-6 w-6 rounded-full hover:bg-background"
                                     onClick={() =>
-                                      updateCartItemQuantity(
-                                        item.id,
-                                        1
-                                      )
+                                      updateCartItemQuantity(item.id, 1)
                                     }
                                   >
                                     <Plus className="w-3 h-3" />
@@ -758,9 +828,7 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                                 Total
                               </span>
                               <span className="text-base font-bold whitespace-nowrap">
-                                {formatCurrency(
-                                  Math.max(0, lineTotal)
-                                )}
+                                {formatCurrency(Math.max(0, lineTotal))}
                               </span>
                             </div>
                           </div>
@@ -796,15 +864,11 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                Descontos (Total)
-              </span>
+              <span className="text-muted-foreground">Descontos (Total)</span>
               <span className="font-semibold text-destructive">
                 -
                 {isView && loadedOrder
-                  ? formatCurrency(
-                      Number(loadedOrder.totalDiscount ?? 0)
-                    )
+                  ? formatCurrency(Number(loadedOrder.totalDiscount ?? 0))
                   : formatCurrency(calculateTotals.totalDiscount)}
               </span>
             </div>
@@ -815,12 +879,8 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
               <span className="font-bold text-lg">Total</span>
               <span className="font-bold text-2xl text-primary">
                 {isView && loadedOrder
-                  ? formatCurrency(
-                      Number(loadedOrder.totalAmount ?? 0)
-                    )
-                  : formatCurrency(
-                      Math.max(0, calculateTotals.total)
-                    )}
+                  ? formatCurrency(Number(loadedOrder.totalAmount ?? 0))
+                  : formatCurrency(Math.max(0, calculateTotals.total))}
               </span>
             </div>
           </CardContent>
@@ -837,20 +897,32 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
                     ? "Salvar Pedido"
                     : "Salvar Orçamento"}
               </Button>
-              {isCreate && (
+              {canFinalizeCheckout && (
                 <Button
                   variant="outline"
-                  className="w-full bg-background"
+                  className="w-full bg-background border-primary text-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
                   onClick={handleFinalizeSale}
                 >
-                  <ShoppingCart className="w-4 h-4 mr-2 text-muted-foreground" />
-                  Finalizar Venda (Em Breve)
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Finalizar Venda
                 </Button>
               )}
             </CardFooter>
           )}
         </Card>
       </div>
+
+      {loadedOrder && (
+        <SaleCheckoutDrawer
+          open={showCheckoutDrawer}
+          onOpenChange={setShowCheckoutDrawer}
+          order={loadedOrder}
+          onSuccess={() => {
+            handleSuccess("Venda confirmada!");
+            navigate("/orders");
+          }}
+        />
+      )}
 
       {/* Cancel Modal */}
       <AlertDialog open={showCancelModal} onOpenChange={setShowCancelModal}>
@@ -904,8 +976,8 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
           <AlertDialogHeader className="text-left">
             <AlertDialogTitle>Reembolsar Pedido</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação reembolsará o pedido e retornará os itens ao estoque.
-              O reembolso só é permitido até 7 dias após o pagamento.
+              Esta ação reembolsará o pedido e retornará os itens ao estoque. O
+              reembolso só é permitido até 7 dias após o pagamento.
             </AlertDialogDescription>
             <div className="grid gap-3 mt-4 py-2">
               <Label>Motivo do reembolso:</Label>

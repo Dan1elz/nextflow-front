@@ -38,6 +38,13 @@ interface IHasId {
   id?: string;
 }
 
+export interface ExtraAction<T> {
+  label: string;
+  icon?: React.ReactNode;
+  onClick: (object: T) => void;
+  disabled?: boolean;
+}
+
 interface NavActionColumnProps<T extends IHasId> {
   object: T;
   onEdit?: (object: T) => void;
@@ -55,6 +62,7 @@ interface NavActionColumnProps<T extends IHasId> {
   deleteDialogDescription?: string;
   deleteButtonLabel?: string;
   deleteReasonOptions?: string[];
+  extraActions?: ExtraAction<T>[];
 }
 
 const OTHER_OPTION = "__other__";
@@ -76,6 +84,7 @@ export function NavActionColumn<T extends IHasId>({
   deleteDialogDescription = "Esta ação não pode ser desfeita. Todos os dados serão permanentemente deletados.",
   deleteButtonLabel = "Excluir",
   deleteReasonOptions,
+  extraActions,
 }: NavActionColumnProps<T>) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
@@ -124,6 +133,17 @@ export function NavActionColumn<T extends IHasId>({
               Visualizar
             </DropdownMenuItem>
           )}
+
+          {extraActions?.map((action, index) => (
+            <DropdownMenuItem
+              key={index}
+              onClick={() => action.onClick(object)}
+              disabled={action.disabled}
+            >
+              {action.icon}
+              {action.label}
+            </DropdownMenuItem>
+          ))}
 
           {onEdit && !disableEdit && (
             <DropdownMenuItem onClick={() => onEdit(object)}>

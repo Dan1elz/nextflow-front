@@ -2,6 +2,7 @@ import { OrderForm } from "@/components/forms/order-form";
 import { ClientsProvider } from "@/providers/clients.provider";
 import { ProductsProvider } from "@/providers/products.provider";
 import { OrdersProvider } from "@/providers/orders.provider";
+import { SalesProvider } from "@/providers/sales.provider";
 
 function CreateOrder() {
   return (
@@ -16,7 +17,9 @@ export default function CreateOrderPageWrapper() {
     <ClientsProvider>
       <ProductsProvider>
         <OrdersProvider>
-          <CreateOrder />
+          <SalesProvider>
+            <CreateOrder />
+          </SalesProvider>
         </OrdersProvider>
       </ProductsProvider>
     </ClientsProvider>

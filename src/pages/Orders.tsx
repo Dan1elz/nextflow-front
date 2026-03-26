@@ -1,7 +1,7 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { Search, Banknote } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,13 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SaleCheckoutDrawer } from "@/components/app/sale-checkout-drawer";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
@@ -30,12 +37,19 @@ import type { IUser } from "@/interfaces/user.interface";
 import { OrdersProvider } from "@/providers/orders.provider";
 import { ClientsProvider } from "@/providers/clients.provider";
 import { UsersProvider } from "@/providers/users.provider";
+import { SalesProvider } from "@/providers/sales.provider";
 
 import { useClients } from "@/hooks/use-clients";
 import { useUsers } from "@/hooks/use-users";
 import { Badge } from "@/components/ui/badge";
 import type { IOption } from "@/interfaces/api.interface";
-import { ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, TOrderStatus } from "@/types/enums";
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_TYPE_LABELS,
+  TOrderStatus,
+  PAYMENT_METHOD_LABELS,
+  TPaymentMethod,
+} from "@/types/enums";
 
 type OrderFilters = {
   search: string;
@@ -48,11 +62,20 @@ type OrderFilters = {
   maxUpdateAt: string;
 };
 
+import { useAuth } from "@/hooks/use-auth";
+
 function Orders() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const { orders, pagination, searchOrders, cancelOrder, refundOrder } = useOrders();
   const { searchClientsForOptions, getClientById } = useClients();
   const { searchUsersForOptions, getUserById } = useUsers();
+
+  const [orderToFinalize, setOrderToFinalize] = useState<IOrder | null>(null);
+  const [showCheckoutDrawer, setShowCheckoutDrawer] = useState(false);
+  const [saleViewerData, setSaleViewerData] = useState<
+    import("@/interfaces/sale.interface").ISale | null
+  >(null);
 
   const customSearch = useCallback(
     async (params?: import("@/interfaces/api.interface").IIndexParams) => {
@@ -139,8 +162,8 @@ function Orders() {
       if (!order.id) return;
       try {
         if (!reason) {
-            handleError(new Error("Motivo obrigatório."), "");
-            return;
+          handleError(new Error("Motivo obrigatório."), "");
+          return;
         }
         const status = order.status as number;
         if (status === TOrderStatus.PaymentConfirmed) {
@@ -206,7 +229,8 @@ function Orders() {
         accessorKey: "type",
         header: "Tipo",
         cell: ({ row }) => {
-          const label = ORDER_TYPE_LABELS[row.original.type] ?? row.original.type;
+          const label =
+            ORDER_TYPE_LABELS[row.original.type] ?? row.original.type;
           return <Badge variant="outline">{label}</Badge>;
         },
       },
@@ -215,8 +239,22 @@ function Orders() {
         header: "Status",
         cell: ({ row }) => {
           if (!row.original.status) return "-";
-          const label = ORDER_STATUS_LABELS[row.original.status] ?? row.original.status;
-          return <Badge variant="secondary">{label}</Badge>;
+          const label =
+            ORDER_STATUS_LABELS[row.original.status] ?? row.original.status;
+
+          let variant: "default" | "secondary" | "destructive" | "outline" =
+            "secondary";
+          if (row.original.status === TOrderStatus.PaymentConfirmed)
+            variant = "default";
+          else if (
+            row.original.status === TOrderStatus.Canceled ||
+            row.original.status === TOrderStatus.Refunded
+          )
+            variant = "destructive";
+          else if (row.original.status === TOrderStatus.PendingPayment)
+            variant = "outline";
+
+          return <Badge variant={variant}>{label}</Badge>;
         },
       },
       {
@@ -240,6 +278,9 @@ function Orders() {
           const isRefunded = status === TOrderStatus.Refunded;
           const isConfirmed = status === TOrderStatus.PaymentConfirmed;
           const canAct = !isCanceled && !isRefunded;
+          const canFinalizeCheckout =
+            status === TOrderStatus.PendingPayment ||
+            status === TOrderStatus.Budget;
 
           const deleteLabel = isConfirmed ? "Reembolsar" : "Cancelar";
           const dialogTitle = isConfirmed
@@ -267,6 +308,43 @@ function Orders() {
                 "Prazo de entrega não atendido",
               ];
 
+          const extraActions = [];
+          if (canFinalizeCheckout) {
+            extraActions.push({
+              label: "Finalizar Venda",
+              icon: <Banknote className="mr-2 h-4 w-4" />,
+              onClick: (obj: IOrder) => {
+                setOrderToFinalize(obj);
+                setShowCheckoutDrawer(true);
+              },
+            });
+          }
+          if (isConfirmed) {
+            extraActions.push({
+              label: "Ver Pagamentos",
+              icon: <Banknote className="mr-2 h-4 w-4" />,
+              onClick: (obj: IOrder) => {
+                import("@/services/sale.service").then(({ saleService }) => {
+                    saleService.getAll({ filters: { orderId: obj.id! }, perPage: 1 }, token || undefined).then(res => {
+                        if (res?.data && res.data.length > 0) {
+                        setSaleViewerData(res.data[0]);
+                      } else {
+                        handleError(
+                          new Error(
+                            "Nenhum pagamento encontrado para este pedido"
+                          ),
+                          ""
+                        );
+                      }
+                    })
+                    .catch((err) =>
+                      handleError(err, "Erro ao buscar pagamentos")
+                    );
+                });
+              },
+            });
+          }
+
           return (
             <NavActionColumn
               object={row.original}
@@ -281,6 +359,7 @@ function Orders() {
               deleteDialogDescription={dialogDesc}
               deleteButtonLabel={buttonLabel}
               deleteReasonOptions={reasonOptions}
+              extraActions={extraActions}
             />
           );
         },
@@ -344,7 +423,10 @@ function Orders() {
               }}
               onClear={() => {
                 resetFilters();
-                setFilters((prev) => ({ ...prev, statusGroup: filters.statusGroup })); // Mantem tab
+                setFilters((prev) => ({
+                  ...prev,
+                  statusGroup: filters.statusGroup,
+                })); // Mantem tab
                 handleSearch(1);
                 handleFiltersOpenChange(false);
               }}
@@ -458,6 +540,53 @@ function Orders() {
         onPerPageChange={setPerPage}
         onCreate={handleCreate}
       />
+
+      {orderToFinalize && (
+        <SaleCheckoutDrawer
+          open={showCheckoutDrawer}
+          onOpenChange={setShowCheckoutDrawer}
+          order={orderToFinalize}
+          onSuccess={() => {
+            handleSuccess("Venda confirmada!");
+            handleSearch(1);
+          }}
+        />
+      )}
+      {/* Sale Viewer Modal */}
+      <Dialog
+        open={!!saleViewerData}
+        onOpenChange={(open) => !open && setSaleViewerData(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pagamentos deste Pedido</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 py-4">
+            {saleViewerData?.payments?.map(
+              (p: import("@/interfaces/sale.interface").IPayment) => (
+                <div
+                  key={p.id}
+                  className="flex justify-between items-center bg-muted/30 border p-3 rounded-lg"
+                >
+                  <span className="font-semibold">
+                    {PAYMENT_METHOD_LABELS[p.paymentMethod as TPaymentMethod] ??
+                      p.paymentMethod}
+                  </span>
+                  <span className="font-bold text-primary">
+                    {formatCurrency(p.amount)}
+                  </span>
+                </div>
+              )
+            )}
+            {!saleViewerData?.payments ||
+            saleViewerData.payments.length === 0 ? (
+              <span className="text-sm text-muted-foreground text-center py-4">
+                Nenhum pagamento encontrado.
+              </span>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -467,7 +596,9 @@ export default function OrdersPageWrapper() {
     <ClientsProvider>
       <UsersProvider>
         <OrdersProvider>
-          <Orders />
+          <SalesProvider>
+            <Orders />
+          </SalesProvider>
         </OrdersProvider>
       </UsersProvider>
     </ClientsProvider>

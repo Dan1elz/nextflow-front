@@ -127,34 +127,34 @@ export function ProductForm({
               name="image"
               render={({ field }) => (
                 <FormItem className="self-start">
-                <FormLabel>Imagem do produto</FormLabel>
-                <FormControl>
-                  <ImagePicker
-                    value={field.value}
-                    onChange={async (file) => {
-                      if (isEdit && productId) {
-                        if (file && onImageUpload) {
-                          await onImageUpload(file);
-                          field.onChange(file);
-                        } else if (!file && onImageRemove) {
-                          await onImageRemove();
-                          field.onChange(undefined);
+                  <FormLabel>Imagem do produto</FormLabel>
+                  <FormControl>
+                    <ImagePicker
+                      value={field.value}
+                      onChange={async (file) => {
+                        if (isEdit && productId) {
+                          if (file && onImageUpload) {
+                            await onImageUpload(file);
+                            field.onChange(file);
+                          } else if (!file && onImageRemove) {
+                            await onImageRemove();
+                            field.onChange(undefined);
+                          } else {
+                            field.onChange(file ?? undefined);
+                          }
                         } else {
                           field.onChange(file ?? undefined);
                         }
-                      } else {
-                        field.onChange(file ?? undefined);
-                      }
-                    }}
-                    disabled={isLoading || disabled}
-                    size={140}
-                    placeholder="Selecione uma imagem"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                      }}
+                      disabled={isLoading || disabled}
+                      size={140}
+                      placeholder="Selecione uma imagem"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           {/* Coluna dos outros campos */}
@@ -163,245 +163,250 @@ export function ProductForm({
               <FormField
                 control={form.control}
                 name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Package className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="Nome do produto"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      autoComplete="off"
-                      maxLength={100}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="productCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Código do Produto</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Barcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="Código do produto"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      autoComplete="off"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Package className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          {...field}
+                          type="text"
+                          placeholder="Nome do produto"
+                          className="pl-9"
+                          disabled={isLoading || disabled}
+                          autoComplete="off"
+                          maxLength={100}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="productCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Código do Produto</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Barcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          {...field}
+                          type="text"
+                          placeholder="Código do produto"
+                          className="pl-9"
+                          disabled={isLoading || disabled}
+                          autoComplete="off"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="supplierId"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <SearchSelect
-                    field={field}
-                    value={field.value}
-                    onChange={field.onChange}
-                    label="Fornecedor"
-                    data={supplierOptions}
-                    onSearch={onSearchSuppliers}
-                    placeholder="Fornecedor"
-                    disabled={isLoading || disabled}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="categoryIds"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <SearchSelect
-                    field={field as never}
-                    label="Categorias"
-                    data={
-                      categoryOptions as unknown as Record<string, unknown>[]
-                    }
-                    onSearch={
-                      onSearchCategory as (
-                        q: string
-                      ) => Promise<Record<string, unknown>[] | void>
-                    }
-                    placeholder="Selecione as categorias"
-                    disabled={isLoading || disabled}
-                    multiple
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <SearchSelect
+                        field={field}
+                        value={field.value}
+                        onChange={field.onChange}
+                        label="Fornecedor"
+                        data={supplierOptions}
+                        onSearch={onSearchSuppliers}
+                        placeholder="Fornecedor"
+                        disabled={isLoading || disabled}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="categoryIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <SearchSelect
+                        field={field as never}
+                        label="Categorias"
+                        data={
+                          categoryOptions as unknown as Record<
+                            string,
+                            unknown
+                          >[]
+                        }
+                        onSearch={
+                          onSearchCategory as (
+                            q: string
+                          ) => Promise<Record<string, unknown>[] | void>
+                        }
+                        placeholder="Selecione as categorias"
+                        disabled={isLoading || disabled}
+                        multiple
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             {/* Preço, unidade, quantidade, validade: 4 x 1 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Preço</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <CircleDollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      placeholder="Preço do produto"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      autoComplete="off"
-                      min={0}
-                      step="any"
-                      value={
-                        field.value !== undefined && field.value !== null
-                          ? field.value
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        field.onChange(v === "" ? 0 : Number(v));
-                      }}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="unitType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Unidade de Medida</FormLabel>
-                <Select
-                  disabled={quantityAndUnitDisabled}
-                  value={String(field.value ?? "")}
-                  onValueChange={(v) => field.onChange(Number(v))}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a unidade" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.entries(UNIT_TYPE_LABELS).map(([value, label]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="quantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Quantidade</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Layers className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      placeholder="Quantidade em estoque"
-                      className="pl-9"
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Preço</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <CircleDollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          placeholder="Preço do produto"
+                          className="pl-9"
+                          disabled={isLoading || disabled}
+                          autoComplete="off"
+                          min={0}
+                          step="any"
+                          value={
+                            field.value !== undefined && field.value !== null
+                              ? field.value
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === "" ? 0 : Number(v));
+                          }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="unitType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unidade de Medida</FormLabel>
+                    <Select
                       disabled={quantityAndUnitDisabled}
+                      value={String(field.value ?? "")}
+                      onValueChange={(v) => field.onChange(Number(v))}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a unidade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(UNIT_TYPE_LABELS).map(
+                          ([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Layers className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          placeholder="Quantidade em estoque"
+                          className="pl-9"
+                          disabled={quantityAndUnitDisabled}
+                          autoComplete="off"
+                          min={0}
+                          step="any"
+                          value={
+                            field.value !== undefined && field.value !== null
+                              ? field.value
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === "" ? 0 : Number(v));
+                          }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="validity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Validade</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <DatePicker
+                          value={field.value ?? undefined}
+                          onChange={field.onChange}
+                          disabled={isLoading || disabled}
+                          maxDate={new Date(2100, 11, 31)}
+                          placeholder="dd/mm/aaaa"
+                          error={!!form.formState.errors.validity}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Descrição</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Descrição do produto"
+                      className="min-h-[100px] resize-y uppercase"
+                      disabled={isLoading || disabled}
                       autoComplete="off"
-                      min={0}
-                      step="any"
-                      value={
-                        field.value !== undefined && field.value !== null
-                          ? field.value
-                          : ""
-                      }
+                      maxLength={500}
                       onChange={(e) => {
-                        const v = e.target.value;
-                        field.onChange(v === "" ? 0 : Number(v));
+                        field.onChange(e.target.value.toUpperCase());
                       }}
                     />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="validity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Validade</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <DatePicker
-                      value={field.value ?? undefined}
-                      onChange={field.onChange}
-                      disabled={isLoading || disabled}
-                      maxDate={new Date(2100, 11, 31)}
-                      placeholder="dd/mm/aaaa"
-                      error={!!form.formState.errors.validity}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição</FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  placeholder="Descrição do produto"
-                  className="min-h-[100px] resize-y uppercase"
-                  disabled={isLoading || disabled}
-                  autoComplete="off"
-                  maxLength={500}
-                  onChange={(e) => {
-                    field.onChange(e.target.value.toUpperCase());
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </div>
 

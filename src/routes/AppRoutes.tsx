@@ -124,7 +124,7 @@ function AppRoutes() {
         <Route path="products/:id/view" element={<ViewProductPageWrapper />} />
 
         <Route path="stock-movements" element={<StockMovementsPageWrapper />} />
-        
+
         <Route path="orders" element={<OrdersPageWrapper />} />
         <Route path="orders/create" element={<CreateOrderPageWrapper />} />
         <Route path="orders/:id/edit" element={<EditOrderPageWrapper />} />

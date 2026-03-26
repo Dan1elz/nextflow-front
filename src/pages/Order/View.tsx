@@ -3,6 +3,7 @@ import { OrderForm } from "@/components/forms/order-form";
 import { ClientsProvider } from "@/providers/clients.provider";
 import { ProductsProvider } from "@/providers/products.provider";
 import { OrdersProvider } from "@/providers/orders.provider";
+import { SalesProvider } from "@/providers/sales.provider";
 
 function ViewOrder() {
   const { id } = useParams<{ id: string }>();
@@ -19,7 +20,9 @@ export default function ViewOrderPageWrapper() {
     <ClientsProvider>
       <ProductsProvider>
         <OrdersProvider>
-          <ViewOrder />
+          <SalesProvider>
+            <ViewOrder />
+          </SalesProvider>
         </OrdersProvider>
       </ProductsProvider>
     </ClientsProvider>
