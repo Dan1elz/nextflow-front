@@ -67,7 +67,8 @@ import { useAuth } from "@/hooks/use-auth";
 function Orders() {
   const navigate = useNavigate();
   const { token } = useAuth();
-  const { orders, pagination, searchOrders, cancelOrder, refundOrder } = useOrders();
+  const { orders, pagination, searchOrders, cancelOrder, refundOrder } =
+    useOrders();
   const { searchClientsForOptions, getClientById } = useClients();
   const { searchUsersForOptions, getUserById } = useUsers();
 
@@ -325,8 +326,13 @@ function Orders() {
               icon: <Banknote className="mr-2 h-4 w-4" />,
               onClick: (obj: IOrder) => {
                 import("@/services/sale.service").then(({ saleService }) => {
-                    saleService.getAll({ filters: { orderId: obj.id! }, perPage: 1 }, token || undefined).then(res => {
-                        if (res?.data && res.data.length > 0) {
+                  saleService
+                    .getAll(
+                      { filters: { orderId: obj.id! }, perPage: 1 },
+                      token || undefined
+                    )
+                    .then((res) => {
+                      if (res?.data && res.data.length > 0) {
                         setSaleViewerData(res.data[0]);
                       } else {
                         handleError(

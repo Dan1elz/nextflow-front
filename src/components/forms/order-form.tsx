@@ -208,7 +208,10 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
     if (loadedOrder?.id && orderStatus === TOrderStatus.PaymentConfirmed) {
       import("@/services/sale.service").then(({ saleService }) => {
         saleService
-          .getAll({ filters: { orderId: loadedOrder.id! }, perPage: 1 }, token || undefined)
+          .getAll(
+            { filters: { orderId: loadedOrder.id! }, perPage: 1 },
+            token || undefined
+          )
           .then((res) => {
             if (res?.data && res.data.length > 0) {
               setAssociatedSale(res.data[0]);
