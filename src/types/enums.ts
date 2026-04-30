@@ -104,3 +104,21 @@ export const MOVEMENT_TYPE_LABELS: Record<TMovementType, string> = {
   [TMovementType.Sales]: "Vendas",
   [TMovementType.Return]: "Retorno",
 };
+
+/** PurchaseStatus - Status do pedido de compra */
+export const TPurchaseStatus = {
+  Budget: 1,
+  Pending: 2,
+  Received: 3,
+  Canceled: 4,
+} as const;
+
+export type TPurchaseStatus =
+  (typeof TPurchaseStatus)[keyof typeof TPurchaseStatus];
+
+export const PURCHASE_STATUS_LABELS: Record<TPurchaseStatus, string> = {
+  [TPurchaseStatus.Budget]: "Orçamento",
+  [TPurchaseStatus.Pending]: "Pendente",
+  [TPurchaseStatus.Received]: "Recebido",
+  [TPurchaseStatus.Canceled]: "Cancelado",
+};

@@ -33,6 +33,8 @@ import { useSearchOptions } from "@/hooks/use-search-options";
 import type { IOrder } from "@/interfaces/order.interface";
 import type { IClient } from "@/interfaces/client.interface";
 import type { IUser } from "@/interfaces/user.interface";
+import type { ISale, IPayment } from "@/interfaces/sale.interface";
+import type { IIndexParams, IOption } from "@/interfaces/api.interface";
 
 import { OrdersProvider } from "@/providers/orders.provider";
 import { ClientsProvider } from "@/providers/clients.provider";
@@ -41,8 +43,8 @@ import { SalesProvider } from "@/providers/sales.provider";
 
 import { useClients } from "@/hooks/use-clients";
 import { useUsers } from "@/hooks/use-users";
+import { useSales } from "@/hooks/use-sales";
 import { Badge } from "@/components/ui/badge";
-import type { IOption } from "@/interfaces/api.interface";
 import {
   ORDER_STATUS_LABELS,
   ORDER_TYPE_LABELS,
@@ -62,24 +64,20 @@ type OrderFilters = {
   maxUpdateAt: string;
 };
 
-import { useAuth } from "@/hooks/use-auth";
-
 function Orders() {
   const navigate = useNavigate();
-  const { token } = useAuth();
   const { orders, pagination, searchOrders, cancelOrder, refundOrder } =
     useOrders();
   const { searchClientsForOptions, getClientById } = useClients();
   const { searchUsersForOptions, getUserById } = useUsers();
+  const { searchSalesForOptions } = useSales();
 
   const [orderToFinalize, setOrderToFinalize] = useState<IOrder | null>(null);
   const [showCheckoutDrawer, setShowCheckoutDrawer] = useState(false);
-  const [saleViewerData, setSaleViewerData] = useState<
-    import("@/interfaces/sale.interface").ISale | null
-  >(null);
+  const [saleViewerData, setSaleViewerData] = useState<ISale | null>(null);
 
   const customSearch = useCallback(
-    async (params?: import("@/interfaces/api.interface").IIndexParams) => {
+    async (params?: IIndexParams) => {
       const activeFilters = { ...params?.filters } as Record<string, string>;
       if (activeFilters.statusGroup === "all") {
         delete activeFilters.statusGroup;
@@ -325,28 +323,22 @@ function Orders() {
               label: "Ver Pagamentos",
               icon: <Banknote className="mr-2 h-4 w-4" />,
               onClick: (obj: IOrder) => {
-                import("@/services/sale.service").then(({ saleService }) => {
-                  saleService
-                    .getAll(
-                      { filters: { orderId: obj.id! }, perPage: 1 },
-                      token || undefined
-                    )
-                    .then((res) => {
-                      if (res?.data && res.data.length > 0) {
-                        setSaleViewerData(res.data[0]);
-                      } else {
-                        handleError(
-                          new Error(
-                            "Nenhum pagamento encontrado para este pedido"
-                          ),
-                          ""
-                        );
-                      }
-                    })
-                    .catch((err) =>
-                      handleError(err, "Erro ao buscar pagamentos")
-                    );
-                });
+                searchSalesForOptions({ filters: { orderId: obj.id! }, perPage: 1 })
+                  .then((res) => {
+                    if (res?.data && res.data.length > 0) {
+                      setSaleViewerData(res.data[0]);
+                    } else {
+                      handleError(
+                        new Error(
+                          "Nenhum pagamento encontrado para este pedido"
+                        ),
+                        ""
+                      );
+                    }
+                  })
+                  .catch((err) =>
+                    handleError(err, "Erro ao buscar pagamentos")
+                  );
               },
             });
           }
@@ -373,7 +365,7 @@ function Orders() {
         enableHiding: false,
       },
     ],
-    [handleDelete, handleEdit, handleView]
+    [searchSalesForOptions, handleDelete, handleEdit, handleView]
   );
 
   return (
@@ -568,22 +560,20 @@ function Orders() {
             <DialogTitle>Pagamentos deste Pedido</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-4">
-            {saleViewerData?.payments?.map(
-              (p: import("@/interfaces/sale.interface").IPayment) => (
-                <div
-                  key={p.id}
-                  className="flex justify-between items-center bg-muted/30 border p-3 rounded-lg"
-                >
-                  <span className="font-semibold">
-                    {PAYMENT_METHOD_LABELS[p.paymentMethod as TPaymentMethod] ??
-                      p.paymentMethod}
-                  </span>
-                  <span className="font-bold text-primary">
-                    {formatCurrency(p.amount)}
-                  </span>
-                </div>
-              )
-            )}
+            {saleViewerData?.payments?.map((p: IPayment) => (
+              <div
+                key={p.id}
+                className="flex justify-between items-center bg-muted/30 border p-3 rounded-lg"
+              >
+                <span className="font-semibold">
+                  {PAYMENT_METHOD_LABELS[p.paymentMethod as TPaymentMethod] ??
+                    p.paymentMethod}
+                </span>
+                <span className="font-bold text-primary">
+                  {formatCurrency(p.amount)}
+                </span>
+              </div>
+            ))}
             {!saleViewerData?.payments ||
             saleViewerData.payments.length === 0 ? (
               <span className="text-sm text-muted-foreground text-center py-4">

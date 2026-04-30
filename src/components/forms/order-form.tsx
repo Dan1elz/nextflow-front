@@ -80,6 +80,7 @@ type OrderFormMode = "create" | "edit" | "view";
 interface OrderFormProps {
   mode?: OrderFormMode;
   orderId?: string;
+  onFetchAssociatedSale?: (orderId: string) => Promise<ISale | null>;
 }
 
 const CANCEL_REASON_OPTIONS = [
@@ -98,11 +99,8 @@ const REFUND_REASON_OPTIONS = [
   "Cobrança indevida",
 ];
 
-import { useAuth } from "@/hooks/use-auth";
-
-export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
+export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: OrderFormProps) {
   const navigate = useNavigate();
-  const { token } = useAuth();
   const { createOrder, updateOrder, getOrderById, cancelOrder, refundOrder } =
     useOrders();
   const { searchClientsForOptions, getClientById } = useClients();
@@ -205,21 +203,14 @@ export function OrderForm({ mode = "create", orderId }: OrderFormProps) {
   }, [isEdit, isView, orderId, getOrderById, getProductById]);
 
   useEffect(() => {
-    if (loadedOrder?.id && orderStatus === TOrderStatus.PaymentConfirmed) {
-      import("@/services/sale.service").then(({ saleService }) => {
-        saleService
-          .getAll(
-            { filters: { orderId: loadedOrder.id! }, perPage: 1 },
-            token || undefined
-          )
-          .then((res) => {
-            if (res?.data && res.data.length > 0) {
-              setAssociatedSale(res.data[0]);
-            }
-          });
+    if (loadedOrder?.id && orderStatus === TOrderStatus.PaymentConfirmed && onFetchAssociatedSale) {
+      onFetchAssociatedSale(loadedOrder.id).then((sale) => {
+        if (sale) {
+          setAssociatedSale(sale);
+        }
       });
     }
-  }, [loadedOrder?.id, orderStatus]);
+  }, [loadedOrder?.id, orderStatus, onFetchAssociatedSale]);
 
   const handleProductSelect = useCallback(
     async (val: string | number | boolean | undefined) => {

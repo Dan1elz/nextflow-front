@@ -28,6 +28,19 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
+  const searchSalesForOptions = useCallback(
+    async (
+      query?: IIndexParams
+    ): Promise<{ data: ISale[]; totalItems: number }> => {
+      const response = await saleService.getAll(query, token ?? undefined);
+      return {
+        data: response.data || [],
+        totalItems: response.totalItems || 0,
+      };
+    },
+    [token]
+  );
+
   const selectSale = useCallback(
     async (id: string): Promise<void> => {
       const data = await saleService.getById(id, token ?? undefined);
@@ -67,6 +80,7 @@ export function SalesProvider({ children }: { children: ReactNode }) {
         pagination,
         selectedSale,
         searchSales,
+        searchSalesForOptions,
         selectSale,
         getSaleById,
         createSale,

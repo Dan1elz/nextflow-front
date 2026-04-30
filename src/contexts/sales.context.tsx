@@ -7,6 +7,9 @@ export type SalesContextType = {
   selectedSale: ISale | null;
   pagination: IPaginationInfo | null;
   searchSales: (query?: IIndexParams) => Promise<void>;
+  searchSalesForOptions: (
+    query?: IIndexParams
+  ) => Promise<{ data: ISale[]; totalItems: number }>;
   selectSale: (id: string) => Promise<void>;
   getSaleById: (id: string) => Promise<ISale>;
   createSale: (data: ICreateSale) => Promise<ISale>;
