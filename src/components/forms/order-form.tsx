@@ -45,7 +45,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { SearchSelect } from "@/components/app/search-select";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import { formatCurrency } from "@/utils";
+import { formatCurrency, generateUUID } from "@/utils";
 
 import { useOrders } from "@/hooks/use-orders";
 import { useClients } from "@/hooks/use-clients";
@@ -188,7 +188,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                 product = await getProductById(oi.productId);
               }
               items.push({
-                id: oi.id ?? crypto.randomUUID(),
+                id: oi.id ?? generateUUID(),
                 product,
                 quantity: Number(oi.quantity),
                 discount: Number(oi.discount),
@@ -261,7 +261,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
       return [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           product: selectedProductData,
           quantity: inputQuantity,
           discount: inputDiscount,
