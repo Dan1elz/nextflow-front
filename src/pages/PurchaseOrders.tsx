@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { Search, PackageCheck } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -51,15 +51,35 @@ function PurchaseOrders() {
     pagination,
     searchPurchaseOrders,
     deletePurchaseOrder,
+    updatePurchaseOrder,
   } = usePurchaseOrders();
   const { searchSuppliersForOptions, getSupplierById } = useSuppliers();
 
   const customSearch = useCallback(
     async (params?: IIndexParams) => {
       const activeFilters = { ...params?.filters } as Record<string, string>;
-      if (activeFilters.statusGroup === "all") {
-        delete activeFilters.statusGroup;
+      
+      // Map statusGroup tab to actual status filter
+      if (activeFilters.statusGroup && activeFilters.statusGroup !== "all") {
+        const statusMap: Record<string, string> = {
+          budget: String(TPurchaseStatus.Budget),
+          pending: String(TPurchaseStatus.Pending),
+          received: String(TPurchaseStatus.Received),
+        };
+        
+        if (activeFilters.statusGroup !== "canceled") {
+          activeFilters.status = statusMap[activeFilters.statusGroup] ?? "";
+        }
       }
+
+      // Explicitly handle Active filter based on tab
+      if (activeFilters.statusGroup === "canceled") {
+        activeFilters.active = "false";
+      } else if (activeFilters.statusGroup !== "all") {
+        activeFilters.active = "true";
+      }
+      
+      delete activeFilters.statusGroup;
       await searchPurchaseOrders({ ...params, filters: activeFilters });
     },
     [searchPurchaseOrders]
@@ -120,18 +140,34 @@ function PurchaseOrders() {
     [navigate]
   );
 
-  const handleDelete = useCallback(
+  const handleCancel = useCallback(
     async (order: IPurchaseOrder) => {
       if (!order.id) return;
       try {
         await deletePurchaseOrder(order.id);
-        handleSuccess("Pedido de compra excluído com sucesso");
+        handleSuccess("Pedido de compra cancelado com sucesso");
         await handleSearch(1);
       } catch (error) {
-        handleError(error, "Erro ao excluir pedido de compra");
+        handleError(error, "Erro ao cancelar pedido de compra");
       }
     },
     [deletePurchaseOrder, handleSearch]
+  );
+
+  const handleReceive = useCallback(
+    async (order: IPurchaseOrder) => {
+      if (!order.id) return;
+      try {
+        await updatePurchaseOrder(order.id, {
+          status: TPurchaseStatus.Received,
+        });
+        handleSuccess("Pedido recebido! Estoque atualizado.");
+        await handleSearch(1);
+      } catch (error) {
+        handleError(error, "Erro ao confirmar recebimento");
+      }
+    },
+    [updatePurchaseOrder, handleSearch]
   );
 
   const columns = useMemo<ColumnDef<IPurchaseOrder>[]>(
@@ -176,16 +212,17 @@ function PurchaseOrders() {
           const label =
             PURCHASE_STATUS_LABELS[row.original.status] ?? row.original.status;
 
-          let variant: "default" | "secondary" | "destructive" | "outline" =
-            "secondary";
+          let extraClass = "";
           if (row.original.status === TPurchaseStatus.Received)
-            variant = "default";
+            extraClass = "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
           else if (row.original.status === TPurchaseStatus.Canceled)
-            variant = "destructive";
+            extraClass = "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
           else if (row.original.status === TPurchaseStatus.Pending)
-            variant = "outline";
+            extraClass = "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
+          else if (row.original.status === TPurchaseStatus.Budget)
+            extraClass = "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
 
-          return <Badge variant={variant}>{label}</Badge>;
+          return <Badge className={`font-semibold ${extraClass}`}>{label}</Badge>;
         },
       },
       {
@@ -213,13 +250,24 @@ function PurchaseOrders() {
             <NavActionColumn
               object={row.original}
               onEdit={handleEdit}
-              onDelete={canAct ? handleDelete : undefined}
+              onDelete={canAct ? handleCancel : undefined}
               onView={handleView}
               disableEdit={!canAct}
-              deleteLabel="Excluir"
-              deleteDialogTitle="Excluir Pedido de Compra"
-              deleteDialogDescription="Tem certeza que deseja excluir este pedido de compra? Esta ação não pode ser desfeita."
-              deleteButtonLabel="Confirmar Exclusão"
+              deleteLabel="Cancelar"
+              deleteDialogTitle="Cancelar Pedido de Compra"
+              deleteDialogDescription="Tem certeza que deseja cancelar este pedido de compra? O pedido será marcado como cancelado."
+              deleteButtonLabel="Confirmar Cancelamento"
+              extraActions={
+                canAct
+                  ? [
+                      {
+                        label: "Receber",
+                        icon: <PackageCheck className="mr-2 h-4 w-4" />,
+                        onClick: handleReceive,
+                      },
+                    ]
+                  : undefined
+              }
             />
           );
         },
@@ -227,7 +275,7 @@ function PurchaseOrders() {
         enableHiding: false,
       },
     ],
-    [handleDelete, handleEdit, handleView]
+    [handleCancel, handleEdit, handleView, handleReceive]
   );
 
   return (

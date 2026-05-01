@@ -5,10 +5,13 @@ import {
   Minus,
   Trash2,
   ArrowLeft,
-  ShoppingCart,
+  Package,
+  PackagePlus,
   Check,
   Ban,
+  PackageCheck,
   RotateCcw,
+  ClipboardList,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -22,14 +25,15 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,76 +51,79 @@ import { SearchSelect } from "@/components/app/search-select";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { formatCurrency, generateUUID } from "@/utils";
 
-import { useOrders } from "@/hooks/use-orders";
-import { useClients } from "@/hooks/use-clients";
+import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
+import { useSuppliers } from "@/hooks/use-suppliers";
 import { useProducts } from "@/hooks/use-products";
+import { useCategories } from "@/hooks/use-categories";
 import { useSearchOptions } from "@/hooks/use-search-options";
+import { ProductForm } from "@/components/forms/product-form";
+import type { ProductSchema } from "@/schemas/product.schema";
+import type { ICategory } from "@/interfaces/category.interface";
 
-import type { IClient } from "@/interfaces/client.interface";
+import type { ISupplier } from "@/interfaces/supplier.interface";
 import type { IProduct } from "@/interfaces/product.interface";
-import type { IOrder, IOrderItem } from "@/interfaces/order.interface";
-import type { ISale, IPayment } from "@/interfaces/sale.interface";
+import type {
+  IPurchaseOrder,
+  ICreatePurchaseOrder,
+  IUpdatePurchaseOrder,
+} from "@/interfaces/purchase-order.interface";
 import {
-  TOrderType,
-  TOrderStatus,
-  ORDER_STATUS_LABELS,
-  ORDER_TYPE_LABELS,
-  PAYMENT_METHOD_LABELS,
-  TPaymentMethod,
+  PURCHASE_STATUS_LABELS,
+  TPurchaseStatus,
 } from "@/types/enums";
 import { API_URL } from "@/configs/api";
 import type { IOption } from "@/interfaces/api.interface";
-import { SaleCheckoutDrawer } from "@/components/app/sale-checkout-drawer";
 
 type CartItem = {
   id: string;
   product: IProduct;
   quantity: number;
   discount: number;
+  costPrice: number;
 };
 
-type OrderFormMode = "create" | "edit" | "view";
+type PurchaseOrderFormMode = "create" | "edit" | "view";
 
-interface OrderFormProps {
-  mode?: OrderFormMode;
-  orderId?: string;
-  onFetchAssociatedSale?: (orderId: string) => Promise<ISale | null>;
+interface PurchaseOrderFormProps {
+  mode?: PurchaseOrderFormMode;
+  purchaseOrderId?: string;
 }
 
 const CANCEL_REASON_OPTIONS = [
-  "Cliente desistiu da compra",
+  "Fornecedor não entregou",
   "Produto indisponível",
   "Erro no pedido",
   "Pedido duplicado",
-  "Prazo de entrega não atendido",
+  "Preço divergente",
 ];
 
-const REFUND_REASON_OPTIONS = [
-  "Produto com defeito",
-  "Produto divergente do anunciado",
-  "Insatisfação do cliente",
-  "Entrega com atraso",
-  "Cobrança indevida",
-];
-
-export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: OrderFormProps) {
+export function PurchaseOrderForm({
+  mode = "create",
+  purchaseOrderId,
+}: PurchaseOrderFormProps) {
   const navigate = useNavigate();
-  const { createOrder, updateOrder, getOrderById, cancelOrder, refundOrder } =
-    useOrders();
-  const { searchClientsForOptions, getClientById } = useClients();
-  const { searchProductsForOptions, getProductById } = useProducts();
+  const {
+    createPurchaseOrder,
+    updatePurchaseOrder,
+    getPurchaseOrderById,
+    deletePurchaseOrder,
+  } = usePurchaseOrders();
+  const { searchSuppliersForOptions, getSupplierById } = useSuppliers();
+  const { searchProductsForOptions, getProductById, createProduct } = useProducts();
+  const { searchCategoriesForOptions, getCategoryById } = useCategories();
 
   const isView = mode === "view";
   const isEdit = mode === "edit";
   const isCreate = mode === "create";
 
-  // Order Info
-  const [clientId, setClientId] = useState<string>("");
-  const [orderType, setOrderType] = useState<number>(TOrderType.Budget);
-  const [orderStatus, setOrderStatus] = useState<number>(TOrderStatus.Budget);
-  const [loadedOrder, setLoadedOrder] = useState<IOrder | null>(null);
+  // Purchase Order Info
+  const [supplierId, setSupplierId] = useState<string>("");
+  const [note, setNote] = useState<string>("");
+  const [purchaseStatus, setPurchaseStatus] = useState<number>(
+    TPurchaseStatus.Budget
+  );
+  const [loadedOrder, setLoadedOrder] = useState<IPurchaseOrder | null>(null);
   const [loading, setLoading] = useState(false);
-  const [associatedSale, setAssociatedSale] = useState<ISale | null>(null);
 
   // Cart Management
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -127,27 +134,35 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
     useState<IProduct | null>(null);
   const [inputQuantity, setInputQuantity] = useState<number>(1);
   const [inputDiscount, setInputDiscount] = useState<number>(0);
+  const [inputCostPrice, setInputCostPrice] = useState<number>(0);
 
-  // Cancel/Refund modal
+  // Cancel modal
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showRefundModal, setShowRefundModal] = useState(false);
-  const [showCheckoutDrawer, setShowCheckoutDrawer] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [actionReason, setActionReason] = useState("");
-  const [actionPreset, setActionPreset] = useState("");
+
+  // New product dialog
+  const [showNewProductDialog, setShowNewProductDialog] = useState(false);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
 
   // Search options
-  const { options: clientOptions, handleSearch: handleSearchClients } =
-    useSearchOptions<IClient>({
-      searchFn: searchClientsForOptions,
-      mapFn: (client) => ({
-        value: client.id ?? "",
-        label: `${client.name} ${client.lastName}`,
+  const { options: supplierOptions, handleSearch: handleSearchSuppliers } =
+    useSearchOptions<ISupplier>({
+      searchFn: searchSuppliersForOptions,
+      mapFn: (supplier) => ({
+        value: supplier.id ?? "",
+        label: supplier.name || "Fornecedor",
       }),
-      selectFn: getClientById,
-      errorLabel: "clientes",
+      selectFn: getSupplierById,
+      errorLabel: "fornecedores",
       autoLoad: false,
       perPage: 50,
     });
+
+  const productFilters = useMemo(
+    () => (supplierId ? { supplierId } : ({} as Record<string, string>)),
+    [supplierId]
+  );
 
   const { options: productOptions, handleSearch: handleSearchProducts } =
     useSearchOptions<IProduct>({
@@ -164,53 +179,56 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
       errorLabel: "produtos",
       autoLoad: false,
       perPage: 50,
+      initialFilters: productFilters,
+      enabled: !!supplierId,
     });
 
-  // Load existing order for edit/view
+  const { options: categoryOptions, handleSearch: handleSearchCategories } =
+    useSearchOptions<ICategory>({
+      searchFn: searchCategoriesForOptions,
+      mapFn: (c) => ({ value: c.id ?? "", label: c.description || "Categoria" }),
+      selectFn: getCategoryById,
+      errorLabel: "categorias",
+      autoLoad: false,
+      perPage: 50,
+    });
+
+  // Load existing purchase order for edit/view
   useEffect(() => {
-    if ((isEdit || isView) && orderId) {
+    if ((isEdit || isView) && purchaseOrderId) {
       setLoading(true);
-      getOrderById(orderId)
+      getPurchaseOrderById(purchaseOrderId)
         .then(async (order) => {
           setLoadedOrder(order);
-          setClientId(order.clientId);
-          setOrderType(order.type);
-          setOrderStatus(order.status ?? TOrderStatus.Budget);
+          setSupplierId(order.supplierId);
+          setNote(order.note ?? "");
+          setPurchaseStatus(order.status ?? TPurchaseStatus.Budget);
 
-          // Map order items to cart items
-          if (order.orderItems && order.orderItems.length > 0) {
+          // Map items to cart items
+          if (order.items && order.items.length > 0) {
             const items: CartItem[] = [];
-            for (const oi of order.orderItems) {
+            for (const pi of order.items) {
               let product: IProduct;
-              if (oi.product) {
-                product = oi.product;
+              if (pi.product) {
+                product = pi.product;
               } else {
-                product = await getProductById(oi.productId);
+                product = await getProductById(pi.productId);
               }
               items.push({
-                id: oi.id ?? generateUUID(),
+                id: pi.id ?? generateUUID(),
                 product,
-                quantity: Number(oi.quantity),
-                discount: Number(oi.discount),
+                quantity: Number(pi.quantity),
+                discount: Number(pi.discount),
+                costPrice: Number(pi.costPrice),
               });
             }
             setCartItems(items);
           }
         })
-        .catch((err) => handleError(err, "Erro ao carregar pedido"))
+        .catch((err) => handleError(err, "Erro ao carregar pedido de compra"))
         .finally(() => setLoading(false));
     }
-  }, [isEdit, isView, orderId, getOrderById, getProductById]);
-
-  useEffect(() => {
-    if (loadedOrder?.id && orderStatus === TOrderStatus.PaymentConfirmed && onFetchAssociatedSale) {
-      onFetchAssociatedSale(loadedOrder.id).then((sale) => {
-        if (sale) {
-          setAssociatedSale(sale);
-        }
-      });
-    }
-  }, [loadedOrder?.id, orderStatus, onFetchAssociatedSale]);
+  }, [isEdit, isView, purchaseOrderId, getPurchaseOrderById, getProductById]);
 
   const handleProductSelect = useCallback(
     async (val: string | number | boolean | undefined) => {
@@ -221,8 +239,8 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
       } else {
         const prod = await getProductById(id);
         setSelectedProductData(prod);
+        setInputCostPrice(Number(prod.price || 0));
       }
-
       setInputQuantity(1);
       setInputDiscount(0);
     },
@@ -240,6 +258,10 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
     }
     if (inputDiscount < 0) {
       handleError(new Error("Desconto não pode ser negativo."), "");
+      return;
+    }
+    if (inputCostPrice <= 0) {
+      handleError(new Error("O custo unitário deve ser maior que zero."), "");
       return;
     }
 
@@ -265,6 +287,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
           product: selectedProductData,
           quantity: inputQuantity,
           discount: inputDiscount,
+          costPrice: inputCostPrice,
         },
       ];
     });
@@ -273,6 +296,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
     setSelectedProductData(null);
     setInputQuantity(1);
     setInputDiscount(0);
+    setInputCostPrice(0);
   };
 
   const updateCartItemQuantity = (id: string, delta: number) => {
@@ -295,8 +319,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
     let subtotal = 0;
     let totalDiscount = 0;
     cartItems.forEach((item) => {
-      const itemPrice = Number(item.product.price || 0);
-      subtotal += itemPrice * item.quantity;
+      subtotal += item.costPrice * item.quantity;
       totalDiscount += Number(item.discount || 0);
     });
 
@@ -308,129 +331,159 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
     };
   }, [cartItems]);
 
-  const prepareAndSaveOrder = async (): Promise<IOrder | undefined> => {
+  const handleSaveOrder = async (asPending = false) => {
     try {
-      if (!clientId) throw new Error("Por favor, selecione o cliente.");
+      if (!supplierId) throw new Error("Por favor, selecione o fornecedor.");
       if (cartItems.length === 0)
         throw new Error("Adicione pelo menos um produto ao pedido.");
 
       if (isCreate) {
-        const payload: Omit<IOrder, "orderItems"> & {
-          items: Partial<IOrderItem>[];
-        } = {
-          clientId,
-          type: orderType as TOrderType,
+        const payload: ICreatePurchaseOrder = {
+          supplierId,
+          note: note || undefined,
           items: cartItems.map((c) => ({
             productId: c.product.id!,
             quantity: c.quantity,
             discount: c.discount,
+            costPrice: c.costPrice,
           })),
         };
 
-        const created = await createOrder(payload);
-        handleSuccess("Pedido salvo com sucesso!");
-        return created;
-      } else if (isEdit && orderId) {
-        const items: IOrderItem[] = cartItems.map((c) => ({
-          productId: c.product.id!,
-          quantity: c.quantity,
-          discount: c.discount,
-        }));
+        const created = await createPurchaseOrder(payload);
 
-        const updated = await updateOrder(orderId, { items });
-        handleSuccess("Pedido atualizado com sucesso!");
-        return updated;
+        // If creating as Pending, update status after creation
+        if (asPending && created?.id) {
+          await updatePurchaseOrder(created.id, {
+            status: TPurchaseStatus.Pending,
+          });
+        }
+
+        handleSuccess(
+          asPending
+            ? "Pedido de compra confirmado com sucesso!"
+            : "Orçamento salvo com sucesso!"
+        );
+      } else if (isEdit && purchaseOrderId) {
+        const payload: IUpdatePurchaseOrder = {
+          note: note || undefined,
+          items: cartItems.map((c) => ({
+            productId: c.product.id!,
+            quantity: c.quantity,
+            discount: c.discount,
+            costPrice: c.costPrice,
+          })),
+        };
+
+        await updatePurchaseOrder(purchaseOrderId, payload);
+        handleSuccess("Pedido de compra atualizado com sucesso!");
       }
-      return loadedOrder || undefined;
+      navigate("/purchase-orders");
     } catch (error) {
-      handleError(error, "Erro ao salvar o pedido");
-      throw error;
+      handleError(error, "Erro ao salvar o pedido de compra");
     }
   };
 
-  const handleSaveOrder = async () => {
+  const handleConfirmPending = async () => {
+    if (!purchaseOrderId) return;
     try {
-      await prepareAndSaveOrder();
-      navigate("/orders");
-    } catch {
-      // Error handled inside
+      await updatePurchaseOrder(purchaseOrderId, {
+        status: TPurchaseStatus.Pending,
+      });
+      handleSuccess("Pedido confirmado como pendente!");
+      navigate("/purchase-orders");
+    } catch (error) {
+      handleError(error, "Erro ao confirmar pedido");
     }
   };
 
   const handleCancelOrder = async () => {
-    if (!orderId || !actionReason.trim()) return;
+    if (!purchaseOrderId) return;
     try {
-      await cancelOrder(orderId, actionReason);
-      handleSuccess("Pedido cancelado com sucesso!");
-      navigate("/orders");
+      await deletePurchaseOrder(purchaseOrderId);
+      handleSuccess("Pedido de compra cancelado com sucesso!");
+      navigate("/purchase-orders");
     } catch (error) {
-      handleError(error, "Erro ao cancelar pedido");
+      handleError(error, "Erro ao cancelar pedido de compra");
     }
   };
 
-  const handleRefundOrder = async () => {
-    if (!orderId || !actionReason.trim()) return;
+  const handleConfirmReceived = async () => {
+    if (!purchaseOrderId) return;
     try {
-      await refundOrder(orderId, actionReason);
-      handleSuccess("Pedido reembolsado com sucesso!");
-      navigate("/orders");
+      await updatePurchaseOrder(purchaseOrderId, {
+        status: TPurchaseStatus.Received,
+      });
+      handleSuccess("Pedido recebido! Estoque atualizado automaticamente.");
+      navigate("/purchase-orders");
     } catch (error) {
-      handleError(error, "Erro ao reembolsar pedido");
+      handleError(error, "Erro ao confirmar recebimento");
     }
   };
 
-  const handlePresetChange = (value: string) => {
-    setActionPreset(value);
-    if (value !== "__other__") {
-      setActionReason(value);
-    } else {
-      setActionReason("");
+  const handleCreateProduct = async (data: ProductSchema) => {
+    try {
+      setIsCreatingProduct(true);
+      const productData = { ...data, supplierId } as unknown as Partial<IProduct>;
+      const created = await createProduct(productData);
+      handleSuccess("Produto criado com sucesso!");
+      setShowNewProductDialog(false);
+      if (created?.id) {
+        const fullProduct = await getProductById(created.id);
+        setSelectedProductId(created.id);
+        setSelectedProductData(fullProduct);
+        setInputCostPrice(Number(fullProduct.price || 0));
+        // Refresh product list
+        handleSearchProducts("");
+      }
+    } catch (error) {
+      handleError(error, "Erro ao criar produto");
+    } finally {
+      setIsCreatingProduct(false);
     }
   };
+
+  const canReceive =
+    (isEdit || isView) &&
+    (purchaseStatus === TPurchaseStatus.Budget ||
+      purchaseStatus === TPurchaseStatus.Pending);
 
   // Determine which actions are available based on status
-  const canCancel =
-    orderStatus === TOrderStatus.PendingPayment ||
-    orderStatus === TOrderStatus.Budget;
-  const canRefund = orderStatus === TOrderStatus.PaymentConfirmed;
-  const isFinalized =
-    orderStatus === TOrderStatus.Canceled ||
-    orderStatus === TOrderStatus.Refunded ||
-    orderStatus === TOrderStatus.PaymentConfirmed;
-  const canFinalizeCheckout = !isFinalized;
-
-  const handleFinalizeSale = async () => {
-    try {
-      if (isCreate || isEdit) {
-        const savedOrder = await prepareAndSaveOrder();
-        if (savedOrder) {
-          setLoadedOrder(savedOrder);
-          setShowCheckoutDrawer(true);
-        }
-      } else {
-        setShowCheckoutDrawer(true);
-      }
-    } catch {
-      // error handled in prepareAndSaveOrder
-    }
+  const handleResetForm = () => {
+    setSupplierId("");
+    setNote("");
+    setCartItems([]);
+    setSelectedProductId("");
+    setSelectedProductData(null);
+    setInputQuantity(1);
+    setInputDiscount(0);
+    setInputCostPrice(0);
   };
+
+  const supplierLocked = isCreate && !!supplierId;
+
+  const canCancel =
+    purchaseStatus === TPurchaseStatus.Budget ||
+    purchaseStatus === TPurchaseStatus.Pending;
+  const isFinalized =
+    purchaseStatus === TPurchaseStatus.Canceled ||
+    purchaseStatus === TPurchaseStatus.Received;
 
   // Titles
   const pageTitle = isCreate
-    ? "Novo Pedido / Orçamento"
+    ? "Novo Pedido de Compra"
     : isEdit
-      ? "Editar Pedido"
-      : "Visualizar Pedido";
+      ? "Editar Pedido de Compra"
+      : "Visualizar Pedido de Compra";
   const pageDescription = isCreate
-    ? "Selecione o cliente e os produtos desejados"
+    ? "Selecione o fornecedor e os produtos desejados"
     : isEdit
-      ? "Modifique os itens do pedido"
-      : "Detalhes do pedido";
+      ? "Modifique os itens do pedido de compra"
+      : "Detalhes do pedido de compra";
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
-        Carregando pedido...
+        Carregando pedido de compra...
       </div>
     );
   }
@@ -448,55 +501,45 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                   <CardDescription>{pageDescription}</CardDescription>
                 </div>
                 {!isCreate && (
-                  <div className="flex gap-2">
-                    <Badge variant="outline">
-                      {ORDER_TYPE_LABELS[orderType as TOrderType] ??
-                        "Desconhecido"}
-                    </Badge>
-                    <Badge
-                      variant={
-                        orderStatus === TOrderStatus.PaymentConfirmed
-                          ? "default"
-                          : orderStatus === TOrderStatus.Canceled ||
-                              orderStatus === TOrderStatus.Refunded
-                            ? "destructive"
+                  <Badge
+                    variant={
+                      purchaseStatus === TPurchaseStatus.Received
+                        ? "default"
+                        : purchaseStatus === TPurchaseStatus.Canceled
+                          ? "destructive"
+                          : purchaseStatus === TPurchaseStatus.Pending
+                            ? "outline"
                             : "secondary"
-                      }
-                    >
-                      {ORDER_STATUS_LABELS[orderStatus as TOrderStatus] ??
-                        "Desconhecido"}
-                    </Badge>
-                  </div>
+                    }
+                  >
+                    {PURCHASE_STATUS_LABELS[
+                      purchaseStatus as TPurchaseStatus
+                    ] ?? "Desconhecido"}
+                  </Badge>
                 )}
               </div>
               <div className="flex gap-2">
-                {/* Cancel/Refund Buttons for view/edit */}
+                {isCreate && supplierLocked && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetForm}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Limpar
+                  </Button>
+                )}
                 {!isCreate && canCancel && (
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => {
                       setActionReason("");
-                      setActionPreset("");
                       setShowCancelModal(true);
                     }}
                   >
                     <Ban className="w-4 h-4 mr-2" />
                     Cancelar Pedido
-                  </Button>
-                )}
-                {!isCreate && canRefund && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      setActionReason("");
-                      setActionPreset("");
-                      setShowRefundModal(true);
-                    }}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Reembolsar
                   </Button>
                 )}
 
@@ -512,7 +555,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                       <AlertDialogTitle>Deseja mesmo sair?</AlertDialogTitle>
                       <AlertDialogDescription>
                         {isView
-                          ? "Você será redirecionado para a listagem de pedidos."
+                          ? "Você será redirecionado para a listagem de pedidos de compra."
                           : "Todos os dados não salvos deste formulário serão perdidos."}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -520,7 +563,9 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                       <AlertDialogCancel>
                         {isView ? "Continuar" : "Continuar Editando"}
                       </AlertDialogCancel>
-                      <AlertDialogAction onClick={() => navigate("/orders")}>
+                      <AlertDialogAction
+                        onClick={() => navigate("/purchase-orders")}
+                      >
                         Sim, Sair
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -530,116 +575,64 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="grid gap-2">
                 {isView ? (
                   <div className="grid gap-2">
-                    <Label>Cliente</Label>
+                    <Label>Fornecedor</Label>
                     <Input
                       disabled
                       value={
-                        loadedOrder?.client
-                          ? `${loadedOrder.client.name} ${loadedOrder.client.lastName}`
-                          : clientId
+                        loadedOrder?.supplier
+                          ? loadedOrder.supplier.name
+                          : supplierId
                       }
                     />
                   </div>
                 ) : (
                   <SearchSelect<IOption>
                     field={{
-                      value: clientId,
-                      onChange: (val) => setClientId(String(val ?? "")),
+                      value: supplierId,
+                      onChange: (val) => setSupplierId(String(val ?? "")),
                     }}
-                    data={clientOptions}
-                    onSearch={handleSearchClients}
-                    placeholder="Selecione um cliente..."
-                    label="Cliente"
-                    disabled={isEdit}
+                    data={supplierOptions}
+                    onSearch={handleSearchSuppliers}
+                    placeholder="Selecione um fornecedor..."
+                    label="Fornecedor"
+                    disabled={isEdit || supplierLocked}
                   />
                 )}
               </div>
               <div className="grid gap-2">
-                <Label>Tipo de Pedido</Label>
-                {isView || isEdit ? (
-                  <Input
-                    disabled
-                    value={
-                      ORDER_TYPE_LABELS[orderType as TOrderType] ??
-                      "Desconhecido"
-                    }
-                  />
-                ) : (
-                  <Select
-                    value={String(orderType)}
-                    onValueChange={(v) => setOrderType(Number(v))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={String(TOrderType.Budget)}>
-                        Orçamento
-                      </SelectItem>
-                      <SelectItem value={String(TOrderType.Sale)}>
-                        Venda
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+                <Label>Observação</Label>
+                <Textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Observações sobre o pedido..."
+                  disabled={isView || isFinalized}
+                  rows={2}
+                />
               </div>
             </div>
-
-            {/* Loss reason if finalized */}
-            {(orderStatus === TOrderStatus.Canceled ||
-              orderStatus === TOrderStatus.Refunded) &&
-              loadedOrder?.lossReason && (
-                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4">
-                  <Label className="text-destructive font-semibold">
-                    Motivo:{" "}
-                  </Label>
-                  <span className="text-sm">{loadedOrder.lossReason}</span>
-                </div>
-              )}
-
-            {/* Payment Methods Visualizer */}
-            {associatedSale &&
-              associatedSale.payments &&
-              associatedSale.payments.length > 0 && (
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex flex-col gap-3">
-                  <h3 className="font-semibold text-sm">
-                    Métodos de Pagamento Utilizados
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {associatedSale.payments.map((p: IPayment) => (
-                      <div
-                        key={p.id}
-                        className="flex flex-col bg-background border p-3 rounded-lg"
-                      >
-                        <span className="text-xs text-muted-foreground">
-                          Método
-                        </span>
-                        <span className="font-medium">
-                          {PAYMENT_METHOD_LABELS[
-                            p.paymentMethod as TPaymentMethod
-                          ] ?? p.paymentMethod}
-                        </span>
-                        <span className="font-bold text-primary mt-1">
-                          {formatCurrency(p.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
             <Separator />
 
             {/* Mini form for adding product - hidden in view mode or when finalized */}
             {!isView && !isFinalized && (
               <div className="bg-muted/30 p-4 rounded-xl border border-dashed flex flex-col gap-4">
-                <h3 className="font-semibold text-sm">Adicionar Produto</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">Adicionar Produto</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowNewProductDialog(true)}
+                  >
+                    <PackagePlus className="w-4 h-4 mr-2" />
+                    Novo Produto
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-end">
-                  <div className="xl:col-span-6 grid gap-2">
+                  <div className="xl:col-span-5 grid gap-2">
                     <SearchSelect<IOption>
                       field={{
                         value: selectedProductId,
@@ -651,7 +644,19 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                       label="Produto"
                     />
                   </div>
-                  <div className="xl:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                  <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+                    <div className="grid gap-2">
+                      <Label>Custo Unit. ($)</Label>
+                      <Input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={inputCostPrice}
+                        onChange={(e) =>
+                          setInputCostPrice(Number(e.target.value))
+                        }
+                      />
+                    </div>
                     <div className="grid gap-2">
                       <Label>Quantidade</Label>
                       <Input
@@ -695,7 +700,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
               </h3>
               {cartItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-8 text-center bg-muted/20 border-2 border-dashed rounded-xl">
-                  <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                  <Package className="w-12 h-12 text-muted-foreground/30 mb-3" />
                   <p className="text-muted-foreground">
                     Nenhum produto foi adicionado ao pedido ainda.
                   </p>
@@ -703,14 +708,9 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
               ) : (
                 <div className="flex flex-col gap-3">
                   {cartItems.map((item) => {
-                    const price = isView
-                      ? Number(
-                          (item as Partial<IOrderItem>).unitPrice ??
-                            item.product.price ??
-                            0
-                        )
-                      : Number(item.product.price || 0);
-                    const lineTotal = price * item.quantity - item.discount;
+                    const price = Number(item.costPrice || 0);
+                    const lineTotal =
+                      price * item.quantity - item.discount;
 
                     let imgUrl: string | null = null;
                     if (typeof item.product.image === "string") {
@@ -726,7 +726,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                         key={item.id}
                         className="relative bg-card border rounded-xl p-4 shadow-sm hover:shadow transition-shadow"
                       >
-                        {/* Remove button - hidden in view mode */}
+                        {/* Remove button */}
                         {!isView && !isFinalized && (
                           <Button
                             variant="ghost"
@@ -749,7 +749,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <ShoppingCart className="w-6 h-6 text-muted-foreground/40" />
+                                <Package className="w-6 h-6 text-muted-foreground/40" />
                               )}
                             </div>
                             <div className="flex flex-col min-w-0 pr-8">
@@ -760,11 +760,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                                 Cod: {item.product.productCode}
                               </span>
                               <span className="text-sm font-medium text-primary mt-0.5">
-                                {formatCurrency(price)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                Estoque: {Number(item.product.quantity ?? 0)}{" "}
-                                un.
+                                Custo: {formatCurrency(price)}
                               </span>
                             </div>
                           </div>
@@ -852,7 +848,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
                 {isView && loadedOrder
                   ? formatCurrency(
                       Number(loadedOrder.totalAmount ?? 0) +
-                        Number(loadedOrder.totalDiscount ?? 0)
+                        calculateTotals.totalDiscount
                     )
                   : formatCurrency(calculateTotals.subtotal)}
               </span>
@@ -861,9 +857,7 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
               <span className="text-muted-foreground">Descontos (Total)</span>
               <span className="font-semibold text-destructive">
                 -
-                {isView && loadedOrder
-                  ? formatCurrency(Number(loadedOrder.totalDiscount ?? 0))
-                  : formatCurrency(calculateTotals.totalDiscount)}
+                {formatCurrency(calculateTotals.totalDiscount)}
               </span>
             </div>
 
@@ -880,75 +874,104 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
           </CardContent>
           {!isView && !isFinalized && (
             <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 rounded-b-xl">
-              <Button
-                className="w-full py-6 text-sm font-bold shadow transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02]"
-                onClick={handleSaveOrder}
-              >
-                <Check className="w-5 h-5 mr-2" />
-                {isEdit
-                  ? "Salvar Alterações"
-                  : orderType === TOrderType.Sale
-                    ? "Salvar Pedido"
-                    : "Salvar Orçamento"}
-              </Button>
-              {canFinalizeCheckout && (
+              {isCreate ? (
+                <>
+                  <Button
+                    className="w-full py-6 text-sm font-bold shadow transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02]"
+                    onClick={() => handleSaveOrder(true)}
+                  >
+                    <ClipboardList className="w-5 h-5 mr-2" />
+                    Confirmar Pedido
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full bg-background transition-all duration-300"
+                    onClick={() => handleSaveOrder(false)}
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Salvar como Orçamento
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    className="w-full py-6 text-sm font-bold shadow transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02]"
+                    onClick={() => handleSaveOrder()}
+                  >
+                    <Check className="w-5 h-5 mr-2" />
+                    Salvar Alterações
+                  </Button>
+                  {purchaseStatus === TPurchaseStatus.Budget && (
+                    <Button
+                      variant="outline"
+                      className="w-full bg-background border-primary text-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
+                      onClick={handleConfirmPending}
+                    >
+                      <ClipboardList className="w-4 h-4 mr-2" />
+                      Confirmar Pedido
+                    </Button>
+                  )}
+                </>
+              )}
+              {canReceive && (
                 <Button
                   variant="outline"
-                  className="w-full bg-background border-primary text-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
-                  onClick={handleFinalizeSale}
+                  className="w-full bg-background border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all duration-300"
+                  onClick={() => setShowReceiveModal(true)}
                 >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Finalizar Venda
+                  <PackageCheck className="w-4 h-4 mr-2" />
+                  Confirmar Recebimento
                 </Button>
               )}
+            </CardFooter>
+          )}
+          {isView && canReceive && (
+            <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 rounded-b-xl">
+              <Button
+                className="w-full py-6 text-sm font-bold shadow transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02]"
+                onClick={() => setShowReceiveModal(true)}
+              >
+                <PackageCheck className="w-5 h-5 mr-2" />
+                Confirmar Recebimento
+              </Button>
             </CardFooter>
           )}
         </Card>
       </div>
 
-      {loadedOrder && (
-        <SaleCheckoutDrawer
-          open={showCheckoutDrawer}
-          onOpenChange={setShowCheckoutDrawer}
-          order={loadedOrder}
-          onSuccess={() => {
-            handleSuccess("Venda confirmada!");
-            navigate("/orders");
-          }}
-        />
-      )}
-
       {/* Cancel Modal */}
       <AlertDialog open={showCancelModal} onOpenChange={setShowCancelModal}>
         <AlertDialogContent>
           <AlertDialogHeader className="text-left">
-            <AlertDialogTitle>Cancelar Pedido</AlertDialogTitle>
+            <AlertDialogTitle>Cancelar Pedido de Compra</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação cancelará o pedido e retornará os itens ao estoque (se
-              aplicável). Esta ação não pode ser desfeita.
+              Esta ação excluirá o pedido de compra. Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
             <div className="grid gap-3 mt-4 py-2">
               <Label>Motivo do cancelamento:</Label>
-              <Select value={actionPreset} onValueChange={handlePresetChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um motivo..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {CANCEL_REASON_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__other__">Outros</SelectItem>
-                </SelectContent>
-              </Select>
-              {actionPreset === "__other__" && (
-                <Input
-                  value={actionReason}
-                  onChange={(e) => setActionReason(e.target.value)}
-                  placeholder="Descreva o motivo..."
-                />
-              )}
+              <div className="flex flex-col gap-2">
+                {CANCEL_REASON_OPTIONS.map((option) => (
+                  <Button
+                    key={option}
+                    variant={actionReason === option ? "default" : "outline"}
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => setActionReason(option)}
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </div>
+              <Input
+                value={
+                  CANCEL_REASON_OPTIONS.includes(actionReason)
+                    ? ""
+                    : actionReason
+                }
+                onChange={(e) => setActionReason(e.target.value)}
+                placeholder="Ou descreva outro motivo..."
+              />
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -964,51 +987,51 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Refund Modal */}
-      <AlertDialog open={showRefundModal} onOpenChange={setShowRefundModal}>
+      {/* Receive Confirmation Modal */}
+      <AlertDialog open={showReceiveModal} onOpenChange={setShowReceiveModal}>
         <AlertDialogContent>
           <AlertDialogHeader className="text-left">
-            <AlertDialogTitle>Reembolsar Pedido</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar Recebimento</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação reembolsará o pedido e retornará os itens ao estoque. O
-              reembolso só é permitido até 7 dias após o pagamento.
+              Ao confirmar o recebimento, os itens deste pedido serão
+              automaticamente adicionados ao estoque. Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
-            <div className="grid gap-3 mt-4 py-2">
-              <Label>Motivo do reembolso:</Label>
-              <Select value={actionPreset} onValueChange={handlePresetChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um motivo..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {REFUND_REASON_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__other__">Outros</SelectItem>
-                </SelectContent>
-              </Select>
-              {actionPreset === "__other__" && (
-                <Input
-                  value={actionReason}
-                  onChange={(e) => setActionReason(e.target.value)}
-                  placeholder="Descreva o motivo..."
-                />
-              )}
-            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={handleRefundOrder}
-              disabled={!actionReason.trim()}
-            >
-              Confirmar Reembolso
+            <Button onClick={handleConfirmReceived}>
+              <PackageCheck className="w-4 h-4 mr-2" />
+              Confirmar Recebimento
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* New Product Dialog */}
+      <Dialog open={showNewProductDialog} onOpenChange={setShowNewProductDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cadastrar Novo Produto</DialogTitle>
+            <DialogDescription>
+              Preencha os dados do produto. Após salvar, ele será selecionado
+              automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <ProductForm
+            onSubmit={handleCreateProduct}
+            isLoading={isCreatingProduct}
+            onBack={() => setShowNewProductDialog(false)}
+            initialData={{ supplierId } as IProduct}
+            disabled={false}
+            hideSupplier
+            supplierOptions={[{ value: supplierId, label: supplierOptions.find(s => s.value === supplierId)?.label || "Fornecedor" }]}
+            onSearchSuppliers={async () => {}}
+            categoryOptions={categoryOptions}
+            onSearchCategory={handleSearchCategories}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -53,6 +53,7 @@ interface ProductFormProps {
   onSearchCategory: (
     query: string
   ) => Promise<IOption[] | void> | IOption[] | void;
+  hideSupplier?: boolean;
 }
 
 export function ProductForm({
@@ -69,6 +70,7 @@ export function ProductForm({
   onSearchSuppliers,
   categoryOptions,
   onSearchCategory,
+  hideSupplier = false,
 }: ProductFormProps) {
   const imageDisplayValue = (value?: string | File | null) => {
     if (!value) return undefined;
@@ -209,27 +211,29 @@ export function ProductForm({
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="supplierId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <SearchSelect
-                        field={field}
-                        value={field.value}
-                        onChange={field.onChange}
-                        label="Fornecedor"
-                        data={supplierOptions}
-                        onSearch={onSearchSuppliers}
-                        placeholder="Fornecedor"
-                        disabled={isLoading || disabled}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!hideSupplier && (
+                <FormField
+                  control={form.control}
+                  name="supplierId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <SearchSelect
+                          field={field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          label="Fornecedor"
+                          data={supplierOptions}
+                          onSearch={onSearchSuppliers}
+                          placeholder="Fornecedor"
+                          disabled={isLoading || disabled}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="categoryIds"
@@ -301,7 +305,7 @@ export function ProductForm({
                 name="unitType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Unidade de Medida</FormLabel>
+                    <FormLabel>Unidade</FormLabel>
                     <Select
                       disabled={quantityAndUnitDisabled}
                       value={String(field.value ?? "")}

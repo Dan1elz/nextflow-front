@@ -230,22 +230,25 @@ function StockMovements() {
           const mType = row.original.movementType as unknown as TypesObj;
           const label = MOVEMENT_TYPE_LABELS[mType] ?? String(mType);
 
-          let variant: "default" | "destructive" | "outline" | "secondary" =
-            "default";
+          let variant: "default" | "destructive" | "outline" | "secondary" = "default";
           let extraClass = "";
 
           if (mType === TypesObj.Entry) {
-            extraClass = "bg-green-600 hover:bg-green-700 text-white";
+            extraClass = "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
           } else if (mType === TypesObj.Exit) {
-            variant = "destructive";
+            extraClass = "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
+          } else if (mType === TypesObj.Sales) {
+            extraClass = "bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-sm";
+          } else if (mType === TypesObj.Return) {
+            extraClass = "bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm";
           } else if (mType === TypesObj.Adjustment) {
-            extraClass = "bg-yellow-500 hover:bg-yellow-600 text-white";
+            extraClass = "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
           }
 
           return (
             <Badge
               variant={variant}
-              className={`w-20 justify-center text-center ${extraClass}`}
+              className={`w-20 justify-center text-center font-semibold ${extraClass}`}
             >
               {label}
             </Badge>
@@ -273,7 +276,6 @@ function StockMovements() {
         id: "actions",
         header: "Ações",
         cell: ({ row }) => {
-          // Ação de remoção permitida somentes para os tipos listados:
           const movementType = row.original.movementType as unknown as TypesObj;
           const allowedToDelete = [
             TypesObj.Entry,

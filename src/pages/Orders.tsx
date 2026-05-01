@@ -241,19 +241,20 @@ function Orders() {
           const label =
             ORDER_STATUS_LABELS[row.original.status] ?? row.original.status;
 
-          let variant: "default" | "secondary" | "destructive" | "outline" =
-            "secondary";
+          let extraClass = "";
           if (row.original.status === TOrderStatus.PaymentConfirmed)
-            variant = "default";
+            extraClass = "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
           else if (
             row.original.status === TOrderStatus.Canceled ||
             row.original.status === TOrderStatus.Refunded
           )
-            variant = "destructive";
+            extraClass = "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
           else if (row.original.status === TOrderStatus.PendingPayment)
-            variant = "outline";
+            extraClass = "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
+          else if (row.original.status === TOrderStatus.Budget)
+            extraClass = "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
 
-          return <Badge variant={variant}>{label}</Badge>;
+          return <Badge className={`font-semibold ${extraClass}`}>{label}</Badge>;
         },
       },
       {

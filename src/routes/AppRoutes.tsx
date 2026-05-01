@@ -42,6 +42,9 @@ import CreateOrderPageWrapper from "@/pages/Order/Create";
 import EditOrderPageWrapper from "@/pages/Order/Edit";
 import ViewOrderPageWrapper from "@/pages/Order/View";
 import PurchaseOrdersPageWrapper from "@/pages/PurchaseOrders";
+import CreatePurchaseOrderPageWrapper from "@/pages/PurchaseOrder/Create";
+import EditPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/Edit";
+import ViewPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/View";
 
 function AppRoutes() {
   return (
@@ -132,6 +135,9 @@ function AppRoutes() {
         <Route path="orders/:id/view" element={<ViewOrderPageWrapper />} />
 
         <Route path="purchase-orders" element={<PurchaseOrdersPageWrapper />} />
+        <Route path="purchase-orders/create" element={<CreatePurchaseOrderPageWrapper />} />
+        <Route path="purchase-orders/:id/edit" element={<EditPurchaseOrderPageWrapper />} />
+        <Route path="purchase-orders/:id/view" element={<ViewPurchaseOrderPageWrapper />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
