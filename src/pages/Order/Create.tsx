@@ -9,10 +9,16 @@ import { useSales } from "@/hooks/use-sales";
 function CreateOrder() {
   const { searchSalesForOptions } = useSales();
 
-  const handleFetchAssociatedSale = useCallback(async (orderId: string) => {
-    const res = await searchSalesForOptions({ filters: { orderId }, perPage: 1 });
-    return res.data && res.data.length > 0 ? res.data[0] : null;
-  }, [searchSalesForOptions]);
+  const handleFetchAssociatedSale = useCallback(
+    async (orderId: string) => {
+      const res = await searchSalesForOptions({
+        filters: { orderId },
+        perPage: 1,
+      });
+      return res.data && res.data.length > 0 ? res.data[0] : null;
+    },
+    [searchSalesForOptions]
+  );
 
   return (
     <div className="container mx-auto max-w-7xl animate-in fade-in zoom-in-95 duration-300 p-4 pt-6">

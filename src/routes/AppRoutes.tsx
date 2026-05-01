@@ -135,9 +135,18 @@ function AppRoutes() {
         <Route path="orders/:id/view" element={<ViewOrderPageWrapper />} />
 
         <Route path="purchase-orders" element={<PurchaseOrdersPageWrapper />} />
-        <Route path="purchase-orders/create" element={<CreatePurchaseOrderPageWrapper />} />
-        <Route path="purchase-orders/:id/edit" element={<EditPurchaseOrderPageWrapper />} />
-        <Route path="purchase-orders/:id/view" element={<ViewPurchaseOrderPageWrapper />} />
+        <Route
+          path="purchase-orders/create"
+          element={<CreatePurchaseOrderPageWrapper />}
+        />
+        <Route
+          path="purchase-orders/:id/edit"
+          element={<EditPurchaseOrderPageWrapper />}
+        />
+        <Route
+          path="purchase-orders/:id/view"
+          element={<ViewPurchaseOrderPageWrapper />}
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

@@ -133,19 +133,25 @@ function StockMovementsTabContent({
           const mType = row.original.movementType as unknown as TypesObj;
           const label = MOVEMENT_TYPE_LABELS[mType] ?? String(mType);
 
-          let variant: "default" | "destructive" | "outline" | "secondary" = "default";
+          const variant: "default" | "destructive" | "outline" | "secondary" =
+            "default";
           let extraClass = "";
 
           if (mType === TypesObj.Entry) {
-            extraClass = "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
           } else if (mType === TypesObj.Exit) {
-            extraClass = "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
           } else if (mType === TypesObj.Sales) {
-            extraClass = "bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-sm";
           } else if (mType === TypesObj.Return) {
-            extraClass = "bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm";
           } else if (mType === TypesObj.Adjustment) {
-            extraClass = "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
+            extraClass =
+              "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
           }
 
           return (

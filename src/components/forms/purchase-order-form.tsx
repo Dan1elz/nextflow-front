@@ -67,10 +67,7 @@ import type {
   ICreatePurchaseOrder,
   IUpdatePurchaseOrder,
 } from "@/interfaces/purchase-order.interface";
-import {
-  PURCHASE_STATUS_LABELS,
-  TPurchaseStatus,
-} from "@/types/enums";
+import { PURCHASE_STATUS_LABELS, TPurchaseStatus } from "@/types/enums";
 import { API_URL } from "@/configs/api";
 import type { IOption } from "@/interfaces/api.interface";
 
@@ -109,7 +106,8 @@ export function PurchaseOrderForm({
     deletePurchaseOrder,
   } = usePurchaseOrders();
   const { searchSuppliersForOptions, getSupplierById } = useSuppliers();
-  const { searchProductsForOptions, getProductById, createProduct } = useProducts();
+  const { searchProductsForOptions, getProductById, createProduct } =
+    useProducts();
   const { searchCategoriesForOptions, getCategoryById } = useCategories();
 
   const isView = mode === "view";
@@ -186,7 +184,10 @@ export function PurchaseOrderForm({
   const { options: categoryOptions, handleSearch: handleSearchCategories } =
     useSearchOptions<ICategory>({
       searchFn: searchCategoriesForOptions,
-      mapFn: (c) => ({ value: c.id ?? "", label: c.description || "Categoria" }),
+      mapFn: (c) => ({
+        value: c.id ?? "",
+        label: c.description || "Categoria",
+      }),
       selectFn: getCategoryById,
       errorLabel: "categorias",
       autoLoad: false,
@@ -423,7 +424,10 @@ export function PurchaseOrderForm({
   const handleCreateProduct = async (data: ProductSchema) => {
     try {
       setIsCreatingProduct(true);
-      const productData = { ...data, supplierId } as unknown as Partial<IProduct>;
+      const productData = {
+        ...data,
+        supplierId,
+      } as unknown as Partial<IProduct>;
       const created = await createProduct(productData);
       handleSuccess("Produto criado com sucesso!");
       setShowNewProductDialog(false);
@@ -520,11 +524,7 @@ export function PurchaseOrderForm({
               </div>
               <div className="flex gap-2">
                 {isCreate && supplierLocked && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleResetForm}
-                  >
+                  <Button variant="outline" size="sm" onClick={handleResetForm}>
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Limpar
                   </Button>
@@ -709,8 +709,7 @@ export function PurchaseOrderForm({
                 <div className="flex flex-col gap-3">
                   {cartItems.map((item) => {
                     const price = Number(item.costPrice || 0);
-                    const lineTotal =
-                      price * item.quantity - item.discount;
+                    const lineTotal = price * item.quantity - item.discount;
 
                     let imgUrl: string | null = null;
                     if (typeof item.product.image === "string") {
@@ -856,8 +855,7 @@ export function PurchaseOrderForm({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Descontos (Total)</span>
               <span className="font-semibold text-destructive">
-                -
-                {formatCurrency(calculateTotals.totalDiscount)}
+                -{formatCurrency(calculateTotals.totalDiscount)}
               </span>
             </div>
 
@@ -1009,7 +1007,10 @@ export function PurchaseOrderForm({
       </AlertDialog>
 
       {/* New Product Dialog */}
-      <Dialog open={showNewProductDialog} onOpenChange={setShowNewProductDialog}>
+      <Dialog
+        open={showNewProductDialog}
+        onOpenChange={setShowNewProductDialog}
+      >
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cadastrar Novo Produto</DialogTitle>
@@ -1025,7 +1026,14 @@ export function PurchaseOrderForm({
             initialData={{ supplierId } as IProduct}
             disabled={false}
             hideSupplier
-            supplierOptions={[{ value: supplierId, label: supplierOptions.find(s => s.value === supplierId)?.label || "Fornecedor" }]}
+            supplierOptions={[
+              {
+                value: supplierId,
+                label:
+                  supplierOptions.find((s) => s.value === supplierId)?.label ||
+                  "Fornecedor",
+              },
+            ]}
             onSearchSuppliers={async () => {}}
             categoryOptions={categoryOptions}
             onSearchCategory={handleSearchCategories}

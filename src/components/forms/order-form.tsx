@@ -99,7 +99,11 @@ const REFUND_REASON_OPTIONS = [
   "Cobrança indevida",
 ];
 
-export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: OrderFormProps) {
+export function OrderForm({
+  mode = "create",
+  orderId,
+  onFetchAssociatedSale,
+}: OrderFormProps) {
   const navigate = useNavigate();
   const { createOrder, updateOrder, getOrderById, cancelOrder, refundOrder } =
     useOrders();
@@ -203,7 +207,11 @@ export function OrderForm({ mode = "create", orderId, onFetchAssociatedSale }: O
   }, [isEdit, isView, orderId, getOrderById, getProductById]);
 
   useEffect(() => {
-    if (loadedOrder?.id && orderStatus === TOrderStatus.PaymentConfirmed && onFetchAssociatedSale) {
+    if (
+      loadedOrder?.id &&
+      orderStatus === TOrderStatus.PaymentConfirmed &&
+      onFetchAssociatedSale
+    ) {
       onFetchAssociatedSale(loadedOrder.id).then((sale) => {
         if (sale) {
           setAssociatedSale(sale);

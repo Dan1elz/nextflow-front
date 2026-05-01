@@ -58,7 +58,7 @@ function PurchaseOrders() {
   const customSearch = useCallback(
     async (params?: IIndexParams) => {
       const activeFilters = { ...params?.filters } as Record<string, string>;
-      
+
       // Map statusGroup tab to actual status filter
       if (activeFilters.statusGroup && activeFilters.statusGroup !== "all") {
         const statusMap: Record<string, string> = {
@@ -66,7 +66,7 @@ function PurchaseOrders() {
           pending: String(TPurchaseStatus.Pending),
           received: String(TPurchaseStatus.Received),
         };
-        
+
         if (activeFilters.statusGroup !== "canceled") {
           activeFilters.status = statusMap[activeFilters.statusGroup] ?? "";
         }
@@ -78,7 +78,7 @@ function PurchaseOrders() {
       } else if (activeFilters.statusGroup !== "all") {
         activeFilters.active = "true";
       }
-      
+
       delete activeFilters.statusGroup;
       await searchPurchaseOrders({ ...params, filters: activeFilters });
     },
@@ -214,15 +214,21 @@ function PurchaseOrders() {
 
           let extraClass = "";
           if (row.original.status === TPurchaseStatus.Received)
-            extraClass = "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
           else if (row.original.status === TPurchaseStatus.Canceled)
-            extraClass = "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
           else if (row.original.status === TPurchaseStatus.Pending)
-            extraClass = "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
+            extraClass =
+              "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
           else if (row.original.status === TPurchaseStatus.Budget)
-            extraClass = "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
 
-          return <Badge className={`font-semibold ${extraClass}`}>{label}</Badge>;
+          return (
+            <Badge className={`font-semibold ${extraClass}`}>{label}</Badge>
+          );
         },
       },
       {

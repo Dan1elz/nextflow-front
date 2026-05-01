@@ -243,18 +243,24 @@ function Orders() {
 
           let extraClass = "";
           if (row.original.status === TOrderStatus.PaymentConfirmed)
-            extraClass = "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
           else if (
             row.original.status === TOrderStatus.Canceled ||
             row.original.status === TOrderStatus.Refunded
           )
-            extraClass = "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
           else if (row.original.status === TOrderStatus.PendingPayment)
-            extraClass = "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
+            extraClass =
+              "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
           else if (row.original.status === TOrderStatus.Budget)
-            extraClass = "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
+            extraClass =
+              "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
 
-          return <Badge className={`font-semibold ${extraClass}`}>{label}</Badge>;
+          return (
+            <Badge className={`font-semibold ${extraClass}`}>{label}</Badge>
+          );
         },
       },
       {
@@ -324,7 +330,10 @@ function Orders() {
               label: "Ver Pagamentos",
               icon: <Banknote className="mr-2 h-4 w-4" />,
               onClick: (obj: IOrder) => {
-                searchSalesForOptions({ filters: { orderId: obj.id! }, perPage: 1 })
+                searchSalesForOptions({
+                  filters: { orderId: obj.id! },
+                  perPage: 1,
+                })
                   .then((res) => {
                     if (res?.data && res.data.length > 0) {
                       setSaleViewerData(res.data[0]);

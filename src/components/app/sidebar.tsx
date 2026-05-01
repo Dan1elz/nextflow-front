@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Home,
   MapPin,
@@ -33,12 +33,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,9 +50,7 @@ import type {
 const items: SidebarMenuGroup[] = [
   {
     title: "GERAL",
-    items: [
-      { name: "Dashboard", url: "/", icon: Home },
-    ],
+    items: [{ name: "Dashboard", url: "/", icon: Home }],
   },
   {
     title: "COMERCIAL",
@@ -103,32 +96,40 @@ export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
-  
+
   // Manage which group is currently open (Accordion behavior)
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
-  const isSubItemActive = useCallback((subItems?: SidebarSubItem[]) => {
-    if (!subItems) return false;
-    return subItems.some((subItem) =>
-      location.pathname.startsWith(subItem.url)
-    );
-  }, [location.pathname]);
+  const isSubItemActive = useCallback(
+    (subItems?: SidebarSubItem[]) => {
+      if (!subItems) return false;
+      return subItems.some((subItem) =>
+        location.pathname.startsWith(subItem.url)
+      );
+    },
+    [location.pathname]
+  );
 
-  // Set initial open group based on active route
-  useEffect(() => {
+  // Sync openGroup with isCollapsed and location during rendering
+  const [prevIsCollapsed, setPrevIsCollapsed] = useState(isCollapsed);
+  const [prevPath, setPrevPath] = useState(location.pathname);
+
+  if (isCollapsed !== prevIsCollapsed || location.pathname !== prevPath) {
+    setPrevIsCollapsed(isCollapsed);
+    setPrevPath(location.pathname);
+
     if (isCollapsed) {
-      setOpenGroup(null);
-      return;
-    }
+      if (openGroup !== null) setOpenGroup(null);
+    } else {
+      const activeGroup = items
+        .flatMap((g) => g.items)
+        .find((item) => item.items && isSubItemActive(item.items));
 
-    const activeGroup = items
-      .flatMap(g => g.items)
-      .find(item => item.items && isSubItemActive(item.items));
-    
-    if (activeGroup) {
-      setOpenGroup(activeGroup.name);
+      if (activeGroup && openGroup !== activeGroup.name) {
+        setOpenGroup(activeGroup.name);
+      }
     }
-  }, [isSubItemActive, isCollapsed]);
+  }
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -179,14 +180,23 @@ export function AppSidebar() {
                                   <span>{item.name}</span>
                                 </SidebarMenuButton>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent side="right" align="start" className="w-48">
+                              <DropdownMenuContent
+                                side="right"
+                                align="start"
+                                className="w-48"
+                              >
                                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                   {item.name}
                                 </div>
                                 {item.items?.map((subItem, subIndex) => (
                                   <DropdownMenuItem key={subIndex} asChild>
-                                    <NavLink to={subItem.url} className="flex items-center gap-2">
-                                      {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                                    <NavLink
+                                      to={subItem.url}
+                                      className="flex items-center gap-2"
+                                    >
+                                      {subItem.icon && (
+                                        <subItem.icon className="h-4 w-4" />
+                                      )}
                                       <span>{subItem.name}</span>
                                     </NavLink>
                                   </DropdownMenuItem>
@@ -204,7 +214,8 @@ export function AppSidebar() {
                           open={openGroup === item.name}
                           onOpenChange={(open) => {
                             if (open) setOpenGroup(item.name);
-                            else if (openGroup === item.name) setOpenGroup(null);
+                            else if (openGroup === item.name)
+                              setOpenGroup(null);
                           }}
                           className="group/collapsible"
                         >
@@ -222,7 +233,9 @@ export function AppSidebar() {
                                   <SidebarMenuSubItem key={subIndex}>
                                     <SidebarMenuSubButton
                                       asChild
-                                      isActive={location.pathname === subItem.url}
+                                      isActive={
+                                        location.pathname === subItem.url
+                                      }
                                     >
                                       <NavLink to={subItem.url}>
                                         {subItem.icon && <subItem.icon />}
