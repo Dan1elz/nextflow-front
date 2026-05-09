@@ -56,7 +56,10 @@ export function CityForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="grid grid-cols-3 gap-4"
+      >
         <FormField
           control={form.control}
           name="name"
@@ -132,7 +135,7 @@ export function CityForm({
           )}
         />
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="col-span-3 flex justify-end gap-2 pt-4">
           {onBack && (
             <Button type="button" onClick={onBack} variant="secondary">
               Voltar
