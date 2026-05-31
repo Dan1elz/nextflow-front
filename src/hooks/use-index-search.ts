@@ -119,6 +119,7 @@ export function useIndexSearch<
   }, [debounceMs, handleSearch, quickSearchValue]);
 
   const resetFilters = useCallback(() => {
+    filtersRef.current = initialFilters;
     setFilters(initialFilters);
   }, [initialFilters]);
 
