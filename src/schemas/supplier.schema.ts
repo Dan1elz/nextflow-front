@@ -15,6 +15,7 @@ export const createSupplierSchema = z.object({
     .refine((v) => !v || !v.trim() || validateCnpj(formatOnlyNumbers(v)), {
       message: "CNPJ inválido",
     }),
+  bacenCode: z.string().optional().or(z.literal("")),
 });
 
 export const updateSupplierSchema = createSupplierSchema;
