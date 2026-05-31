@@ -76,73 +76,26 @@ export function UserForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="Nome"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      autoComplete="given-name"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Sobrenome</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="Sobrenome"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      autoComplete="family-name"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="grid grid-cols-2 gap-4"
+      >
         <FormField
           control={form.control}
-          name="email"
+          name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Nome</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     {...field}
-                    type="email"
-                    placeholder="seu@email.com"
+                    type="text"
+                    placeholder="Nome"
                     className="pl-9"
                     disabled={isLoading || disabled}
-                    autoComplete="email"
+                    autoComplete="given-name"
                   />
                 </div>
               </FormControl>
@@ -153,19 +106,22 @@ export function UserForm({
 
         <FormField
           control={form.control}
-          name="birthDate"
+          name="lastName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Data de Nascimento</FormLabel>
+              <FormLabel>Sobrenome</FormLabel>
               <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isLoading || disabled}
-                  maxDate={new Date()}
-                  placeholder="dd/mm/aaaa"
-                  error={!!form.formState.errors.birthDate}
-                />
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    {...field}
+                    type="text"
+                    placeholder="Sobrenome"
+                    className="pl-9"
+                    disabled={isLoading || disabled}
+                    autoComplete="family-name"
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -199,23 +155,44 @@ export function UserForm({
           )}
         />
 
-        {!isEdit && (
+        <FormField
+          control={form.control}
+          name="birthDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Data de Nascimento</FormLabel>
+              <FormControl>
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isLoading || disabled}
+                  maxDate={new Date()}
+                  placeholder="dd/mm/aaaa"
+                  error={!!form.formState.errors.birthDate}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="col-span-2">
           <FormField
             control={form.control}
-            name="password"
+            name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Senha</FormLabel>
+                <FormLabel>Email</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       {...field}
-                      type="password"
-                      placeholder="••••••••"
+                      type="email"
+                      placeholder="seu@email.com"
                       className="pl-9"
                       disabled={isLoading || disabled}
-                      autoComplete="new-password"
+                      autoComplete="email"
                     />
                   </div>
                 </FormControl>
@@ -223,9 +200,35 @@ export function UserForm({
               </FormItem>
             )}
           />
-        )}
 
-        <div className="flex justify-end gap-2 pt-4">
+          {!isEdit && (
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        {...field}
+                        type="password"
+                        placeholder="••••••••"
+                        className="pl-9"
+                        disabled={isLoading || disabled}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+
+        <div className="col-span-2 flex justify-end gap-2 pt-4">
           {onBack && (
             <Button type="button" onClick={onBack} variant="secondary">
               Voltar

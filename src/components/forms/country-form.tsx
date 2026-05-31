@@ -50,30 +50,35 @@ export function CountryForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="Nome do país"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                    autoComplete="off"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="grid grid-cols-2 gap-4"
+      >
+        <div className="col-span-2">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      {...field}
+                      type="text"
+                      placeholder="Nome do país"
+                      className="pl-9"
+                      disabled={isLoading || disabled}
+                      autoComplete="off"
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -129,7 +134,7 @@ export function CountryForm({
           )}
         />
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="col-span-2 flex justify-end gap-2 pt-4">
           {onBack && (
             <Button type="button" onClick={onBack} variant="secondary">
               Voltar

@@ -71,7 +71,7 @@ export function SupplierForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="name"
@@ -124,7 +124,7 @@ export function SupplierForm({
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="w-full flex justify-end gap-2 pt-4">
           {onBack && (
             <Button type="button" onClick={onBack} variant="secondary">
               Voltar
