@@ -6,13 +6,15 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        # Entra no build: mudou, tem que reconstruir a imagem (--build)
         VITE_API_URL: ${VITE_API_URL}
-    ports:
-      - 80:80
+    # Sem "ports": quem recebe de fora é o proxy de borda (nextflow.zanni.tech).
+    # Não precisa da rede do backend: é o navegador que chama a API, não o container
     networks:
-      - nextflow-staging-network
+      proxy-net:
+        aliases: [nextflow-web]
     restart: unless-stopped
 
 networks:
-  nextflow-staging-network:
+  proxy-net:
     external: true
