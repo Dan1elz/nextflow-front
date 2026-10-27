@@ -14,8 +14,9 @@ services:
       - /app/node_modules
     env_file:
       - .env
+    # Só em 127.0.0.1: abre no seu PC, mas ninguém de fora alcança
     ports:
-      - 5173:5173
+      - "127.0.0.1:5173:5173"
     networks:
       - nextflow-development-network
     restart: unless-stopped

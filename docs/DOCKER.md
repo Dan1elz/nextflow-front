@@ -8,8 +8,8 @@ Antes de rodar qualquer outro comando, é necessário verificar a existência da
 # Para ambiente de Desenvolvimento
 docker network inspect nextflow-development-network >/dev/null 2>&1 || docker network create nextflow-development-network
 
-# Para ambiente de Homologação
-docker network inspect nextflow-staging-network >/dev/null 2>&1 || docker network create nextflow-staging-network
+# Para ambiente de Homologação (na VM: rede do proxy de borda, ~/projects/nginx)
+docker network inspect proxy-net >/dev/null 2>&1 || docker network create proxy-net
 ```
 
 ---
@@ -43,7 +43,7 @@ Para iniciar:
 docker compose -f compose.development.yaml up -d --build
 ```
 
-> **Acesso:** [http://localhost:5173](http://localhost:5173)
+> **Acesso:** [http://localhost:5173](http://localhost:5173) (porta publicada só em `127.0.0.1`)
 
 ### 2. Ambiente de Homologação
 
@@ -51,10 +51,12 @@ Por se tratar de um ambiente idêntico ao de produção, o servidor Nginx serve 
 
 ```bash
 # 1. Buildar a imagem injetando a variável de ambiente (Build Args)
-set VITE_API_URL=http://localhost:8080& docker compose -f compose.staging.yaml up -d --build
+set VITE_API_URL=https://nextflow-api.zanni.tech& docker compose -f compose.staging.yaml up -d --build
 ```
 
-> **Acesso:** [http://localhost:80](http://localhost:80)
+> **Acesso:** o container **não publica porta**. Fica na rede `proxy-net` com o alias `nextflow-web`, e o proxy de borda da VM o entrega em [https://nextflow.zanni.tech](https://nextflow.zanni.tech).
+>
+> Como a página é `https`, `VITE_API_URL` também precisa ser `https` (o navegador bloqueia chamada `http` a partir de página `https`). O valor fica embutido no JavaScript: mudou, reconstrua com `--build`.
 
 ---
 
