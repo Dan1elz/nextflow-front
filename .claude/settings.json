@@ -1,0 +1,15 @@
+{
+  "enabledPlugins": {
+    "frontend-design@anthropic-plugin-directory": true,
+    "playwright@anthropic-plugin-directory": false,
+    "typescript-lsp@anthropic-plugin-directory": true
+  },
+  "permissions": {
+    "deny": [
+      "Read(./**/bin/**)",
+      "Read(./**/obj/**)",
+      "Read(./**/node_modules/**)",
+      "Read(./**/dist/**)"
+    ]
+  }
+}

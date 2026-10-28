@@ -12,6 +12,7 @@ export interface IStockAlert {
   productCode: string;
   currentStock: number;
   unitType: string;
+  minStock?: number;
 }
 
 export interface ISalesChartPoint {

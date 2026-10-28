@@ -1,0 +1,196 @@
+ATIVIDADE I — DEFINIÇÃO DO ESCOPO DO PROJETO
+Disciplina: Laboratório de Engenharia de Software
+Projeto: Nextflow
+
+
+PARTE 1 — IDENTIFICAÇÃO DO PROJETO
+
+1. Nome do projeto
+Nextflow
+
+2. Integrantes da equipe
+Daniel Zanni, Guilherme Felix, Lucas Prado
+
+3. Tipo de projeto
+(x) Sistema com API
+O projeto é dividido em dois repositórios: uma API REST em .NET 8 (backend) e uma SPA em React (frontend), que se comunicam via HTTP/JSON.
+
+4. Tema geral do projeto
+Sistema ERP (Enterprise Resource Planning) para gestão comercial: cadastro de clientes e fornecedores, controle de estoque, pedidos de venda e ordens de compra.
+
+
+PARTE 2 — PROBLEMA E JUSTIFICATIVA
+
+5. Qual problema o projeto pretende resolver?
+Pequenos e médios negócios comerciais costumam controlar clientes, fornecedores, produtos e estoque em planilhas soltas ou cadernos, sem integração entre as áreas de vendas, compras e estoque. Isso é enfrentado por donos de comércio e por quem opera vendas e estoque no dia a dia. O processo manual é lento, sujeito a erro humano e gera divergência entre o que está registrado e o que realmente existe em estoque — por exemplo, uma venda registrada em planilha não abate o estoque automaticamente. Além disso, muitos produtos têm demanda sazonal (ex.: chocolates vendem muito mais na Páscoa e no Natal e menos no verão), e sem histórico organizado o comerciante só percebe isso tarde demais: falta produto no pico ou sobra estoque parado na baixa temporada. O Nextflow resolve isso centralizando cadastros, automatizando a baixa e reposição de estoque a partir de vendas e compras, oferecendo visão consolidada do negócio em um único sistema e recomendando, com apoio de inteligência artificial, o que comprar ou colocar em promoção com base na sazonalidade do histórico de vendas.
+
+6. Por que esse projeto é importante?
+O sistema elimina o retrabalho de manter cadastros duplicados em planilhas, reduz erros de estoque por automatizar as movimentações (entrada, saída, ajuste, venda, devolução), e dá visão em tempo real do negócio através de um dashboard com indicadores de vendas. Com o módulo de previsão de demanda, o sistema antecipa picos e quedas sazonais, reduzindo rupturas de estoque (venda perdida) e encalhe (capital parado e risco de vencimento). Isso economiza tempo operacional, melhora a organização dos dados de clientes/fornecedores e facilita decisões baseadas em dados atualizados.
+
+
+PARTE 3 — PÚBLICO-ALVO E USUÁRIOS
+
+7. Quem são os usuários do sistema?
+Usuários que operam o sistema (fazem login): administrador e usuário comum (vendedor/operador).
+Clientes e fornecedores são cadastros geridos pelo sistema, mas não acessam o sistema diretamente — não são usuários autenticados.
+
+8. Quais perfis de acesso existirão?
+Dois perfis, definidos pelo enum RoleEnum e aplicados via atributo RoleAuthorize nos controllers da API:
+• Administrador (Admin): tem acesso total, incluindo exclusão e reativação de usuários, clientes e fornecedores.
+• Usuário comum (User): opera o dia a dia — cadastra e consulta clientes, fornecedores, produtos, pedidos, movimentações de estoque e ordens de compra, mas não pode excluir/reativar usuários.
+
+
+PARTE 4 — OBJETIVOS DO PROJETO
+
+9. Objetivo geral
+O objetivo deste projeto é desenvolver um sistema ERP web para gestão comercial de pequenas e médias empresas, com a finalidade de centralizar o cadastro de clientes, fornecedores e produtos, automatizar o controle de estoque e organizar o fluxo de vendas e compras.
+
+10. Objetivos específicos
+1. Permitir o cadastro e a gestão de usuários com controle de acesso por perfil (Admin/User).
+2. Permitir o cadastro de clientes, fornecedores e produtos, com categorias e localização geográfica (país/estado/cidade/endereço).
+3. Controlar o estoque por meio de movimentações automáticas (entrada, saída, ajuste, venda, devolução).
+4. Gerenciar pedidos de venda (orçamento, pagamento, cancelamento, estorno) e ordens de compra a fornecedores.
+5. Automatizar o checkout de vendas com registro de pagamentos por múltiplos métodos.
+6. Apresentar um dashboard com indicadores de vendas e estoque em tempo real.
+7. Prever a demanda dos próximos meses a partir da sazonalidade do histórico de vendas e recomendar, com apoio de IA, compras e promoções executáveis diretamente pelo dashboard.
+
+
+PARTE 5 — FUNCIONALIDADES INCLUÍDAS NO ESCOPO
+
+11. Quais funcionalidades farão parte da primeira versão do projeto?
+1. Login e autenticação via JWT, com controle de acesso por perfil (Admin/User).
+2. CRUD de usuários, clientes e fornecedores, com reativação de registros inativados.
+3. CRUD de categorias e produtos, incluindo upload de imagem do produto.
+4. Movimentação de estoque (entrada, saída, ajuste) com listagem e filtros.
+5. Pedidos de venda com carrinho de itens, checkout com múltiplas formas de pagamento, cancelamento e estorno.
+6. Ordens de compra a fornecedores com itens e custo unitário.
+7. Cadastro geográfico (países, estados, cidades) e endereços/contatos vinculados a clientes e fornecedores, com auto-preenchimento de endereço via CEP.
+8. Dashboard inicial com estatísticas de vendas e gráficos.
+9. Previsão de demanda com IA: cálculo de sazonalidade por produto (índice sazonal, demanda projetada, cobertura de estoque e prazo de entrega do fornecedor) interpretado por um modelo de IA generativa, gerando recomendações de Comprar, Promover ou Manter com justificativa. Pelo dashboard o usuário gera o pedido de compra ou aplica a promoção em um clique, sempre com confirmação humana.
+10. Promoções com período (percentual de desconto, data de início e fim) que alteram automaticamente o preço de venda enquanto vigentes.
+11. Página de relatório de previsão, com histórico de vendas, projeção dos próximos meses e perfil sazonal de cada produto.
+
+12. Qual será o Produto Mínimo Viável do projeto?
+Login com autenticação, CRUD de produtos e clientes, controle básico de estoque (entrada/saída) e criação de pedido de venda com baixa automática de estoque. Esse conjunto já resolve o problema central: substituir a planilha manual por um fluxo de venda integrado ao estoque.
+
+
+PARTE 6 — FUNCIONALIDADES FORA DO ESCOPO
+
+13. O que não será desenvolvido nesta primeira versão?
+1. Aplicativo mobile nativo.
+2. Treinamento de modelos próprios de machine learning e execução automática de compras/promoções sem confirmação humana (a previsão usa cálculo estatístico de sazonalidade + IA generativa externa apenas para interpretar e recomendar).
+3. Pagamento online integrado a gateway (o registro de pagamento é manual/interno, sem integração com adquirente).
+4. Integração com WhatsApp ou envio automático de e-mail/notificações.
+5. Relatórios avançados de BI e exportação em PDF/Excel (o relatório de previsão é exibido apenas em tela).
+
+14. Por que essas funcionalidades ficaram fora do escopo?
+São funcionalidades que agregam valor, mas não são essenciais para validar o core do sistema (cadastro + estoque + vendas/compras) dentro do prazo da disciplina e do TCC. Exigiriam integrações externas ou complexidade adicional (ex: gateway de pagamento, infraestrutura de notificação) que aumentariam o risco de não concluir o núcleo funcional a tempo.
+
+
+PARTE 7 — REQUISITOS INICIAIS
+
+15. Requisitos funcionais
+RF01 — O sistema deve permitir autenticação de usuários via login e senha, com geração de token JWT.
+RF02 — O sistema deve permitir o cadastro, edição, consulta, inativação e reativação de clientes e fornecedores.
+RF03 — O sistema deve permitir o cadastro de produtos com categoria, preço, custo e imagem.
+RF04 — O sistema deve permitir registrar movimentações de estoque (entrada, saída, ajuste) e atualizar a quantidade do produto automaticamente.
+RF05 — O sistema deve permitir a criação de pedidos de venda com múltiplos itens, checkout com forma de pagamento, cancelamento e estorno.
+RF06 — O sistema deve permitir a criação de ordens de compra a fornecedores, com itens e custo unitário.
+RF07 — O sistema deve permitir gerar uma análise de previsão de demanda para os próximos 1 a 3 meses, com recomendações de compra e promoção por produto baseadas na sazonalidade do histórico de vendas e interpretadas por IA.
+RF08 — O sistema deve permitir aplicar uma recomendação pelo dashboard, gerando o pedido de compra ou a promoção com período, ou descartá-la.
+
+16. Requisitos não funcionais
+RNF01 — O sistema deve ser responsivo, adaptando a interface a diferentes tamanhos de tela.
+RNF02 — O sistema deve possuir suporte a tema claro e escuro (dark/light mode).
+RNF03 — O sistema deve funcionar em navegadores modernos (Chrome, Edge, Firefox).
+RNF04 — O sistema deve manter a sessão do usuário autenticada por até 24 horas via token JWT, exigindo novo login após expiração.
+RNF05 — O sistema deve proteger o acesso a rotas restritas por perfil de usuário (Admin/User), retornando erro de autorização (401/403) para acessos indevidos.
+
+
+PARTE 8 — DADOS E BANCO DE DADOS
+
+17. Quais dados o sistema precisará armazenar?
+Nome, CPF, e-mail e senha de usuários e clientes; CNPJ e nome de fornecedores; nome, código, preço, custo, quantidade e imagem de produtos; categoria do produto; tipo e quantidade de movimentação de estoque; itens, status e valor total de pedidos e ordens de compra; forma e valor de pagamentos; endereço (rua, número, complemento, bairro, CEP), país/estado/cidade; contatos (telefone, e-mail).
+
+18. Quais entidades ou tabelas podem existir no banco de dados?
+1. User, Client, Supplier
+2. Category, Product, CategoryProduct
+3. StockMovement
+4. Order, OrderItem, Sale, Payment
+5. PurchaseOrder, PurchaseItem
+6. Address, Contact, Country, State, City
+7. Promotion
+8. ProductSalesMonthly, ProductSeasonality, ForecastRun, ForecastRecommendation, ForecastProjection (módulo de previsão de demanda)
+
+(24 tabelas mapeadas no AppDbContext, banco PostgreSQL via Entity Framework Core.)
+
+
+PARTE 9 — TELAS, PÁGINAS OU ENDPOINTS
+
+19. Quais telas o sistema terá?
+Tela inicial — Dashboard com indicadores e gráficos de vendas.
+Tela de login — Autenticação do usuário.
+Tela de cadastro — Formulário de criação para cada entidade (usuário, cliente, fornecedor, produto, categoria, pedido, ordem de compra, endereço, etc.).
+Tela de listagem — Listagem paginada com busca e filtros para cada entidade (data table).
+Tela de edição — Formulário de edição reaproveitando o formulário de cadastro (modo create/edit/view).
+Tela de relatório — Página "Previsão de Demanda (IA)": histórico de vendas, projeção dos próximos meses, perfil sazonal e recomendações por produto; o dashboard inicial exibe as principais recomendações com ações de comprar/promover.
+
+20. Endpoints da API (exemplo com o recurso /products; o mesmo padrão se repete para as demais entidades)
+GET    /api/products         — Listar produtos (paginação e filtros)
+POST   /api/products         — Cadastrar produto
+PUT    /api/products/{id}    — Atualizar produto
+DELETE /api/products/{id}    — Excluir (inativar) produto
+
+A API expõe 17 controllers seguindo esse mesmo padrão REST: users, clients, suppliers, categories, products, stock-movements, orders, sales, purchase-orders, addresses, contacts, countries, states, cities, dashboard, promotions e forecasts. Exemplos do módulo de previsão:
+POST   /api/forecasts/generate                          — Gerar análise de previsão (Admin)
+GET    /api/forecasts/latest                            — Última análise com recomendações
+POST   /api/forecasts/recommendations/purchase          — Aplicar recomendações de compra (gera pedidos de compra)
+POST   /api/forecasts/recommendations/{id}/promotion    — Aplicar recomendação de promoção (Admin)
+
+
+PARTE 10 — RESTRIÇÕES, RISCOS E PREMISSAS
+
+21. Restrições do projeto
+Prazo da disciplina e do cronograma do TCC; equipe pequena (3 integrantes) com disponibilidade limitada fora do horário de aula/trabalho; stack tecnológica já definida (.NET 8 + PostgreSQL no backend, React + TypeScript no frontend); hospedagem restrita a ambiente de desenvolvimento/homologação via Docker, sem infraestrutura cloud dedicada.
+
+22. Riscos do projeto
+Atraso nas entregas por conflito com outras disciplinas; mudança de escopo por sugestões de banca/orientador durante o TCC; divergência de regras de negócio entre backend e frontend (ex: enums desalinhados); ausência de testes automatizados, aumentando o risco de regressão ao evoluir o sistema; dependência de um serviço externo de IA (indisponibilidade ou limite de cota).
+
+23. Como a equipe pretende reduzir esses riscos?
+Uso de repositórios Git separados por camada (frontend/backend) com branches por tarefa (task-XX), revisão via Pull Request antes de mergear na main, documentação técnica centralizada (PROJECT.md) para manter backend e frontend alinhados, e priorização do MVP antes de qualquer funcionalidade extra. Para o risco da IA, os números das recomendações são calculados pelo próprio sistema e a IA é acessada por uma interface substituível: se o serviço estiver indisponível, a análise é gerada só com o cálculo, e regras de segurança limitam as quantidades e descontos sugeridos pela IA.
+
+
+PARTE 11 — ENTREGAS DO PROJETO
+
+24. Quais entregas a equipe deverá apresentar?
+(x) Documento de escopo
+(x) Levantamento de requisitos
+(x) Modelo do banco de dados
+(x) Código-fonte
+(x) Repositório GitHub
+(x) Demonstração do sistema funcionando
+( ) Diagrama de casos de uso — não previsto nesta etapa
+( ) Protótipo das telas — não previsto, o desenvolvimento seguiu direto para implementação
+( ) Plano de testes — fora do escopo atual
+(x) Relatório final (TCC)
+(x) Apresentação final
+
+
+PARTE 12 — CRITÉRIOS DE ACEITAÇÃO
+
+25. Quando o projeto poderá ser considerado concluído?
+• O sistema permite login com controle de acesso por perfil.
+• É possível cadastrar, consultar, editar e inativar clientes, fornecedores e produtos.
+• As movimentações de estoque refletem corretamente na quantidade do produto.
+• É possível criar um pedido de venda completo, do carrinho ao checkout, com baixa de estoque.
+• É possível criar uma ordem de compra a um fornecedor.
+• É possível gerar uma análise de previsão de demanda e, a partir do dashboard, transformar uma recomendação em pedido de compra ou promoção.
+• O banco de dados PostgreSQL está funcionando com as migrations aplicadas.
+• O código está versionado no GitHub (backend e frontend).
+• O sistema foi demonstrado funcionando de ponta a ponta (API + interface).
+
+
+PARTE 13 — SÍNTESE FINAL DO ESCOPO
+
+26. Resumo do escopo do projeto
+O projeto consiste no desenvolvimento de um sistema ERP web (Nextflow), composto por uma API REST em .NET 8 e uma SPA em React, destinado a pequenas e médias empresas comerciais que hoje controlam clientes, fornecedores e estoque de forma manual. O sistema terá como principais funcionalidades o cadastro de clientes, fornecedores e produtos, o controle automatizado de estoque por movimentações, a gestão de pedidos de venda e ordens de compra com checkout de pagamento, e a previsão de demanda sazonal com recomendações de compra e promoção apoiadas por inteligência artificial. Nesta primeira versão, não serão incluídas funcionalidades como aplicativo mobile nativo, treinamento de modelos próprios de machine learning, execução automática de ações sem confirmação humana e integração com gateways de pagamento externos. O projeto será considerado concluído quando o fluxo completo de cadastro, estoque, venda e compra estiver funcionando de ponta a ponta, com o código publicado no GitHub e o sistema demonstrado em funcionamento.

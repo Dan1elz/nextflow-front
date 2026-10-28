@@ -77,6 +77,11 @@ type CartItem = {
 
 type OrderFormMode = "create" | "edit" | "view";
 
+/** Preço de venda considerando a promoção vigente (calculado pela API). */
+function getEffectivePrice(product: IProduct): number {
+  return Number(product.effectivePrice ?? product.price ?? 0);
+}
+
 interface OrderFormProps {
   mode?: OrderFormMode;
   orderId?: string;
@@ -303,7 +308,7 @@ export function OrderForm({
     let subtotal = 0;
     let totalDiscount = 0;
     cartItems.forEach((item) => {
-      const itemPrice = Number(item.product.price || 0);
+      const itemPrice = getEffectivePrice(item.product);
       subtotal += itemPrice * item.quantity;
       totalDiscount += Number(item.discount || 0);
     });
@@ -717,7 +722,9 @@ export function OrderForm({
                             item.product.price ??
                             0
                         )
-                      : Number(item.product.price || 0);
+                      : getEffectivePrice(item.product);
+                    const originalPrice = Number(item.product.price || 0);
+                    const isOnPromotion = !isView && price < originalPrice;
                     const lineTotal = price * item.quantity - item.discount;
 
                     let imgUrl: string | null = null;
@@ -767,8 +774,24 @@ export function OrderForm({
                               <span className="text-xs text-muted-foreground truncate">
                                 Cod: {item.product.productCode}
                               </span>
-                              <span className="text-sm font-medium text-primary mt-0.5">
+                              <span className="text-sm font-medium text-primary mt-0.5 flex flex-wrap items-baseline gap-x-1.5">
+                                {isOnPromotion && (
+                                  <span className="text-xs font-normal text-muted-foreground line-through">
+                                    {formatCurrency(originalPrice)}
+                                  </span>
+                                )}
                                 {formatCurrency(price)}
+                                {isOnPromotion &&
+                                  item.product.activePromotion && (
+                                    <span className="text-[10px] font-semibold text-violet-600 dark:text-violet-400">
+                                      −
+                                      {Number(
+                                        item.product.activePromotion
+                                          .discountPercent
+                                      )}
+                                      %
+                                    </span>
+                                  )}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 Estoque: {Number(item.product.quantity ?? 0)}{" "}

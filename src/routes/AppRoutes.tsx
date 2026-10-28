@@ -45,6 +45,8 @@ import PurchaseOrdersPageWrapper from "@/pages/PurchaseOrders";
 import CreatePurchaseOrderPageWrapper from "@/pages/PurchaseOrder/Create";
 import EditPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/Edit";
 import ViewPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/View";
+import ForecastPageWrapper from "@/pages/Forecast";
+import PromotionsPageWrapper from "@/pages/Promotions";
 
 function AppRoutes() {
   return (
@@ -147,6 +149,9 @@ function AppRoutes() {
           path="purchase-orders/:id/view"
           element={<ViewPurchaseOrderPageWrapper />}
         />
+
+        <Route path="forecast" element={<ForecastPageWrapper />} />
+        <Route path="promotions" element={<PromotionsPageWrapper />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />

@@ -27,7 +27,30 @@ export {
 } from "./format.helpers";
 
 // Date helpers
-export { dateOnlyOptionalSchema } from "./date.helpers";
+export {
+  dateOnlyOptionalSchema,
+  toDateOnlyString,
+  getTodayDateOnly,
+  parseDateOnly,
+  addDaysToDateOnly,
+  diffDateOnlyInDays,
+} from "./date.helpers";
+
+// Auth helpers
+export { isAdmin } from "./auth.helpers";
+
+// Forecast helpers
+export {
+  getUnitShortLabel,
+  formatQuantity,
+  formatCoverageDays,
+  formatDiscount,
+  formatSeasonalIndex,
+  isPendingRecommendation,
+  isActionableRecommendation,
+  getTopActionableRecommendations,
+  mergeRecommendationsIntoRun,
+} from "./forecast.helpers";
 
 // Validators
 export {

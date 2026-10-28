@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   TrendingUp,
   DollarSign,
@@ -27,8 +27,18 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { DashboardProvider } from "@/providers/dashboard.provider";
 import { formatCurrency, formatDateOnly } from "@/utils/format.helpers";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AiRecommendationsCard } from "@/components/app/ai-recommendations-card";
+import type { IDashboardStats } from "@/interfaces/dashboard.interface";
+
+const DEFAULT_STOCK_THRESHOLD = 15;
 
 function DashboardHome() {
   const { user } = useAuth();
@@ -67,108 +77,172 @@ function DashboardHome() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-2">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground animate-pulse">Carregando painel...</p>
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <Card className="flex flex-col items-center justify-center p-8 text-center border-dashed">
-        <AlertTriangle className="h-10 w-10 text-amber-500 mb-4" />
-        <CardTitle className="text-lg mb-2">Sem dados</CardTitle>
-        <CardDescription className="mb-4">Não foi possível carregar as informações do painel.</CardDescription>
-        <Button onClick={() => void fetchStats()} size="sm">Recarregar</Button>
-      </Card>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
       {/* Cabeçalho de Boas-vindas */}
       <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Olá, {user?.name || "Usuário"}</h1>
-          <p className="text-sm text-muted-foreground">Aqui está um resumo em tempo real do sistema Nextflow.</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Olá, {user?.name || "Usuário"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Aqui está um resumo em tempo real do sistema Nextflow.
+          </p>
         </div>
-        <Button onClick={() => void fetchStats()} size="sm" variant="outline">
+        <Button
+          onClick={() => void fetchStats()}
+          size="sm"
+          variant="outline"
+          disabled={loading}
+        >
           Atualizar Dados
         </Button>
       </div>
 
-      {/* Grid de KPIs Consolidados */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* KPI 1: Faturamento Geral */}
-        <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-primary bg-card/65 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Faturamento Geral</CardTitle>
-            <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform duration-300">
-              <DollarSign className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold md:text-2xl">{formatCurrency(stats.totalSalesRevenue)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Reflete <span className="font-semibold text-foreground">{stats.totalSalesCount}</span> vendas finalizadas.
-            </p>
-          </CardContent>
+      {loading ? (
+        <div className="flex h-40 flex-col items-center justify-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground animate-pulse">
+            Carregando painel...
+          </p>
+        </div>
+      ) : !stats ? (
+        <Card className="flex flex-col items-center justify-center p-8 text-center border-dashed">
+          <AlertTriangle className="h-10 w-10 text-amber-500 mb-4" />
+          <CardTitle className="text-lg mb-2">Sem dados</CardTitle>
+          <CardDescription className="mb-4">
+            Não foi possível carregar as informações do painel.
+          </CardDescription>
+          <Button onClick={() => void fetchStats()} size="sm">
+            Recarregar
+          </Button>
         </Card>
+      ) : (
+        <DashboardKpis stats={stats} />
+      )}
 
-        {/* KPI 2: Meu Faturamento */}
-        <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-emerald-500 bg-card/65 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Minhas Vendas</CardTitle>
-            <div className="rounded-full bg-emerald-500/10 p-2 text-emerald-500 group-hover:scale-110 transition-transform duration-300">
-              <TrendingUp className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold md:text-2xl text-emerald-600 dark:text-emerald-400">{formatCurrency(stats.mySalesRevenue)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Seu faturamento em <span className="font-semibold text-foreground">{stats.mySalesCount}</span> vendas.
-            </p>
-          </CardContent>
-        </Card>
+      {/* Recomendações da IA: carrega e falha de forma independente das estatísticas */}
+      <AiRecommendationsCard />
 
-        {/* KPI 3: Ticket Médio Geral */}
-        <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-sky-500 bg-card/65 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ticket Médio Geral</CardTitle>
-            <div className="rounded-full bg-sky-500/10 p-2 text-sky-500 group-hover:scale-110 transition-transform duration-300">
-              <ShoppingBag className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold md:text-2xl">{formatCurrency(stats.avgSaleValue)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Valor médio por venda geral.</p>
-          </CardContent>
-        </Card>
+      {stats && !loading && (
+        <DashboardDetails stats={stats} getStatusBadge={getStatusBadge} />
+      )}
+    </div>
+  );
+}
 
-        {/* KPI 4: Meu Ticket Médio */}
-        <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-indigo-500 bg-card/65 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Meu Ticket Médio</CardTitle>
-            <div className="rounded-full bg-indigo-500/10 p-2 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
-              <ShoppingCart className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold md:text-2xl text-indigo-600 dark:text-indigo-400">{formatCurrency(stats.myAvgSaleValue)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Valor médio das suas vendas.</p>
-          </CardContent>
-        </Card>
-      </div>
+function DashboardKpis({ stats }: { stats: IDashboardStats }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPI 1: Faturamento Geral */}
+      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-primary bg-card/65 backdrop-blur-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Faturamento Geral
+          </CardTitle>
+          <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform duration-300">
+            <DollarSign className="h-4 w-4" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xl font-bold md:text-2xl">
+            {formatCurrency(stats.totalSalesRevenue)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Reflete{" "}
+            <span className="font-semibold text-foreground">
+              {stats.totalSalesCount}
+            </span>{" "}
+            vendas finalizadas.
+          </p>
+        </CardContent>
+      </Card>
 
+      {/* KPI 2: Meu Faturamento */}
+      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-emerald-500 bg-card/65 backdrop-blur-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Minhas Vendas
+          </CardTitle>
+          <div className="rounded-full bg-emerald-500/10 p-2 text-emerald-500 group-hover:scale-110 transition-transform duration-300">
+            <TrendingUp className="h-4 w-4" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xl font-bold md:text-2xl text-emerald-600 dark:text-emerald-400">
+            {formatCurrency(stats.mySalesRevenue)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Seu faturamento em{" "}
+            <span className="font-semibold text-foreground">
+              {stats.mySalesCount}
+            </span>{" "}
+            vendas.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* KPI 3: Ticket Médio Geral */}
+      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-sky-500 bg-card/65 backdrop-blur-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Ticket Médio Geral
+          </CardTitle>
+          <div className="rounded-full bg-sky-500/10 p-2 text-sky-500 group-hover:scale-110 transition-transform duration-300">
+            <ShoppingBag className="h-4 w-4" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xl font-bold md:text-2xl">
+            {formatCurrency(stats.avgSaleValue)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Valor médio por venda geral.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* KPI 4: Meu Ticket Médio */}
+      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-indigo-500 bg-card/65 backdrop-blur-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Meu Ticket Médio
+          </CardTitle>
+          <div className="rounded-full bg-indigo-500/10 p-2 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
+            <ShoppingCart className="h-4 w-4" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-xl font-bold md:text-2xl text-indigo-600 dark:text-indigo-400">
+            {formatCurrency(stats.myAvgSaleValue)}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Valor médio das suas vendas.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function DashboardDetails({
+  stats,
+  getStatusBadge,
+}: {
+  stats: IDashboardStats;
+  getStatusBadge: (status: string) => ReactNode;
+}) {
+  return (
+    <>
       {/* Seção Gráfica Central */}
       <Card className="bg-card/65 backdrop-blur-sm">
         <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Histórico de Faturamento Diário</CardTitle>
-            <CardDescription>Comparativo do faturamento geral em relação às suas vendas nos últimos 7 dias.</CardDescription>
+            <CardDescription>
+              Comparativo do faturamento geral em relação às suas vendas nos
+              últimos 7 dias.
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="h-[300px] w-full pt-4 pr-4">
@@ -176,16 +250,30 @@ function DashboardHome() {
             <AreaChart data={stats.salesChartData}>
               <defs>
                 <linearGradient id="totalColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-primary, #2563eb)" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="var(--color-primary, #2563eb)" stopOpacity={0} />
+                  <stop
+                    offset="5%"
+                    stopColor="var(--color-primary, #2563eb)"
+                    stopOpacity={0.2}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--color-primary, #2563eb)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
                 <linearGradient id="myColor" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
-              <XAxis dataKey="dateLabel" className="text-xs text-muted-foreground" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                className="stroke-muted/30"
+              />
+              <XAxis
+                dataKey="dateLabel"
+                className="text-xs text-muted-foreground"
+              />
               <YAxis
                 className="text-xs text-muted-foreground"
                 tickFormatter={(value: number) => `R$ ${value}`}
@@ -231,7 +319,10 @@ function DashboardHome() {
               <AlertTriangle className="h-5 w-5 text-amber-500" />
               <div>
                 <CardTitle>Alertas de Estoque Baixo</CardTitle>
-                <CardDescription>Produtos cadastrados que estão com o saldo abaixo de 15 unidades.</CardDescription>
+                <CardDescription>
+                  Produtos com saldo abaixo do estoque mínimo cadastrado (ou de
+                  15 unidades, quando não definido).
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -239,32 +330,56 @@ function DashboardHome() {
             {stats.stockAlerts.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center p-6 text-muted-foreground">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2" />
-                <p className="text-sm">Parabéns! Todo o seu estoque está acima da margem crítica.</p>
+                <p className="text-sm">
+                  Parabéns! Todo o seu estoque está acima da margem crítica.
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-muted/30">
-                {stats.stockAlerts.map((item) => (
-                  <div key={item.productId} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-semibold">{item.productName}</span>
-                      <span className="text-xs text-muted-foreground">Cód: {item.productCode}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-end">
-                        <span className={`text-sm font-bold ${item.currentStock <= 5 ? "text-rose-500" : "text-amber-500"}`}>
-                          {item.currentStock} {item.unitType === "Unit" ? "un" : item.unitType.toLowerCase()}
+                {stats.stockAlerts.map((item) => {
+                  const threshold =
+                    item.minStock && item.minStock > 0
+                      ? item.minStock
+                      : DEFAULT_STOCK_THRESHOLD;
+                  return (
+                    <div
+                      key={item.productId}
+                      className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-semibold">
+                          {item.productName}
                         </span>
-                        <span className="text-[10px] text-muted-foreground uppercase font-medium">saldo atual</span>
+                        <span className="text-xs text-muted-foreground">
+                          Cód: {item.productCode}
+                        </span>
                       </div>
-                      <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${item.currentStock <= 5 ? "bg-rose-500" : "bg-amber-500"}`}
-                          style={{ width: `${Math.min((item.currentStock / 15) * 100, 100)}%` }}
-                        />
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-end">
+                          <span
+                            className={`text-sm font-bold ${item.currentStock <= 5 ? "text-rose-500" : "text-amber-500"}`}
+                          >
+                            {item.currentStock}{" "}
+                            {item.unitType === "Unit"
+                              ? "un"
+                              : item.unitType.toLowerCase()}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-medium">
+                            saldo atual · mín. {threshold}
+                          </span>
+                        </div>
+                        <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${item.currentStock <= 5 ? "bg-rose-500" : "bg-amber-500"}`}
+                            style={{
+                              width: `${Math.min((item.currentStock / threshold) * 100, 100)}%`,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -277,7 +392,9 @@ function DashboardHome() {
               <ArrowUpRight className="h-5 w-5 text-indigo-500" />
               <div>
                 <CardTitle>Histórico Recente de Compras</CardTitle>
-                <CardDescription>Os 5 últimos pedidos de compras registrados no sistema.</CardDescription>
+                <CardDescription>
+                  Os 5 últimos pedidos de compras registrados no sistema.
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -285,18 +402,29 @@ function DashboardHome() {
             {stats.recentPurchases.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center p-6 text-muted-foreground">
                 <Calendar className="h-8 w-8 mb-2" />
-                <p className="text-sm">Nenhum pedido de compra foi encontrado.</p>
+                <p className="text-sm">
+                  Nenhum pedido de compra foi encontrado.
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-muted/30">
                 {stats.recentPurchases.map((purchase) => (
-                  <div key={purchase.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                  <div
+                    key={purchase.id}
+                    className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                  >
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-sm font-semibold">{purchase.supplierName}</span>
-                      <span className="text-xs text-muted-foreground">{formatDateOnly(purchase.date)}</span>
+                      <span className="text-sm font-semibold">
+                        {purchase.supplierName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDateOnly(purchase.date)}
+                      </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold">{formatCurrency(purchase.totalAmount)}</span>
+                      <span className="text-sm font-bold">
+                        {formatCurrency(purchase.totalAmount)}
+                      </span>
                       {getStatusBadge(purchase.status)}
                     </div>
                   </div>
@@ -306,7 +434,7 @@ function DashboardHome() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
 }
 

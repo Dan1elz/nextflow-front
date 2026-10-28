@@ -15,6 +15,12 @@ export const createSupplierSchema = z.object({
     .refine((v) => !v || !v.trim() || validateCnpj(formatOnlyNumbers(v)), {
       message: "CNPJ inválido",
     }),
+
+  leadTimeDays: z
+    .number({ message: "Informe o prazo de entrega em dias." })
+    .int("O prazo de entrega deve ser um número inteiro de dias.")
+    .min(1, "O prazo de entrega deve ser de no mínimo 1 dia.")
+    .max(180, "O prazo de entrega deve ser de no máximo 180 dias."),
 });
 
 export const updateSupplierSchema = createSupplierSchema;

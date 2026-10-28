@@ -26,7 +26,8 @@ type EntityIndexPageProps<TData> = {
   onPageChange: (page: number) => void;
   onPerPageChange: (perPage: number) => void;
 
-  onCreate: () => void;
+  /** Quando omitido, o botão "Novo" não é exibido. */
+  onCreate?: () => void;
 
   onExport?: (ids?: string[]) => void;
   onDeleteMultiple?: (ids: string[]) => void;
@@ -134,14 +135,16 @@ export function EntityIndexPage<TData>({
                 </Tooltip>
               )}
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button type="button" onClick={onCreate} aria-label="Novo">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent sideOffset={6}>Novo</TooltipContent>
-              </Tooltip>
+              {onCreate && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button type="button" onClick={onCreate} aria-label="Novo">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={6}>Novo</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
         </CardHeader>

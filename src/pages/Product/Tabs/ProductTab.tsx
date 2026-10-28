@@ -11,6 +11,8 @@ import type { ProductSchema } from "@/schemas/product.schema";
 import type { ISupplier } from "@/interfaces/supplier.interface";
 import type { ICategory } from "@/interfaces/category.interface";
 import type { TUnitType } from "@/types/enums";
+import { PromotionDiscountBadge } from "@/components/app/forecast-badges";
+import { formatCurrency, formatDateOnly } from "@/utils/format.helpers";
 
 type ProductTabProps = {
   mode: "create" | "edit" | "view";
@@ -142,8 +144,33 @@ export function ProductTab({ mode }: ProductTabProps) {
     );
   }
 
+  const activePromotion =
+    mode !== "create" ? selectedProduct?.activePromotion : null;
+
   return (
     <div className="rounded-lg border p-4">
+      {activePromotion && (
+        <div className="mb-4 flex flex-col gap-2 rounded-lg border border-violet-200/60 bg-violet-50 p-3 text-sm text-violet-900 sm:flex-row sm:items-center sm:justify-between dark:border-violet-800/40 dark:bg-violet-950/30 dark:text-violet-200">
+          <div className="flex flex-wrap items-center gap-2">
+            <PromotionDiscountBadge
+              discountPercent={activePromotion.discountPercent}
+            />
+            <span>
+              Preço promocional{" "}
+              <strong>
+                {formatCurrency(Number(activePromotion.promotionalPrice))}
+              </strong>{" "}
+              <span className="text-xs text-muted-foreground line-through">
+                {formatCurrency(Number(selectedProduct?.price ?? 0))}
+              </span>
+            </span>
+          </div>
+          <span className="text-xs">
+            Vigente de {formatDateOnly(activePromotion.startDate)} até{" "}
+            {formatDateOnly(activePromotion.endDate)}
+          </span>
+        </div>
+      )}
       <ProductForm
         key={
           mode === "create"

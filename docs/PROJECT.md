@@ -1,6 +1,6 @@
 # Nextflow Front — Frontend
 
-> **Última atualização:** 30/04/2026
+> **Última atualização:** 11/10/2026
 > **Repositório:** `Dan1elz/nextflow-front`
 > **Stack:** React 19 · TypeScript 5.9 · Vite 7 · TailwindCSS 4 · shadcn/ui · Radix UI
 
@@ -8,7 +8,7 @@
 
 ## 1. Visão Geral
 
-O **Nextflow Front** é a interface web SPA do sistema ERP Nextflow. Consome a API .NET backend via REST. Gerencia clientes, fornecedores, produtos, estoque, pedidos de venda, ordens de compra e vendas.
+O **Nextflow Front** é a interface web SPA do sistema ERP Nextflow. Consome a API .NET backend via REST. Gerencia clientes, fornecedores, produtos, estoque, pedidos de venda, ordens de compra, vendas, promoções e a **Previsão de Demanda com IA** (contrato em `nextflow/docs/AI_FORECAST_SPEC.md`).
 
 ---
 
@@ -179,34 +179,50 @@ Os enums em `types/enums.ts` **espelham o backend** (`Nextflow.Domain.Enums`). C
 - Type inferido
 - Label map `Record<TEnum, string>` em pt-BR
 
-| Enum Frontend     | Backend          | Valores                                                                |
-| ----------------- | ---------------- | ---------------------------------------------------------------------- |
-| `TUnitType`       | `UnitType`       | Unit=1, Kilogram=2, Liter=3, Meter=4                                   |
-| `TRoleEnum`       | `RoleEnum`       | User=1, Admin=2                                                        |
-| `TPaymentMethod`  | `PaymentMethod`  | Cash=1, CreditCard=2, DebitCard=3, BankTransfer=4, Pix=5, Ticket=6     |
-| `TOrderType`      | `OrderType`      | Budget=1, Sale=2                                                       |
-| `TOrderStatus`    | `OrderStatus`    | Budget=1, PendingPayment=2, PaymentConfirmed=3, Canceled=4, Refunded=5 |
-| `TMovementType`   | `MovementType`   | Entry=1, Exit=2, Adjustment=3, Sales=4, Return=5                       |
-| `TPurchaseStatus` | `PurchaseStatus` | Budget=1, Pending=2, Received=3, Canceled=4                            |
+| Enum Frontend             | Backend                  | Valores                                                                |
+| ------------------------- | ------------------------ | ---------------------------------------------------------------------- |
+| `TUnitType`               | `UnitType`               | Unit=1, Kilogram=2, Liter=3, Meter=4                                   |
+| `TRoleEnum`               | `RoleEnum`               | User=1, Admin=2                                                        |
+| `TPaymentMethod`          | `PaymentMethod`          | Cash=1, CreditCard=2, DebitCard=3, BankTransfer=4, Pix=5, Ticket=6     |
+| `TOrderType`              | `OrderType`              | Budget=1, Sale=2                                                       |
+| `TOrderStatus`            | `OrderStatus`            | Budget=1, PendingPayment=2, PaymentConfirmed=3, Canceled=4, Refunded=5 |
+| `TMovementType`           | `MovementType`           | Entry=1, Exit=2, Adjustment=3, Sales=4, Return=5                       |
+| `TPurchaseStatus`         | `PurchaseStatus`         | Budget=1, Pending=2, Received=3, Canceled=4                            |
+| `TPromotionSource`        | `PromotionSource`        | Manual=1, AiRecommendation=2                                           |
+| `TForecastRunStatus`      | `ForecastRunStatus`      | Completed=1, CompletedWithoutAi=2, Failed=3                            |
+| `TRecommendationAction`   | `RecommendationAction`   | Buy=1, Promote=2, Hold=3                                               |
+| `TRecommendationPriority` | `RecommendationPriority` | Low=1, Medium=2, High=3                                                |
+| `TForecastConfidence`     | `ForecastConfidence`     | Low=1, Medium=2, High=3                                                |
+| `TRecommendationStatus`   | `RecommendationStatus`   | Pending=1, Applied=2, Dismissed=3, Expired=4                           |
+| `TPromotionStatus`        | (string calculada)       | "active", "scheduled", "ended", "canceled"                             |
+
+Cada enum tem label map pt-BR (`*_LABELS`). `IUser.role?: TRoleEnum` + helper `isAdmin(user)` (`utils/auth.helpers.ts`) escondem ações Admin na UI (a API responde 403 de qualquer forma).
 
 ---
 
 ## 5. Componentes Customizados (`components/app/`)
 
-| Componente                  | Descrição                                       |
-| --------------------------- | ----------------------------------------------- |
-| `NextflowLogo.tsx`          | Logo SVG da aplicação                           |
-| `sidebar.tsx`               | Sidebar de navegação principal                  |
-| `data-table.tsx`            | Tabela de dados genérica (TanStack Table)       |
-| `date-picker.tsx`           | Date picker com calendário                      |
-| `entity-index-page.tsx`     | Layout padrão para páginas de listagem          |
-| `image-picker.tsx`          | Upload/preview de imagem                        |
-| `list-filters-sheet.tsx`    | Sheet lateral com filtros de listagem           |
-| `nav-action-column.tsx`     | Coluna de ações (View/Edit/Delete) para tabelas |
-| `nav-user.tsx`              | Dropdown do usuário logado                      |
-| `sale-checkout-drawer.tsx`  | Drawer de finalização de venda                  |
-| `search-select.tsx`         | Select com busca assíncrona e debounce          |
-| `stock-movement-drawer.tsx` | Drawer para movimentação de estoque             |
+| Componente                          | Descrição                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `NextflowLogo.tsx`                  | Logo SVG da aplicação                                                     |
+| `sidebar.tsx`                       | Sidebar de navegação principal                                            |
+| `data-table.tsx`                    | Tabela de dados genérica (TanStack Table)                                 |
+| `date-picker.tsx`                   | Date picker com calendário                                                |
+| `entity-index-page.tsx`             | Layout padrão para páginas de listagem                                    |
+| `image-picker.tsx`                  | Upload/preview de imagem                                                  |
+| `list-filters-sheet.tsx`            | Sheet lateral com filtros de listagem                                     |
+| `nav-action-column.tsx`             | Coluna de ações (View/Edit/Delete) para tabelas                           |
+| `nav-user.tsx`                      | Dropdown do usuário logado                                                |
+| `sale-checkout-drawer.tsx`          | Drawer de finalização de venda                                            |
+| `search-select.tsx`                 | Select com busca assíncrona e debounce                                    |
+| `stock-movement-drawer.tsx`         | Drawer para movimentação de estoque                                       |
+| `ai-recommendations-card.tsx`       | Card "Recomendações da IA" do dashboard (provider próprio, falha isolada) |
+| `apply-purchase-dialog.tsx`         | Dialog "Comprar" (1 ou vários itens, qtd/custo editáveis)                 |
+| `apply-promotion-dialog.tsx`        | Dialog "Aplicar desconto" a partir de recomendação (Admin)                |
+| `create-promotion-dialog.tsx`       | Criação manual de promoção (Admin)                                        |
+| `dismiss-recommendation-dialog.tsx` | Confirmação de descarte de recomendação                                   |
+| `forecast-chart.tsx`                | `ForecastChart` (histórico + projeção + estoque) e `SeasonalityChart`     |
+| `forecast-badges.tsx`               | Badges de ação/prioridade/confiança/status e sugestão                     |
 
 ---
 
@@ -218,22 +234,23 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 
 ## 7. Formulários (`components/forms/`) — 14
 
-| Formulário                | Entidade                         |
-| ------------------------- | -------------------------------- |
-| `login-form.tsx`          | Autenticação                     |
-| `user-form.tsx`           | Usuários                         |
-| `client-form.tsx`         | Clientes                         |
-| `supplier-form.tsx`       | Fornecedores                     |
-| `category-form.tsx`       | Categorias                       |
-| `product-form.tsx`        | Produtos (com upload de imagem)  |
-| `order-form.tsx`          | Pedidos de venda (com carrinho)  |
-| `sale-checkout-form.tsx`  | Checkout de venda (pagamentos)   |
-| `stock-movement-form.tsx` | Movimentação de estoque          |
-| `address-form.tsx`        | Endereços (com auto-fill ViaCEP) |
-| `contact-form.tsx`        | Contatos                         |
-| `country-form.tsx`        | Países                           |
-| `state-form.tsx`          | Estados                          |
-| `city-form.tsx`           | Cidades                          |
+| Formulário                | Entidade                                              |
+| ------------------------- | ----------------------------------------------------- |
+| `login-form.tsx`          | Autenticação                                          |
+| `user-form.tsx`           | Usuários                                              |
+| `client-form.tsx`         | Clientes                                              |
+| `supplier-form.tsx`       | Fornecedores                                          |
+| `category-form.tsx`       | Categorias                                            |
+| `product-form.tsx`        | Produtos (com upload de imagem)                       |
+| `order-form.tsx`          | Pedidos de venda (com carrinho; usa `effectivePrice`) |
+| `promotion-form.tsx`      | Promoção (desconto, período, prévia de preço)         |
+| `sale-checkout-form.tsx`  | Checkout de venda (pagamentos)                        |
+| `stock-movement-form.tsx` | Movimentação de estoque                               |
+| `address-form.tsx`        | Endereços (com auto-fill ViaCEP)                      |
+| `contact-form.tsx`        | Contatos                                              |
+| `country-form.tsx`        | Países                                                |
+| `state-form.tsx`          | Estados                                               |
+| `city-form.tsx`           | Cidades                                               |
 
 ---
 
@@ -268,6 +285,8 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Stock Movements | `/stock-movements` | —                    | —                      | —                      |
 | Orders          | `/orders`          | `/orders/create`     | `/orders/:id/edit`     | `/orders/:id/view`     |
 | Purchase Orders | `/purchase-orders` | —                    | —                      | —                      |
+| Forecast (IA)   | `/forecast`        | —                    | —                      | —                      |
+| Promotions      | `/promotions`      | —                    | —                      | —                      |
 | Countries       | `/countries`       | `/countries/create`  | `/countries/:id/edit`  | `/countries/:id/view`  |
 | States          | `/states`          | `/states/create`     | `/states/:id/edit`     | `/states/:id/view`     |
 | Cities          | `/cities`          | `/cities/create`     | `/cities/:id/edit`     | `/cities/:id/view`     |
@@ -278,40 +297,52 @@ Rota catch-all `*` → redireciona para `/login`.
 
 ## 10. Services (18)
 
-| Service                     | Endpoint           | Observações                      |
-| --------------------------- | ------------------ | -------------------------------- |
-| `api.service.ts`            | —                  | HTTP client base (fetch wrapper) |
-| `base.service.ts`           | —                  | CRUD genérico                    |
-| `auth.service.ts`           | `/users/login`     | Login                            |
-| `user.service.ts`           | `/users`           | CRUD + checkAuth + reativação    |
-| `client.service.ts`         | `/clients`         | CRUD + reativação                |
-| `supplier.service.ts`       | `/suppliers`       | CRUD + reativação                |
-| `category.service.ts`       | `/categories`      | CRUD                             |
-| `product.service.ts`        | `/products`        | CRUD + upload imagem (FormData)  |
-| `stock-movement.service.ts` | `/stock-movements` | Create + getAll                  |
-| `order.service.ts`          | `/orders`          | CRUD + cancel + refund           |
-| `sale.service.ts`           | `/sales`           | Create (checkout)                |
-| `purchase-order.service.ts` | `/purchase-orders` | CRUD                             |
-| `address.service.ts`        | `/addresses`       | CRUD + resolveFromCep            |
-| `contact.service.ts`        | `/contacts`        | CRUD                             |
-| `country.service.ts`        | `/countries`       | CRUD                             |
-| `state.service.ts`          | `/states`          | CRUD                             |
-| `city.service.ts`           | `/cities`          | CRUD                             |
-| `viacep.service.ts`         | `viacep.com.br`    | Auto-preenchimento de CEP        |
+| Service                     | Endpoint           | Observações                                                                   |
+| --------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| `api.service.ts`            | —                  | HTTP client base (fetch wrapper)                                              |
+| `base.service.ts`           | —                  | CRUD genérico                                                                 |
+| `auth.service.ts`           | `/users/login`     | Login                                                                         |
+| `user.service.ts`           | `/users`           | CRUD + checkAuth + reativação                                                 |
+| `client.service.ts`         | `/clients`         | CRUD + reativação                                                             |
+| `supplier.service.ts`       | `/suppliers`       | CRUD + reativação                                                             |
+| `category.service.ts`       | `/categories`      | CRUD                                                                          |
+| `product.service.ts`        | `/products`        | CRUD + upload imagem (FormData)                                               |
+| `stock-movement.service.ts` | `/stock-movements` | Create + getAll                                                               |
+| `order.service.ts`          | `/orders`          | CRUD + cancel + refund                                                        |
+| `sale.service.ts`           | `/sales`           | Create (checkout)                                                             |
+| `purchase-order.service.ts` | `/PurchaseOrders`  | CRUD                                                                          |
+| `forecast.service.ts`       | `/forecasts`       | generate, latest, products/{id}, recommendations (purchase/promotion/dismiss) |
+| `promotion.service.ts`      | `/promotions`      | getAll (filtros productId/status/source), create, cancel                      |
+| `address.service.ts`        | `/addresses`       | CRUD + resolveFromCep                                                         |
+| `contact.service.ts`        | `/contacts`        | CRUD                                                                          |
+| `country.service.ts`        | `/countries`       | CRUD                                                                          |
+| `state.service.ts`          | `/states`          | CRUD                                                                          |
+| `city.service.ts`           | `/cities`          | CRUD                                                                          |
+| `viacep.service.ts`         | `viacep.com.br`    | Auto-preenchimento de CEP                                                     |
 
 ---
 
+## 10.1 Previsão de Demanda (IA)
+
+- **Estado:** `forecast.context` → `ForecastProvider` → `useForecast` (última análise, geração, ações sobre recomendações; após ação, mescla as recomendações retornadas no run em memória). `useProductForecast(productId)` carrega histórico/projeção/sazonalidade. Promoções: `promotions.context` → `PromotionsProvider` → `usePromotions`.
+- **Telas:** card no `Home.tsx` (top 5 pendentes Comprar/Promover); `/forecast` (geração com horizonte 1–3 meses, resumo, filtros, tabela com seleção múltipla "Comprar selecionados", detalhes com gráfico); `/promotions`; aba "Previsão" em `Product/View` (`Tabs/ForecastTab.tsx`).
+- **Produto:** campos `brand`, `costPrice`, `minStock` (create multipart `Brand/CostPrice/MinStock`; update JSON); `effectivePrice` e `activePromotion` vêm da API (o front nunca recalcula o preço efetivo).
+- **Fornecedor:** `leadTimeDays` (1–180, padrão 7).
+- **Regras alinhadas com a API (validação ponta a ponta, etapa 4):** `counts.pending` recalculado localmente conta só Comprar/Promover pendentes (igual ao backend); período de promoção é inclusivo (máx. 90 dias contando início e término) e o dialog "Aplicar desconto" usa `término = hoje + (dias sugeridos − 1)`; o `ForecastChart` preenche o mês corrente (o histórico vem só com meses completos e a projeção começa no próximo mês) e passa `xAxisId/yAxisId` explícitos ao `ReferenceLine` do estoque (com React 19 os `defaultProps` do Recharts 2 não chegam ao elemento e o eixo não era estendido); a aba "Previsão" usa `latestRecommendation.product.quantity` como estoque atual quando aberta direto (`?step=3`).
+
 ## 11. Utils (`src/utils/`)
 
-| Arquivo             | Exports                                                                                                                                                                                                                                                                                              |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `base64.helpers.ts` | `convertToBase64`, `revertFromBase64`, `base64ToBlob`                                                                                                                                                                                                                                                |
-| `crypto.helpers.ts` | `generateUUID` (com fallback para HTTP inseguro)                                                                                                                                                                                                                                                     |
-| `date.helpers.ts`   | `dateOnlyOptionalSchema`                                                                                                                                                                                                                                                                             |
-| `format.helpers.ts` | `formatOnlyNumbers`, `formatCpfCnpj`, `formatCep`, `formatDateOnly`, `formatPhone`, `formatPercentage`, `formatCurrency`, `formatNumber`, `formatDateTime`                                                                                                                                           |
-| `toast.helpers.ts`  | `handleError` (extrai erros do `ApiError`), `handleSuccess`, `handleWarning`, `handleInfo`                                                                                                                                                                                                           |
-| `validators.ts`     | `validateCpf`, `validateCnpj`, `validateCpfCnpj`, `validateOnlyNumbers`, `validateEmail`, `validatePhone`, `validateCep`, `validateNotEmpty`, `validateMinLength`, `validateMaxLength`, `validateRange`, `validatePassword`, `validateUrl`, `validateDate`, `validateFutureDate`, `validatePastDate` |
-| `index.ts`          | Barrel re-exports de todos os helpers acima                                                                                                                                                                                                                                                          |
+| Arquivo               | Exports                                                                                                                                                                                                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `base64.helpers.ts`   | `convertToBase64`, `revertFromBase64`, `base64ToBlob`                                                                                                                                                                                                                                                |
+| `crypto.helpers.ts`   | `generateUUID` (com fallback para HTTP inseguro)                                                                                                                                                                                                                                                     |
+| `date.helpers.ts`     | `dateOnlyOptionalSchema`, `toDateOnlyString`, `getTodayDateOnly`, `parseDateOnly`, `addDaysToDateOnly`, `diffDateOnlyInDays`                                                                                                                                                                         |
+| `auth.helpers.ts`     | `isAdmin`                                                                                                                                                                                                                                                                                            |
+| `forecast.helpers.ts` | `formatQuantity`, `formatCoverageDays`, `formatDiscount`, `formatSeasonalIndex`, `getTopActionableRecommendations`, `mergeRecommendationsIntoRun`                                                                                                                                                    |
+| `format.helpers.ts`   | `formatOnlyNumbers`, `formatCpfCnpj`, `formatCep`, `formatDateOnly`, `formatPhone`, `formatPercentage`, `formatCurrency`, `formatNumber`, `formatDateTime`                                                                                                                                           |
+| `toast.helpers.ts`    | `handleError` (extrai erros do `ApiError`), `handleSuccess`, `handleWarning`, `handleInfo`                                                                                                                                                                                                           |
+| `validators.ts`       | `validateCpf`, `validateCnpj`, `validateCpfCnpj`, `validateOnlyNumbers`, `validateEmail`, `validatePhone`, `validateCep`, `validateNotEmpty`, `validateMinLength`, `validateMaxLength`, `validateRange`, `validatePassword`, `validateUrl`, `validateDate`, `validateFutureDate`, `validatePastDate` |
+| `index.ts`            | Barrel re-exports de todos os helpers acima                                                                                                                                                                                                                                                          |
 
 ---
 

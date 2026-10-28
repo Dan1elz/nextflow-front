@@ -11,6 +11,8 @@ import {
   Activity,
   ShoppingCart,
   ShoppingBag,
+  Sparkles,
+  BadgePercent,
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,13 +52,17 @@ import type {
 const items: SidebarMenuGroup[] = [
   {
     title: "GERAL",
-    items: [{ name: "Dashboard", url: "/", icon: Home }],
+    items: [
+      { name: "Dashboard", url: "/", icon: Home },
+      { name: "Previsão (IA)", url: "/forecast", icon: Sparkles },
+    ],
   },
   {
     title: "COMERCIAL",
     items: [
       { name: "Vendas (Pedidos)", url: "/orders", icon: ShoppingCart },
       { name: "Pedidos de Compra", url: "/purchase-orders", icon: ShoppingBag },
+      { name: "Promoções", url: "/promotions", icon: BadgePercent },
     ],
   },
   {

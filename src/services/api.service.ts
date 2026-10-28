@@ -119,12 +119,18 @@ export class ApiService {
       }
 
       const unknownContent = content as unknown as Record<string, unknown>;
+      const statusFallbackMessage =
+        response.status === 403
+          ? "Você não tem permissão para executar esta ação."
+          : response.status === 401
+            ? "Sessão expirada ou não autenticada."
+            : "Erro na requisição";
       throw new ApiError({
         Status: response.status,
         Message:
           (unknownContent.message as string) ||
           (unknownContent.Message as string) ||
-          "Erro na requisição",
+          statusFallbackMessage,
         Errors:
           (unknownContent.errors as IApiResponseError["Errors"]) ||
           (unknownContent.Errors as IApiResponseError["Errors"]) ||
