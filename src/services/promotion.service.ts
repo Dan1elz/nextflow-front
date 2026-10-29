@@ -20,7 +20,7 @@ export const promotionService = {
       data,
       token
     );
-    return response.data;
+    return response;
   },
 
   /** DELETE /api/promotions/{id} (Admin) — cancela a promoção (IsActive = false) */

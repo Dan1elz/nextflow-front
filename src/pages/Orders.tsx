@@ -46,11 +46,11 @@ import { useUsers } from "@/hooks/use-users";
 import { useSales } from "@/hooks/use-sales";
 import { Badge } from "@/components/ui/badge";
 import {
-  ORDER_STATUS_LABELS,
+  LEGACY_ORDER_STATUS_LABELS,
   ORDER_TYPE_LABELS,
-  TOrderStatus,
-  PAYMENT_METHOD_LABELS,
-  TPaymentMethod,
+  TLegacyOrderStatus,
+  LEGACY_PAYMENT_METHOD_LABELS,
+  TLegacyPaymentMethod,
 } from "@/types/enums";
 
 type OrderFilters = {
@@ -165,7 +165,7 @@ function Orders() {
           return;
         }
         const status = order.status as number;
-        if (status === TOrderStatus.PaymentConfirmed) {
+        if (status === TLegacyOrderStatus.PaymentConfirmed) {
           await refundOrder(order.id, reason);
           handleSuccess("Pedido reembolsado com sucesso");
         } else {
@@ -239,22 +239,22 @@ function Orders() {
         cell: ({ row }) => {
           if (!row.original.status) return "-";
           const label =
-            ORDER_STATUS_LABELS[row.original.status] ?? row.original.status;
+            LEGACY_ORDER_STATUS_LABELS[row.original.status] ?? row.original.status;
 
           let extraClass = "";
-          if (row.original.status === TOrderStatus.PaymentConfirmed)
+          if (row.original.status === TLegacyOrderStatus.PaymentConfirmed)
             extraClass =
               "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
           else if (
-            row.original.status === TOrderStatus.Canceled ||
-            row.original.status === TOrderStatus.Refunded
+            row.original.status === TLegacyOrderStatus.Canceled ||
+            row.original.status === TLegacyOrderStatus.Refunded
           )
             extraClass =
               "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
-          else if (row.original.status === TOrderStatus.PendingPayment)
+          else if (row.original.status === TLegacyOrderStatus.PendingPayment)
             extraClass =
               "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
-          else if (row.original.status === TOrderStatus.Budget)
+          else if (row.original.status === TLegacyOrderStatus.Budget)
             extraClass =
               "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
 
@@ -280,13 +280,13 @@ function Orders() {
         header: "Ações",
         cell: ({ row }) => {
           const status = row.original.status as number;
-          const isCanceled = status === TOrderStatus.Canceled;
-          const isRefunded = status === TOrderStatus.Refunded;
-          const isConfirmed = status === TOrderStatus.PaymentConfirmed;
+          const isCanceled = status === TLegacyOrderStatus.Canceled;
+          const isRefunded = status === TLegacyOrderStatus.Refunded;
+          const isConfirmed = status === TLegacyOrderStatus.PaymentConfirmed;
           const canAct = !isCanceled && !isRefunded;
           const canFinalizeCheckout =
-            status === TOrderStatus.PendingPayment ||
-            status === TOrderStatus.Budget;
+            status === TLegacyOrderStatus.PendingPayment ||
+            status === TLegacyOrderStatus.Budget;
 
           const deleteLabel = isConfirmed ? "Reembolsar" : "Cancelar";
           const dialogTitle = isConfirmed
@@ -576,7 +576,7 @@ function Orders() {
                 className="flex justify-between items-center bg-muted/30 border p-3 rounded-lg"
               >
                 <span className="font-semibold">
-                  {PAYMENT_METHOD_LABELS[p.paymentMethod as TPaymentMethod] ??
+                  {LEGACY_PAYMENT_METHOD_LABELS[p.paymentMethod as TLegacyPaymentMethod] ??
                     p.paymentMethod}
                 </span>
                 <span className="font-bold text-primary">

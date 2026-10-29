@@ -58,11 +58,11 @@ import type { IOrder, IOrderItem } from "@/interfaces/order.interface";
 import type { ISale, IPayment } from "@/interfaces/sale.interface";
 import {
   TOrderType,
-  TOrderStatus,
-  ORDER_STATUS_LABELS,
+  TLegacyOrderStatus,
+  LEGACY_ORDER_STATUS_LABELS,
   ORDER_TYPE_LABELS,
-  PAYMENT_METHOD_LABELS,
-  TPaymentMethod,
+  LEGACY_PAYMENT_METHOD_LABELS,
+  TLegacyPaymentMethod,
 } from "@/types/enums";
 import { API_URL } from "@/configs/api";
 import type { IOption } from "@/interfaces/api.interface";
@@ -122,7 +122,7 @@ export function OrderForm({
   // Order Info
   const [clientId, setClientId] = useState<string>("");
   const [orderType, setOrderType] = useState<number>(TOrderType.Budget);
-  const [orderStatus, setOrderStatus] = useState<number>(TOrderStatus.Budget);
+  const [orderStatus, setOrderStatus] = useState<number>(TLegacyOrderStatus.Budget);
   const [loadedOrder, setLoadedOrder] = useState<IOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [associatedSale, setAssociatedSale] = useState<ISale | null>(null);
@@ -184,7 +184,7 @@ export function OrderForm({
           setLoadedOrder(order);
           setClientId(order.clientId);
           setOrderType(order.type);
-          setOrderStatus(order.status ?? TOrderStatus.Budget);
+          setOrderStatus(order.status ?? TLegacyOrderStatus.Budget);
 
           // Map order items to cart items
           if (order.orderItems && order.orderItems.length > 0) {
@@ -214,7 +214,7 @@ export function OrderForm({
   useEffect(() => {
     if (
       loadedOrder?.id &&
-      orderStatus === TOrderStatus.PaymentConfirmed &&
+      orderStatus === TLegacyOrderStatus.PaymentConfirmed &&
       onFetchAssociatedSale
     ) {
       onFetchAssociatedSale(loadedOrder.id).then((sale) => {
@@ -403,13 +403,13 @@ export function OrderForm({
 
   // Determine which actions are available based on status
   const canCancel =
-    orderStatus === TOrderStatus.PendingPayment ||
-    orderStatus === TOrderStatus.Budget;
-  const canRefund = orderStatus === TOrderStatus.PaymentConfirmed;
+    orderStatus === TLegacyOrderStatus.PendingPayment ||
+    orderStatus === TLegacyOrderStatus.Budget;
+  const canRefund = orderStatus === TLegacyOrderStatus.PaymentConfirmed;
   const isFinalized =
-    orderStatus === TOrderStatus.Canceled ||
-    orderStatus === TOrderStatus.Refunded ||
-    orderStatus === TOrderStatus.PaymentConfirmed;
+    orderStatus === TLegacyOrderStatus.Canceled ||
+    orderStatus === TLegacyOrderStatus.Refunded ||
+    orderStatus === TLegacyOrderStatus.PaymentConfirmed;
   const canFinalizeCheckout = !isFinalized;
 
   const handleFinalizeSale = async () => {
@@ -468,15 +468,15 @@ export function OrderForm({
                     </Badge>
                     <Badge
                       variant={
-                        orderStatus === TOrderStatus.PaymentConfirmed
+                        orderStatus === TLegacyOrderStatus.PaymentConfirmed
                           ? "default"
-                          : orderStatus === TOrderStatus.Canceled ||
-                              orderStatus === TOrderStatus.Refunded
+                          : orderStatus === TLegacyOrderStatus.Canceled ||
+                              orderStatus === TLegacyOrderStatus.Refunded
                             ? "destructive"
                             : "secondary"
                       }
                     >
-                      {ORDER_STATUS_LABELS[orderStatus as TOrderStatus] ??
+                      {LEGACY_ORDER_STATUS_LABELS[orderStatus as TLegacyOrderStatus] ??
                         "Desconhecido"}
                     </Badge>
                   </div>
@@ -603,8 +603,8 @@ export function OrderForm({
             </div>
 
             {/* Loss reason if finalized */}
-            {(orderStatus === TOrderStatus.Canceled ||
-              orderStatus === TOrderStatus.Refunded) &&
+            {(orderStatus === TLegacyOrderStatus.Canceled ||
+              orderStatus === TLegacyOrderStatus.Refunded) &&
               loadedOrder?.lossReason && (
                 <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4">
                   <Label className="text-destructive font-semibold">
@@ -632,8 +632,8 @@ export function OrderForm({
                           Método
                         </span>
                         <span className="font-medium">
-                          {PAYMENT_METHOD_LABELS[
-                            p.paymentMethod as TPaymentMethod
+                          {LEGACY_PAYMENT_METHOD_LABELS[
+                            p.paymentMethod as TLegacyPaymentMethod
                           ] ?? p.paymentMethod}
                         </span>
                         <span className="font-bold text-primary mt-1">

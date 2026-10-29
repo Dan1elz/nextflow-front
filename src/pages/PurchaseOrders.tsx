@@ -32,7 +32,7 @@ import { SuppliersProvider } from "@/providers/suppliers.provider";
 
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { Badge } from "@/components/ui/badge";
-import { PURCHASE_STATUS_LABELS, TPurchaseStatus } from "@/types/enums";
+import { LEGACY_PURCHASE_STATUS_LABELS, TLegacyPurchaseStatus } from "@/types/enums";
 
 type PurchaseOrderFilters = {
   search: string;
@@ -62,9 +62,9 @@ function PurchaseOrders() {
       // Map statusGroup tab to actual status filter
       if (activeFilters.statusGroup && activeFilters.statusGroup !== "all") {
         const statusMap: Record<string, string> = {
-          budget: String(TPurchaseStatus.Budget),
-          pending: String(TPurchaseStatus.Pending),
-          received: String(TPurchaseStatus.Received),
+          budget: String(TLegacyPurchaseStatus.Budget),
+          pending: String(TLegacyPurchaseStatus.Pending),
+          received: String(TLegacyPurchaseStatus.Received),
         };
 
         if (activeFilters.statusGroup !== "canceled") {
@@ -159,7 +159,7 @@ function PurchaseOrders() {
       if (!order.id) return;
       try {
         await updatePurchaseOrder(order.id, {
-          status: TPurchaseStatus.Received,
+          status: TLegacyPurchaseStatus.Received,
         });
         handleSuccess("Pedido recebido! Estoque atualizado.");
         await handleSearch(1);
@@ -210,19 +210,19 @@ function PurchaseOrders() {
         cell: ({ row }) => {
           if (!row.original.status) return "-";
           const label =
-            PURCHASE_STATUS_LABELS[row.original.status] ?? row.original.status;
+            LEGACY_PURCHASE_STATUS_LABELS[row.original.status] ?? row.original.status;
 
           let extraClass = "";
-          if (row.original.status === TPurchaseStatus.Received)
+          if (row.original.status === TLegacyPurchaseStatus.Received)
             extraClass =
               "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
-          else if (row.original.status === TPurchaseStatus.Canceled)
+          else if (row.original.status === TLegacyPurchaseStatus.Canceled)
             extraClass =
               "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
-          else if (row.original.status === TPurchaseStatus.Pending)
+          else if (row.original.status === TLegacyPurchaseStatus.Pending)
             extraClass =
               "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
-          else if (row.original.status === TPurchaseStatus.Budget)
+          else if (row.original.status === TLegacyPurchaseStatus.Budget)
             extraClass =
               "bg-slate-500 hover:bg-slate-600 text-white border-none shadow-sm";
 
@@ -248,8 +248,8 @@ function PurchaseOrders() {
         header: "Ações",
         cell: ({ row }) => {
           const status = row.original.status as number;
-          const isCanceled = status === TPurchaseStatus.Canceled;
-          const isReceived = status === TPurchaseStatus.Received;
+          const isCanceled = status === TLegacyPurchaseStatus.Canceled;
+          const isReceived = status === TLegacyPurchaseStatus.Received;
           const canAct = !isCanceled && !isReceived;
 
           return (

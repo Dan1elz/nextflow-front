@@ -32,7 +32,7 @@ import { ProductsProvider } from "@/providers/products.provider";
 import type { IIndexParams, IOption } from "@/interfaces/api.interface";
 import type { IProduct } from "@/interfaces/product.interface";
 import type { IPromotion } from "@/interfaces/promotion.interface";
-import { TPromotionSource, TPromotionStatus } from "@/types/enums";
+import { TLegacyPromotionSource, TLegacyPromotionStatus } from "@/types/enums";
 import { isAdmin } from "@/utils/auth.helpers";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import {
@@ -237,8 +237,8 @@ function Promotions() {
           const canCancel =
             admin &&
             row.original.isActive &&
-            (row.original.status === TPromotionStatus.Active ||
-              row.original.status === TPromotionStatus.Scheduled);
+            (row.original.status === TLegacyPromotionStatus.Active ||
+              row.original.status === TLegacyPromotionStatus.Scheduled);
           return (
             <NavActionColumn
               object={row.original}
@@ -279,12 +279,12 @@ function Promotions() {
         >
           <TabsList className="flex h-auto w-full justify-start overflow-x-auto p-1 md:w-auto">
             <TabsTrigger value={ALL}>Todas</TabsTrigger>
-            <TabsTrigger value={TPromotionStatus.Active}>Vigentes</TabsTrigger>
-            <TabsTrigger value={TPromotionStatus.Scheduled}>
+            <TabsTrigger value={TLegacyPromotionStatus.Active}>Vigentes</TabsTrigger>
+            <TabsTrigger value={TLegacyPromotionStatus.Scheduled}>
               Agendadas
             </TabsTrigger>
-            <TabsTrigger value={TPromotionStatus.Ended}>Encerradas</TabsTrigger>
-            <TabsTrigger value={TPromotionStatus.Canceled}>
+            <TabsTrigger value={TLegacyPromotionStatus.Ended}>Encerradas</TabsTrigger>
+            <TabsTrigger value={TLegacyPromotionStatus.Canceled}>
               Canceladas
             </TabsTrigger>
           </TabsList>
@@ -323,10 +323,10 @@ function Promotions() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL}>Todas as origens</SelectItem>
-                <SelectItem value={String(TPromotionSource.Manual)}>
+                <SelectItem value={String(TLegacyPromotionSource.Manual)}>
                   Manual
                 </SelectItem>
-                <SelectItem value={String(TPromotionSource.AiRecommendation)}>
+                <SelectItem value={String(TLegacyPromotionSource.AiRecommendation)}>
                   Recomendação da IA
                 </SelectItem>
               </SelectContent>

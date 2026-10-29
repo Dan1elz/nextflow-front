@@ -11,7 +11,7 @@ import { useStockMovements } from "@/hooks/use-stock-movements";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { formatDateTime, formatNumber, formatCurrency } from "@/utils";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
-import { MOVEMENT_TYPE_LABELS, TMovementType as TypesObj } from "@/types/enums";
+import { LEGACY_MOVEMENT_TYPE_LABELS, TLegacyMovementType as TypesObj } from "@/types/enums";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -131,7 +131,7 @@ function StockMovementsTabContent({
         header: "Tipo",
         cell: ({ row }) => {
           const mType = row.original.movementType as unknown as TypesObj;
-          const label = MOVEMENT_TYPE_LABELS[mType] ?? String(mType);
+          const label = LEGACY_MOVEMENT_TYPE_LABELS[mType] ?? String(mType);
 
           const variant: "default" | "destructive" | "outline" | "secondary" =
             "default";

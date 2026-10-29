@@ -17,11 +17,11 @@ export function SalesProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await saleService.getAll(query, token ?? undefined);
-      setSales(response.data || []);
+      setSales(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.totalItems || 0) / perPage) || 1,
-        total: response.totalItems || 0,
+        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
+        total: response.total || 0,
         perPage,
       });
     },
@@ -34,8 +34,8 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     ): Promise<{ data: ISale[]; totalItems: number }> => {
       const response = await saleService.getAll(query, token ?? undefined);
       return {
-        data: response.data || [],
-        totalItems: response.totalItems || 0,
+        data: response.items || [],
+        totalItems: response.total || 0,
       };
     },
     [token]

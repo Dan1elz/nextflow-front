@@ -35,9 +35,9 @@ import { StockMovementsProvider } from "@/providers/stock-movements.provider";
 import { ProductsProvider } from "@/providers/products.provider";
 import { UsersProvider } from "@/providers/users.provider";
 import {
-  MOVEMENT_TYPE_LABELS,
-  type TMovementType,
-  TMovementType as TypesObj,
+  LEGACY_MOVEMENT_TYPE_LABELS,
+  type TLegacyMovementType,
+  TLegacyMovementType as TypesObj,
 } from "@/types/enums";
 import { useProducts } from "@/hooks/use-products";
 import { useUsers } from "@/hooks/use-users";
@@ -228,7 +228,7 @@ function StockMovements() {
         header: "Tipo",
         cell: ({ row }) => {
           const mType = row.original.movementType as unknown as TypesObj;
-          const label = MOVEMENT_TYPE_LABELS[mType] ?? String(mType);
+          const label = LEGACY_MOVEMENT_TYPE_LABELS[mType] ?? String(mType);
 
           const variant: "default" | "destructive" | "outline" | "secondary" =
             "default";
@@ -399,7 +399,7 @@ function StockMovements() {
                         const type = TypesObj[key];
                         return (
                           <SelectItem key={type} value={String(type)}>
-                            {MOVEMENT_TYPE_LABELS[type as TMovementType]}
+                            {LEGACY_MOVEMENT_TYPE_LABELS[type as TLegacyMovementType]}
                           </SelectItem>
                         );
                       })}

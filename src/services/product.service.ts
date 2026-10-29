@@ -63,7 +63,7 @@ export const productService = {
       token,
       true
     );
-    return (response.data ?? response) as unknown as IProduct;
+    return response as unknown as IProduct;
   },
   async update(
     id: string,
@@ -76,7 +76,7 @@ export const productService = {
       body,
       token
     );
-    return response.data as IProduct;
+    return response as IProduct;
   },
   async updateProductImage(
     id: string,
@@ -91,13 +91,13 @@ export const productService = {
       token,
       true
     );
-    return response.data as IProduct;
+    return response as IProduct;
   },
   async removeProductImage(id: string, token?: string): Promise<IProduct> {
     const response = await apiService.delete<IProduct>(
       `products/${id}/image`,
       token
     );
-    return response.data as IProduct;
+    return response as IProduct;
   },
 };

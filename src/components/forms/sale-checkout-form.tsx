@@ -24,7 +24,7 @@ import { ButtonLoader } from "@/components/ui/button-loader";
 import { Separator } from "@/components/ui/separator";
 
 import { formatCurrency } from "@/utils";
-import { TPaymentMethod, PAYMENT_METHOD_LABELS } from "@/types/enums";
+import { TLegacyPaymentMethod, LEGACY_PAYMENT_METHOD_LABELS } from "@/types/enums";
 import type { IOrder } from "@/interfaces/order.interface";
 import type { IPayment } from "@/interfaces/sale.interface";
 import { createSaleSchema, type CreateSaleSchema } from "@/schemas/sale.schema";
@@ -67,8 +67,8 @@ export function SaleCheckoutForm({
     return val > 0 ? val : 0;
   }, [totalAmount, totalPaid]);
 
-  const [inputMethod, setInputMethod] = useState<TPaymentMethod>(
-    TPaymentMethod.Cash
+  const [inputMethod, setInputMethod] = useState<TLegacyPaymentMethod>(
+    TLegacyPaymentMethod.Cash
   );
   const [inputAmount, setInputAmount] = useState<number>(remaining);
 
@@ -78,7 +78,7 @@ export function SaleCheckoutForm({
   }, [remaining]);
 
   const handleMethodChange = (v: string) =>
-    setInputMethod(Number(v) as TPaymentMethod);
+    setInputMethod(Number(v) as TLegacyPaymentMethod);
 
   const handleAddPayment = () => {
     if (inputAmount <= 0) return;
@@ -156,14 +156,14 @@ export function SaleCheckoutForm({
                 </SelectTrigger>
                 <SelectContent>
                   {(
-                    Object.keys(TPaymentMethod) as Array<
-                      keyof typeof TPaymentMethod
+                    Object.keys(TLegacyPaymentMethod) as Array<
+                      keyof typeof TLegacyPaymentMethod
                     >
                   ).map((key) => {
-                    const methodVal = TPaymentMethod[key];
+                    const methodVal = TLegacyPaymentMethod[key];
                     return (
                       <SelectItem key={methodVal} value={String(methodVal)}>
-                        {PAYMENT_METHOD_LABELS[methodVal]}
+                        {LEGACY_PAYMENT_METHOD_LABELS[methodVal]}
                       </SelectItem>
                     );
                   })}
@@ -222,7 +222,7 @@ export function SaleCheckoutForm({
                 >
                   <div className="flex flex-col">
                     <span className="font-medium text-sm">
-                      {PAYMENT_METHOD_LABELS[p.paymentMethod as TPaymentMethod]}
+                      {LEGACY_PAYMENT_METHOD_LABELS[p.paymentMethod as TLegacyPaymentMethod]}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       Adicionado

@@ -1,6 +1,6 @@
 import type { IProduct } from "./product.interface";
 import type { IUser } from "./user.interface";
-import type { TMovementType } from "@/types/enums";
+import type { TLegacyMovementType } from "@/types/enums";
 
 export interface IStockMovement {
   id?: string;
@@ -9,7 +9,7 @@ export interface IStockMovement {
   product?: IProduct;
   userId: string;
   user?: IUser;
-  movementType: TMovementType;
+  movementType: TLegacyMovementType;
   quantity: number | string;
   quote: number | string;
   createAt?: string;

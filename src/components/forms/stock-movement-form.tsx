@@ -27,7 +27,7 @@ import {
   stockMovementSchema,
   type StockMovementSchema,
 } from "@/schemas/stock-movement.schema";
-import { TMovementType, MOVEMENT_TYPE_LABELS } from "@/types/enums";
+import { TLegacyMovementType, LEGACY_MOVEMENT_TYPE_LABELS } from "@/types/enums";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
 
 interface StockMovementFormProps {
@@ -63,7 +63,7 @@ export function StockMovementForm({
       productId: initialData?.productId || productId || "",
 
       description: initialData?.description || "",
-      movementType: initialData?.movementType || TMovementType.Entry,
+      movementType: initialData?.movementType || TLegacyMovementType.Entry,
       quantity: Number(initialData?.quantity) || 0,
     },
   });
@@ -139,21 +139,21 @@ export function StockMovementForm({
                   </FormControl>
                   <SelectContent>
                     {(
-                      Object.keys(TMovementType) as Array<
-                        keyof typeof TMovementType
+                      Object.keys(TLegacyMovementType) as Array<
+                        keyof typeof TLegacyMovementType
                       >
                     )
                       .filter(
                         (key) =>
-                          TMovementType[key] === TMovementType.Entry ||
-                          TMovementType[key] === TMovementType.Exit ||
-                          TMovementType[key] === TMovementType.Adjustment
+                          TLegacyMovementType[key] === TLegacyMovementType.Entry ||
+                          TLegacyMovementType[key] === TLegacyMovementType.Exit ||
+                          TLegacyMovementType[key] === TLegacyMovementType.Adjustment
                       )
                       .map((key) => {
-                        const type = TMovementType[key];
+                        const type = TLegacyMovementType[key];
                         return (
                           <SelectItem key={type} value={String(type)}>
-                            {MOVEMENT_TYPE_LABELS[type as TMovementType]}
+                            {LEGACY_MOVEMENT_TYPE_LABELS[type as TLegacyMovementType]}
                           </SelectItem>
                         );
                       })}

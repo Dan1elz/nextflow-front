@@ -1,247 +1,383 @@
 /**
- * Enums alinhados aos do backend (Nextflow.Domain.Enums).
+ * Enums da API nova (ADR 0010): trafegam como string, com a chave igual ao `GetApiName()` do backend
+ * (`nextflow/nextflow.Domain/Enums`). Cada enum tem o label pt-BR ao lado. Mudou na API, muda aqui.
+ * Fonte: seção "Enums" do `contract.md` de cada módulo em `nextflow-docs`.
+ * Enums da API antiga, ainda usados por telas não migradas: `legacy-enums.ts`.
  */
 
-/** UnitType - Unidade de medida de produto */
-export const TUnitType = {
-  Unit: 1,
-  Kilogram: 2,
-  Liter: 3,
-  Meter: 4,
-} as const;
+// ---------- Acesso ----------
 
-export type TUnitType = (typeof TUnitType)[keyof typeof TUnitType];
-
-export const UNIT_TYPE_LABELS: Record<TUnitType, string> = {
-  [TUnitType.Unit]: "Unidade",
-  [TUnitType.Kilogram]: "Quilograma",
-  [TUnitType.Liter]: "Litro",
-  [TUnitType.Meter]: "Metro",
-};
-
-/** RoleEnum - Papel do usuário */
+/** Perfil do usuário. Só Admin em uso (ADR 0004). */
 export const TRoleEnum = {
-  User: 1,
-  Admin: 2,
+  User: "User",
+  Admin: "Admin",
 } as const;
-
 export type TRoleEnum = (typeof TRoleEnum)[keyof typeof TRoleEnum];
-
 export const ROLE_ENUM_LABELS: Record<TRoleEnum, string> = {
-  [TRoleEnum.User]: "Usuário",
-  [TRoleEnum.Admin]: "Administrador",
+  User: "Usuário",
+  Admin: "Administrador",
 };
 
-/** PaymentMethod - Forma de pagamento */
-export const TPaymentMethod = {
-  Cash: 1,
-  CreditCard: 2,
-  DebitCard: 3,
-  BankTransfer: 4,
-  Pix: 5,
-  Ticket: 6,
-} as const;
+// ---------- Cadastros ----------
 
+/** Tipo de contato de cliente/fornecedor. */
+export const TContactType = {
+  Phone: "Phone",
+  Email: "Email",
+  WhatsApp: "WhatsApp",
+} as const;
+export type TContactType = (typeof TContactType)[keyof typeof TContactType];
+export const CONTACT_TYPE_LABELS: Record<TContactType, string> = {
+  Phone: "Telefone",
+  Email: "E-mail",
+  WhatsApp: "WhatsApp",
+};
+
+/** Dono de endereço/contato (associação polimórfica). */
+export const TOwnerType = {
+  Client: "Client",
+  Supplier: "Supplier",
+} as const;
+export type TOwnerType = (typeof TOwnerType)[keyof typeof TOwnerType];
+export const OWNER_TYPE_LABELS: Record<TOwnerType, string> = {
+  Client: "Cliente",
+  Supplier: "Fornecedor",
+};
+
+// ---------- Catálogo e estoque ----------
+
+export const TProductType = {
+  Standard: "Standard",
+  Apparel: "Apparel",
+  Perishable: "Perishable",
+  Bulk: "Bulk",
+} as const;
+export type TProductType = (typeof TProductType)[keyof typeof TProductType];
+export const PRODUCT_TYPE_LABELS: Record<TProductType, string> = {
+  Standard: "Padrão",
+  Apparel: "Vestuário",
+  Perishable: "Perecível",
+  Bulk: "A granel",
+};
+
+export const TLifecycle = {
+  Active: "Active",
+  Discontinued: "Discontinued",
+} as const;
+export type TLifecycle = (typeof TLifecycle)[keyof typeof TLifecycle];
+export const LIFECYCLE_LABELS: Record<TLifecycle, string> = {
+  Active: "Em linha",
+  Discontinued: "Fora de linha",
+};
+
+export const TSaleUnit = {
+  Unit: "Unit",
+  Kilogram: "Kilogram",
+  Liter: "Liter",
+  Meter: "Meter",
+} as const;
+export type TSaleUnit = (typeof TSaleUnit)[keyof typeof TSaleUnit];
+export const SALE_UNIT_LABELS: Record<TSaleUnit, string> = {
+  Unit: "Unidade",
+  Kilogram: "Quilograma",
+  Liter: "Litro",
+  Meter: "Metro",
+};
+
+export const TMovementType = {
+  In: "In",
+  Out: "Out",
+} as const;
+export type TMovementType = (typeof TMovementType)[keyof typeof TMovementType];
+export const MOVEMENT_TYPE_LABELS: Record<TMovementType, string> = {
+  In: "Entrada",
+  Out: "Saída",
+};
+
+export const TMovementReason = {
+  Opening: "Opening",
+  Purchase: "Purchase",
+  Sale: "Sale",
+  CustomerReturn: "CustomerReturn",
+  SupplierReturn: "SupplierReturn",
+  TransferIn: "TransferIn",
+  TransferOut: "TransferOut",
+  CountAdjustment: "CountAdjustment",
+  Adjustment: "Adjustment",
+  Breakage: "Breakage",
+  Expired: "Expired",
+  Theft: "Theft",
+  InternalUse: "InternalUse",
+} as const;
+export type TMovementReason =
+  (typeof TMovementReason)[keyof typeof TMovementReason];
+export const MOVEMENT_REASON_LABELS: Record<TMovementReason, string> = {
+  Opening: "Saldo de abertura",
+  Purchase: "Compra",
+  Sale: "Venda",
+  CustomerReturn: "Devolução de cliente",
+  SupplierReturn: "Devolução ao fornecedor",
+  TransferIn: "Transferência (entrada)",
+  TransferOut: "Transferência (saída)",
+  CountAdjustment: "Ajuste de inventário",
+  Adjustment: "Ajuste",
+  Breakage: "Avaria",
+  Expired: "Vencido",
+  Theft: "Furto",
+  InternalUse: "Uso interno",
+};
+
+export const TSourceType = {
+  Order: "Order",
+  PurchaseOrder: "PurchaseOrder",
+  Transfer: "Transfer",
+  InventoryCount: "InventoryCount",
+  Manual: "Manual",
+} as const;
+export type TSourceType = (typeof TSourceType)[keyof typeof TSourceType];
+export const SOURCE_TYPE_LABELS: Record<TSourceType, string> = {
+  Order: "Pedido",
+  PurchaseOrder: "Pedido de compra",
+  Transfer: "Transferência",
+  InventoryCount: "Inventário",
+  Manual: "Manual",
+};
+
+export const TTransferStatus = {
+  Draft: "Draft",
+  Sent: "Sent",
+  Received: "Received",
+  Canceled: "Canceled",
+} as const;
+export type TTransferStatus =
+  (typeof TTransferStatus)[keyof typeof TTransferStatus];
+export const TRANSFER_STATUS_LABELS: Record<TTransferStatus, string> = {
+  Draft: "Rascunho",
+  Sent: "Enviada",
+  Received: "Recebida",
+  Canceled: "Cancelada",
+};
+
+export const TInventoryStatus = {
+  Open: "Open",
+  Closed: "Closed",
+  Canceled: "Canceled",
+} as const;
+export type TInventoryStatus =
+  (typeof TInventoryStatus)[keyof typeof TInventoryStatus];
+export const INVENTORY_STATUS_LABELS: Record<TInventoryStatus, string> = {
+  Open: "Aberto",
+  Closed: "Fechado",
+  Canceled: "Cancelado",
+};
+
+export const TEventScope = {
+  National: "National",
+  Company: "Company",
+} as const;
+export type TEventScope = (typeof TEventScope)[keyof typeof TEventScope];
+export const EVENT_SCOPE_LABELS: Record<TEventScope, string> = {
+  National: "Nacional",
+  Company: "Da empresa",
+};
+
+export const TDateRule = {
+  Fixed: "Fixed",
+  Easter: "Easter",
+  NthWeekday: "NthWeekday",
+  BlackFriday: "BlackFriday",
+  EasterOffset: "EasterOffset",
+} as const;
+export type TDateRule = (typeof TDateRule)[keyof typeof TDateRule];
+export const DATE_RULE_LABELS: Record<TDateRule, string> = {
+  Fixed: "Data fixa",
+  Easter: "Páscoa",
+  NthWeekday: "Enésimo dia da semana",
+  BlackFriday: "Black Friday",
+  EasterOffset: "Dias a partir da Páscoa",
+};
+
+// ---------- Vendas ----------
+
+export const TOrderStatus = {
+  Budget: "Budget",
+  Paid: "Paid",
+  Canceled: "Canceled",
+  Refunded: "Refunded",
+  Expired: "Expired",
+} as const;
+export type TOrderStatus = (typeof TOrderStatus)[keyof typeof TOrderStatus];
+export const ORDER_STATUS_LABELS: Record<TOrderStatus, string> = {
+  Budget: "Orçamento",
+  Paid: "Paga",
+  Canceled: "Cancelado",
+  Refunded: "Reembolsada",
+  Expired: "Expirado",
+};
+
+export const TOrderChannel = {
+  Counter: "Counter",
+  Order: "Order",
+} as const;
+export type TOrderChannel = (typeof TOrderChannel)[keyof typeof TOrderChannel];
+export const ORDER_CHANNEL_LABELS: Record<TOrderChannel, string> = {
+  Counter: "Balcão",
+  Order: "Pedido",
+};
+
+/** Forma de pagamento. Sem boleto (RN-VD20). */
+export const TPaymentMethod = {
+  Cash: "Cash",
+  CreditCard: "CreditCard",
+  DebitCard: "DebitCard",
+  BankTransfer: "BankTransfer",
+  Pix: "Pix",
+} as const;
 export type TPaymentMethod =
   (typeof TPaymentMethod)[keyof typeof TPaymentMethod];
-
 export const PAYMENT_METHOD_LABELS: Record<TPaymentMethod, string> = {
-  [TPaymentMethod.Cash]: "Dinheiro",
-  [TPaymentMethod.CreditCard]: "Cartão de Crédito",
-  [TPaymentMethod.DebitCard]: "Cartão de Débito",
-  [TPaymentMethod.BankTransfer]: "Transferência Bancária",
-  [TPaymentMethod.Pix]: "Pix",
-  [TPaymentMethod.Ticket]: "Vale",
+  Cash: "Dinheiro",
+  CreditCard: "Cartão de crédito",
+  DebitCard: "Cartão de débito",
+  BankTransfer: "Transferência bancária",
+  Pix: "Pix",
 };
 
-/** OrderType - Tipo de pedido */
-export const TOrderType = {
-  Budget: 1,
-  Sale: 2,
-} as const;
-
-export type TOrderType = (typeof TOrderType)[keyof typeof TOrderType];
-
-export const ORDER_TYPE_LABELS: Record<TOrderType, string> = {
-  [TOrderType.Budget]: "Orçamento",
-  [TOrderType.Sale]: "Venda",
-};
-
-/** OrderStatus - Status do pedido */
-export const TOrderStatus = {
-  Budget: 1,
-  PendingPayment: 2,
-  PaymentConfirmed: 3,
-  Canceled: 4,
-  Refunded: 5,
-} as const;
-
-export type TOrderStatus = (typeof TOrderStatus)[keyof typeof TOrderStatus];
-
-export const ORDER_STATUS_LABELS: Record<TOrderStatus, string> = {
-  [TOrderStatus.Budget]: "Orçamento",
-  [TOrderStatus.PendingPayment]: "Aguardando pagamento",
-  [TOrderStatus.PaymentConfirmed]: "Pagamento confirmado",
-  [TOrderStatus.Canceled]: "Pedido cancelado",
-  [TOrderStatus.Refunded]: "Pedido reembolsado",
-};
-
-/** MovementType - Tipo de movimento de estoque */
-export const TMovementType = {
-  Entry: 1,
-  Exit: 2,
-  Adjustment: 3,
-  Sales: 4,
-  Return: 5,
-} as const;
-
-export type TMovementType = (typeof TMovementType)[keyof typeof TMovementType];
-
-export const MOVEMENT_TYPE_LABELS: Record<TMovementType, string> = {
-  [TMovementType.Entry]: "Entrada",
-  [TMovementType.Exit]: "Remoção",
-  [TMovementType.Adjustment]: "Ajuste",
-  [TMovementType.Sales]: "Vendas",
-  [TMovementType.Return]: "Retorno",
-};
-
-/** PurchaseStatus - Status do pedido de compra */
-export const TPurchaseStatus = {
-  Budget: 1,
-  Pending: 2,
-  Received: 3,
-  Canceled: 4,
-} as const;
-
-export type TPurchaseStatus =
-  (typeof TPurchaseStatus)[keyof typeof TPurchaseStatus];
-
-export const PURCHASE_STATUS_LABELS: Record<TPurchaseStatus, string> = {
-  [TPurchaseStatus.Budget]: "Orçamento",
-  [TPurchaseStatus.Pending]: "Pendente",
-  [TPurchaseStatus.Received]: "Recebido",
-  [TPurchaseStatus.Canceled]: "Cancelado",
-};
-
-/** PromotionSource - Origem da promoção */
-export const TPromotionSource = {
-  Manual: 1,
-  AiRecommendation: 2,
-} as const;
-
-export type TPromotionSource =
-  (typeof TPromotionSource)[keyof typeof TPromotionSource];
-
-export const PROMOTION_SOURCE_LABELS: Record<TPromotionSource, string> = {
-  [TPromotionSource.Manual]: "Manual",
-  [TPromotionSource.AiRecommendation]: "Recomendação da IA",
-};
-
-/** PromotionStatus - Status calculado da promoção (string no JSON) */
 export const TPromotionStatus = {
-  Active: "active",
-  Scheduled: "scheduled",
-  Ended: "ended",
-  Canceled: "canceled",
+  Scheduled: "Scheduled",
+  Active: "Active",
+  Ended: "Ended",
+  Canceled: "Canceled",
 } as const;
-
 export type TPromotionStatus =
   (typeof TPromotionStatus)[keyof typeof TPromotionStatus];
-
 export const PROMOTION_STATUS_LABELS: Record<TPromotionStatus, string> = {
-  [TPromotionStatus.Active]: "Vigente",
-  [TPromotionStatus.Scheduled]: "Agendada",
-  [TPromotionStatus.Ended]: "Encerrada",
-  [TPromotionStatus.Canceled]: "Cancelada",
+  Scheduled: "Agendada",
+  Active: "Vigente",
+  Ended: "Encerrada",
+  Canceled: "Cancelada",
 };
 
-/** ForecastRunStatus - Status de uma análise de previsão */
-export const TForecastRunStatus = {
-  Completed: 1,
-  CompletedWithoutAi: 2,
-  Failed: 3,
+export const TPromotionSource = {
+  Manual: "Manual",
+  AiRecommendation: "AiRecommendation",
 } as const;
+export type TPromotionSource =
+  (typeof TPromotionSource)[keyof typeof TPromotionSource];
+export const PROMOTION_SOURCE_LABELS: Record<TPromotionSource, string> = {
+  Manual: "Manual",
+  AiRecommendation: "Recomendação da IA",
+};
 
+// ---------- Compras ----------
+
+export const TPurchaseStatus = {
+  Budget: "Budget",
+  Pending: "Pending",
+  Received: "Received",
+  Canceled: "Canceled",
+} as const;
+export type TPurchaseStatus =
+  (typeof TPurchaseStatus)[keyof typeof TPurchaseStatus];
+export const PURCHASE_STATUS_LABELS: Record<TPurchaseStatus, string> = {
+  Budget: "Orçamento",
+  Pending: "Pendente",
+  Received: "Recebido",
+  Canceled: "Cancelado",
+};
+
+// ---------- Previsão ----------
+
+export const TForecastRunStatus = {
+  Completed: "Completed",
+  CompletedWithoutAi: "CompletedWithoutAi",
+  Failed: "Failed",
+  Running: "Running",
+} as const;
 export type TForecastRunStatus =
   (typeof TForecastRunStatus)[keyof typeof TForecastRunStatus];
-
 export const FORECAST_RUN_STATUS_LABELS: Record<TForecastRunStatus, string> = {
-  [TForecastRunStatus.Completed]: "Concluída",
-  [TForecastRunStatus.CompletedWithoutAi]: "Concluída sem IA",
-  [TForecastRunStatus.Failed]: "Falhou",
+  Completed: "Concluída",
+  CompletedWithoutAi: "Concluída sem IA",
+  Failed: "Falhou",
+  Running: "Em andamento",
 };
 
-/** RecommendationAction - Ação recomendada */
-export const TRecommendationAction = {
-  Buy: 1,
-  Promote: 2,
-  Hold: 3,
+export const TForecastTrigger = {
+  Manual: "Manual",
+  Scheduled: "Scheduled",
 } as const;
+export type TForecastTrigger =
+  (typeof TForecastTrigger)[keyof typeof TForecastTrigger];
+export const FORECAST_TRIGGER_LABELS: Record<TForecastTrigger, string> = {
+  Manual: "Manual",
+  Scheduled: "Semanal",
+};
 
+export const TRecommendationAction = {
+  Buy: "Buy",
+  Promote: "Promote",
+  Hold: "Hold",
+  Transfer: "Transfer",
+} as const;
 export type TRecommendationAction =
   (typeof TRecommendationAction)[keyof typeof TRecommendationAction];
-
 export const RECOMMENDATION_ACTION_LABELS: Record<
   TRecommendationAction,
   string
 > = {
-  [TRecommendationAction.Buy]: "Comprar",
-  [TRecommendationAction.Promote]: "Promover",
-  [TRecommendationAction.Hold]: "Manter",
+  Buy: "Comprar",
+  Promote: "Promover",
+  Hold: "Manter",
+  Transfer: "Transferir",
 };
 
-/** RecommendationPriority - Prioridade da recomendação */
 export const TRecommendationPriority = {
-  Low: 1,
-  Medium: 2,
-  High: 3,
+  Low: "Low",
+  Medium: "Medium",
+  High: "High",
 } as const;
-
 export type TRecommendationPriority =
   (typeof TRecommendationPriority)[keyof typeof TRecommendationPriority];
-
 export const RECOMMENDATION_PRIORITY_LABELS: Record<
   TRecommendationPriority,
   string
 > = {
-  [TRecommendationPriority.Low]: "Baixa",
-  [TRecommendationPriority.Medium]: "Média",
-  [TRecommendationPriority.High]: "Alta",
+  Low: "Baixa",
+  Medium: "Média",
+  High: "Alta",
 };
 
-/** ForecastConfidence - Confiança da previsão */
 export const TForecastConfidence = {
-  Low: 1,
-  Medium: 2,
-  High: 3,
+  Low: "Low",
+  Medium: "Medium",
+  High: "High",
 } as const;
-
 export type TForecastConfidence =
   (typeof TForecastConfidence)[keyof typeof TForecastConfidence];
-
 export const FORECAST_CONFIDENCE_LABELS: Record<TForecastConfidence, string> = {
-  [TForecastConfidence.Low]: "Baixa",
-  [TForecastConfidence.Medium]: "Média",
-  [TForecastConfidence.High]: "Alta",
+  Low: "Baixa",
+  Medium: "Média",
+  High: "Alta",
 };
 
-/** RecommendationStatus - Status da recomendação */
 export const TRecommendationStatus = {
-  Pending: 1,
-  Applied: 2,
-  Dismissed: 3,
-  Expired: 4,
+  Pending: "Pending",
+  Applied: "Applied",
+  Dismissed: "Dismissed",
+  Expired: "Expired",
 } as const;
-
 export type TRecommendationStatus =
   (typeof TRecommendationStatus)[keyof typeof TRecommendationStatus];
-
 export const RECOMMENDATION_STATUS_LABELS: Record<
   TRecommendationStatus,
   string
 > = {
-  [TRecommendationStatus.Pending]: "Pendente",
-  [TRecommendationStatus.Applied]: "Aplicada",
-  [TRecommendationStatus.Dismissed]: "Descartada",
-  [TRecommendationStatus.Expired]: "Expirada",
+  Pending: "Pendente",
+  Applied: "Aplicada",
+  Dismissed: "Descartada",
+  Expired: "Expirada",
 };
+
+// Enums da API antiga, só para as telas ainda não migradas (sai junto com elas).
+export * from "./legacy-enums";

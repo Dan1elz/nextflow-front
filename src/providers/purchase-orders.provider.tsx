@@ -25,11 +25,11 @@ export function PurchaseOrdersProvider({ children }: { children: ReactNode }) {
         query,
         token ?? undefined
       );
-      setPurchaseOrders(response.data || []);
+      setPurchaseOrders(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.totalItems || 0) / perPage) || 1,
-        total: response.totalItems || 0,
+        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
+        total: response.total || 0,
         perPage,
       });
     },

@@ -19,11 +19,11 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await promotionService.getAll(query, token ?? undefined);
-      setPromotions(response.data || []);
+      setPromotions(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.totalItems || 0) / perPage) || 1,
-        total: response.totalItems || 0,
+        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
+        total: response.total || 0,
         perPage,
       });
     },

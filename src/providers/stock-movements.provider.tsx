@@ -21,11 +21,11 @@ export function StockMovementsProvider({ children }: { children: ReactNode }) {
         query,
         token ?? undefined
       );
-      setStockMovements(response.data || []);
+      setStockMovements(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.totalItems || 0) / perPage) || 1,
-        total: response.totalItems || 0,
+        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
+        total: response.total || 0,
         perPage,
       });
     },
@@ -41,8 +41,8 @@ export function StockMovementsProvider({ children }: { children: ReactNode }) {
         token ?? undefined
       );
       return {
-        data: response.data || [],
-        totalItems: response.totalItems || 0,
+        data: response.items || [],
+        totalItems: response.total || 0,
       };
     },
     [token]

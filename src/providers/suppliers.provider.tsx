@@ -18,11 +18,11 @@ export function SuppliersProvider({ children }: { children: ReactNode }) {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
       const response = await supplierService.getAll(query, token ?? undefined);
-      setSuppliers(response.data || []);
+      setSuppliers(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil(response.totalItems / perPage) || 1,
-        total: response.totalItems,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
@@ -35,8 +35,8 @@ export function SuppliersProvider({ children }: { children: ReactNode }) {
     ): Promise<{ data: ISupplier[]; totalItems: number }> => {
       const response = await supplierService.getAll(query, token ?? undefined);
       return {
-        data: response.data || [],
-        totalItems: response.totalItems,
+        data: response.items || [],
+        totalItems: response.total,
       };
     },
     [token]

@@ -24,7 +24,7 @@ export const forecastService = {
       undefined,
       token
     );
-    return response.data;
+    return response;
   },
 
   /** POST /api/forecasts/generate (Admin) — pode levar até ~60s */
@@ -34,7 +34,7 @@ export const forecastService = {
       { horizonMonths },
       token
     );
-    return response.data;
+    return response;
   },
 
   /** GET /api/forecasts/latest — `null` quando nunca houve análise */
@@ -44,7 +44,7 @@ export const forecastService = {
       undefined,
       token
     );
-    return response.data ?? null;
+    return response ?? null;
   },
 
   /** GET /api/forecasts/products/{productId}?months=24 */
@@ -58,7 +58,7 @@ export const forecastService = {
       { months },
       token
     );
-    return response.data;
+    return response;
   },
 
   /** POST /api/forecasts/recommendations/purchase */
@@ -71,7 +71,7 @@ export const forecastService = {
       request,
       token
     );
-    return response.data;
+    return response;
   },
 
   /** POST /api/forecasts/recommendations/{id}/promotion (Admin) */
@@ -85,7 +85,7 @@ export const forecastService = {
       request,
       token
     );
-    return response.data;
+    return response;
   },
 
   /** POST /api/forecasts/recommendations/{id}/dismiss */
@@ -99,6 +99,6 @@ export const forecastService = {
       { reason: reason?.trim() ? reason.trim() : null },
       token
     );
-    return response.data;
+    return response;
   },
 };

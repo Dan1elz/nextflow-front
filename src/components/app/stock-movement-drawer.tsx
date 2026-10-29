@@ -11,7 +11,7 @@ import { useStockMovements } from "@/hooks/use-stock-movements";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
 import type { StockMovementSchema } from "@/schemas/stock-movement.schema";
-import { type TMovementType } from "@/types/enums";
+import { type TLegacyMovementType } from "@/types/enums";
 import { useSearchOptions } from "@/hooks/use-search-options";
 import type { IProduct } from "@/interfaces/product.interface";
 import { useProducts } from "@/hooks/use-products";
@@ -68,7 +68,7 @@ export function StockMovementDrawer({
         productId: fixedProductId || data.productId,
 
         description: data.description,
-        movementType: data.movementType as TMovementType,
+        movementType: data.movementType as TLegacyMovementType,
         quantity: data.quantity,
       };
 

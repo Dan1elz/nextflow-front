@@ -1,29 +1,24 @@
-name: nextflow-development
+# Dev do front da API nova (branch feat/arquitetura-atrena). Projeto e porta separados do dev antigo (5173):
+# os dois podem rodar juntos. A API nova fica em http://localhost:8081 (compose do nextflow-v2) ou 5145 (dotnet run).
+name: nextflow-v2-front-development
 
 services:
   front:
-    image: nextflow-front:development
+    image: nextflow-v2-front:development
     build:
       context: .
       dockerfile: Dockerfile.development
-    # Importante para Linux/WSL: garante que o usuário do container seja o mesmo do host
-    # user: "1000:1000"
     volumes:
       - .:/app
       # Garante que o node_modules do container tenha prioridade sobre o do host
       - /app/node_modules
     env_file:
-      - .env
+      - path: .env
+        required: false
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8081}
+      VITE_HMR_PORT: ${FRONT_PORT:-5174}
     # Só em 127.0.0.1: abre no seu PC, mas ninguém de fora alcança
     ports:
-      - "127.0.0.1:5173:5173"
-    networks:
-      - nextflow-development-network
+      - "127.0.0.1:${FRONT_PORT:-5174}:5173"
     restart: unless-stopped
-    # Habilita polling se o hot-reload falhar no WSL (opcional)
-    # environment:
-    #   - WATCHPACK_POLLING=true
-
-networks:
-  nextflow-development-network:
-    external: true

@@ -18,12 +18,12 @@ export function CitiesProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await cityService.getAll(query, token ?? undefined);
-      setCities(response.data || []);
+      setCities(response.items || []);
 
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil(response.totalItems / perPage) || 1,
-        total: response.totalItems,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
@@ -36,8 +36,8 @@ export function CitiesProvider({ children }: { children: ReactNode }) {
     ): Promise<{ data: ICity[]; totalItems: number }> => {
       const response = await cityService.getAll(query, token ?? undefined);
       return {
-        data: response.data || [],
-        totalItems: response.totalItems,
+        data: response.items || [],
+        totalItems: response.total,
       };
     },
     [token]

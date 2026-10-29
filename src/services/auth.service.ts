@@ -6,7 +6,7 @@ const apiService = new ApiService();
 export const authService = {
   login: async (form: ILogin): Promise<ILoginResponse> => {
     const response = await apiService.post<ILoginResponse>("users/login", form);
-    return response.data;
+    return response;
   },
 
   checkAuth: async (token: string): Promise<ILoginResponse> => {
@@ -15,6 +15,6 @@ export const authService = {
       undefined,
       token
     );
-    return response.data;
+    return response;
   },
 };

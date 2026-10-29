@@ -1,4 +1,4 @@
-import type { TPromotionSource, TPromotionStatus } from "@/types/enums";
+import type { TLegacyPromotionSource, TLegacyPromotionStatus } from "@/types/enums";
 import type { IProduct } from "./product.interface";
 
 /** Resumo da promoção vigente embutido no produto (`ProductResponseDto.activePromotion`). */
@@ -19,11 +19,11 @@ export interface IPromotion {
   startDate: string;
   endDate: string;
   reason?: string | null;
-  source: TPromotionSource;
+  source: TLegacyPromotionSource;
   forecastRecommendationId?: string | null;
   createdByUserId: string;
   isActive: boolean;
-  status: TPromotionStatus;
+  status: TLegacyPromotionStatus;
   originalPrice: number;
   promotionalPrice: number;
   createAt: string;

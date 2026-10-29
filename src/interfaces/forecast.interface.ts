@@ -1,9 +1,9 @@
 import type {
-  TForecastConfidence,
-  TForecastRunStatus,
-  TRecommendationAction,
-  TRecommendationPriority,
-  TRecommendationStatus,
+  TLegacyForecastConfidence,
+  TLegacyForecastRunStatus,
+  TLegacyRecommendationAction,
+  TLegacyRecommendationPriority,
+  TLegacyRecommendationStatus,
   TUnitType,
 } from "@/types/enums";
 import type { IPurchaseOrder } from "./purchase-order.interface";
@@ -22,7 +22,7 @@ export interface IForecastRunSummary {
   requestedByUserId: string;
   requestedByName: string;
   horizonMonths: number;
-  status: TForecastRunStatus;
+  status: TLegacyForecastRunStatus;
   aiProvider?: string | null;
   aiModel?: string | null;
   summary?: string | null;
@@ -58,10 +58,10 @@ export interface IForecastRecommendation {
   forecastRunId: string;
   productId: string;
   product: IForecastRecommendationProduct;
-  action: TRecommendationAction;
-  priority: TRecommendationPriority;
-  confidence: TForecastConfidence;
-  status: TRecommendationStatus;
+  action: TLegacyRecommendationAction;
+  priority: TLegacyRecommendationPriority;
+  confidence: TLegacyForecastConfidence;
+  status: TLegacyRecommendationStatus;
   suggestedQuantity?: number | null;
   suggestedDiscountPercent?: number | null;
   suggestedPromotionDays?: number | null;

@@ -24,6 +24,6 @@ export const addressService = {
       payload,
       token
     );
-    return response.data;
+    return response;
   },
 };

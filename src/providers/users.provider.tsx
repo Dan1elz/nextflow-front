@@ -24,12 +24,12 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await userService.getAll(query, token ?? undefined);
-      setUsers(response.data || []);
+      setUsers(response.items || []);
 
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil(response.totalItems / perPage) || 1,
-        total: response.totalItems,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
@@ -54,7 +54,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
   const searchUsersForOptions = useCallback(
     async (query?: IIndexParams) => {
       const response = await userService.getAll(query, token ?? undefined);
-      return { data: response.data || [], totalItems: response.totalItems };
+      return { data: response.items || [], totalItems: response.total };
     },
     [token]
   );

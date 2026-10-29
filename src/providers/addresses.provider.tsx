@@ -22,12 +22,12 @@ export function AddressesProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await addressService.getAll(query, token ?? undefined);
-      setAddresses(response.data || []);
+      setAddresses(response.items || []);
 
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil(response.totalItems / perPage) || 1,
-        total: response.totalItems,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },

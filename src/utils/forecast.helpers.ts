@@ -3,8 +3,8 @@ import type {
   IForecastRun,
 } from "@/interfaces/forecast.interface";
 import {
-  TRecommendationAction,
-  TRecommendationStatus,
+  TLegacyRecommendationAction,
+  TLegacyRecommendationStatus,
   TUnitType,
 } from "@/types/enums";
 import { formatNumber } from "./format.helpers";
@@ -54,7 +54,7 @@ export function formatSeasonalIndex(index?: number | null): string {
 }
 
 export function isPendingRecommendation(rec: IForecastRecommendation): boolean {
-  return rec.status === TRecommendationStatus.Pending;
+  return rec.status === TLegacyRecommendationStatus.Pending;
 }
 
 export function isActionableRecommendation(
@@ -62,8 +62,8 @@ export function isActionableRecommendation(
 ): boolean {
   return (
     isPendingRecommendation(rec) &&
-    (rec.action === TRecommendationAction.Buy ||
-      rec.action === TRecommendationAction.Promote)
+    (rec.action === TLegacyRecommendationAction.Buy ||
+      rec.action === TLegacyRecommendationAction.Promote)
   );
 }
 

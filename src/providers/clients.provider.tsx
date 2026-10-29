@@ -18,12 +18,12 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await clientService.getAll(query, token ?? undefined);
-      setClients(response.data || []);
+      setClients(response.items || []);
 
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil(response.totalItems / perPage) || 1,
-        total: response.totalItems,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
@@ -51,8 +51,8 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
     ): Promise<{ data: IClient[]; totalItems: number }> => {
       const response = await clientService.getAll(query, token ?? undefined);
       return {
-        data: response.data || [],
-        totalItems: response.totalItems || 0,
+        data: response.items || [],
+        totalItems: response.total || 0,
       };
     },
     [token]

@@ -1,26 +1,27 @@
 import { toast, type ExternalToast } from "sonner";
 import { ApiError } from "@/services/api.service";
 
+/**
+ * Mostra a falha no toast. Para `ApiError`, usa a `message` do `ResultDto`; erros por campo devem ser
+ * marcados no formulário antes (`useApiForm`), e só chegam aqui quando nenhum campo casou.
+ */
 export function handleError(
   error: unknown,
   fallbackMessage: string = "Erro desconhecido"
 ): void {
   if (error instanceof ApiError) {
-    let description = "";
-
-    if (Array.isArray(error.errors)) {
-      description = error.errors.join(", ");
-    } else if (typeof error.errors === "object" && error.errors !== null) {
-      const messages = Object.entries(error.errors)
-        .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(", ")}`)
-        .join("\n");
-      description = messages;
-    }
-
-    toast.error(error.message, { description });
+    const description =
+      error.errors.length > 1 ? error.errors.join("\n") : undefined;
+    toast.error(
+      error.errors.length > 1
+        ? "Não foi possível concluir a operação."
+        : error.message,
+      {
+        description,
+      }
+    );
   } else if (error instanceof Error) {
-    if (error.cause) console.log(error.cause);
-    toast.error(error.message);
+    toast.error(error.message || fallbackMessage);
   } else {
     toast.error(fallbackMessage);
   }

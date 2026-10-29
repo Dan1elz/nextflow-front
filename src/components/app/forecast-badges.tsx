@@ -22,20 +22,20 @@ import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
 import { formatDateOnly } from "@/utils/format.helpers";
 import { formatDiscount, formatQuantity } from "@/utils/forecast.helpers";
 import {
-  FORECAST_CONFIDENCE_LABELS,
-  FORECAST_RUN_STATUS_LABELS,
-  PROMOTION_SOURCE_LABELS,
-  PROMOTION_STATUS_LABELS,
-  RECOMMENDATION_ACTION_LABELS,
-  RECOMMENDATION_PRIORITY_LABELS,
-  RECOMMENDATION_STATUS_LABELS,
-  TForecastConfidence,
-  TForecastRunStatus,
-  TPromotionSource,
-  TPromotionStatus,
-  TRecommendationAction,
-  TRecommendationPriority,
-  TRecommendationStatus,
+  LEGACY_FORECAST_CONFIDENCE_LABELS,
+  LEGACY_FORECAST_RUN_STATUS_LABELS,
+  LEGACY_PROMOTION_SOURCE_LABELS,
+  LEGACY_PROMOTION_STATUS_LABELS,
+  LEGACY_RECOMMENDATION_ACTION_LABELS,
+  LEGACY_RECOMMENDATION_PRIORITY_LABELS,
+  LEGACY_RECOMMENDATION_STATUS_LABELS,
+  TLegacyForecastConfidence,
+  TLegacyForecastRunStatus,
+  TLegacyPromotionSource,
+  TLegacyPromotionStatus,
+  TLegacyRecommendationAction,
+  TLegacyRecommendationPriority,
+  TLegacyRecommendationStatus,
 } from "@/types/enums";
 
 type Tone =
@@ -90,17 +90,17 @@ export function ActionBadge({
   action,
   className,
 }: {
-  action: TRecommendationAction;
+  action: TLegacyRecommendationAction;
   className?: string;
 }) {
-  const label = RECOMMENDATION_ACTION_LABELS[action] ?? String(action);
-  if (action === TRecommendationAction.Buy)
+  const label = LEGACY_RECOMMENDATION_ACTION_LABELS[action] ?? String(action);
+  if (action === TLegacyRecommendationAction.Buy)
     return (
       <Pill tone="indigo" icon={<ShoppingCart />} className={className}>
         {label}
       </Pill>
     );
-  if (action === TRecommendationAction.Promote)
+  if (action === TLegacyRecommendationAction.Promote)
     return (
       <Pill tone="violet" icon={<BadgePercent />} className={className}>
         {label}
@@ -117,11 +117,11 @@ export function PriorityBadge({
   priority,
   className,
 }: {
-  priority: TRecommendationPriority;
+  priority: TLegacyRecommendationPriority;
   className?: string;
 }) {
-  const label = RECOMMENDATION_PRIORITY_LABELS[priority] ?? String(priority);
-  if (priority === TRecommendationPriority.High)
+  const label = LEGACY_RECOMMENDATION_PRIORITY_LABELS[priority] ?? String(priority);
+  if (priority === TLegacyRecommendationPriority.High)
     return (
       <Pill
         tone="rose"
@@ -132,7 +132,7 @@ export function PriorityBadge({
         {label}
       </Pill>
     );
-  if (priority === TRecommendationPriority.Medium)
+  if (priority === TLegacyRecommendationPriority.Medium)
     return (
       <Pill
         tone="amber"
@@ -160,15 +160,15 @@ export function ConfidenceBadge({
   className,
   withPrefix = false,
 }: {
-  confidence: TForecastConfidence;
+  confidence: TLegacyForecastConfidence;
   className?: string;
   withPrefix?: boolean;
 }) {
-  const label = FORECAST_CONFIDENCE_LABELS[confidence] ?? String(confidence);
+  const label = LEGACY_FORECAST_CONFIDENCE_LABELS[confidence] ?? String(confidence);
   const tone: Tone =
-    confidence === TForecastConfidence.High
+    confidence === TLegacyForecastConfidence.High
       ? "emerald"
-      : confidence === TForecastConfidence.Medium
+      : confidence === TLegacyForecastConfidence.Medium
         ? "sky"
         : "slate";
   return (
@@ -187,24 +187,24 @@ export function RecommendationStatusBadge({
   status,
   className,
 }: {
-  status: TRecommendationStatus;
+  status: TLegacyRecommendationStatus;
   className?: string;
 }) {
-  const label = RECOMMENDATION_STATUS_LABELS[status] ?? String(status);
+  const label = LEGACY_RECOMMENDATION_STATUS_LABELS[status] ?? String(status);
   switch (status) {
-    case TRecommendationStatus.Applied:
+    case TLegacyRecommendationStatus.Applied:
       return (
         <Pill tone="emerald" icon={<CheckCircle2 />} className={className}>
           {label}
         </Pill>
       );
-    case TRecommendationStatus.Dismissed:
+    case TLegacyRecommendationStatus.Dismissed:
       return (
         <Pill tone="slate" icon={<XCircle />} className={className}>
           {label}
         </Pill>
       );
-    case TRecommendationStatus.Expired:
+    case TLegacyRecommendationStatus.Expired:
       return (
         <Pill tone="slate" icon={<Hourglass />} className={className}>
           {label}
@@ -223,16 +223,16 @@ export function RunStatusBadge({
   status,
   className,
 }: {
-  status: TForecastRunStatus;
+  status: TLegacyForecastRunStatus;
   className?: string;
 }) {
-  if (status === TForecastRunStatus.Completed)
+  if (status === TLegacyForecastRunStatus.Completed)
     return (
       <Pill tone="emerald" icon={<Sparkles />} className={className}>
-        {FORECAST_RUN_STATUS_LABELS[status]}
+        {LEGACY_FORECAST_RUN_STATUS_LABELS[status]}
       </Pill>
     );
-  if (status === TForecastRunStatus.CompletedWithoutAi)
+  if (status === TLegacyForecastRunStatus.CompletedWithoutAi)
     return (
       <Pill
         tone="amber"
@@ -245,7 +245,7 @@ export function RunStatusBadge({
     );
   return (
     <Pill tone="rose" icon={<XCircle />} className={className}>
-      {FORECAST_RUN_STATUS_LABELS[status] ?? String(status)}
+      {LEGACY_FORECAST_RUN_STATUS_LABELS[status] ?? String(status)}
     </Pill>
   );
 }
@@ -254,24 +254,24 @@ export function PromotionStatusBadge({
   status,
   className,
 }: {
-  status: TPromotionStatus;
+  status: TLegacyPromotionStatus;
   className?: string;
 }) {
-  const label = PROMOTION_STATUS_LABELS[status] ?? String(status);
+  const label = LEGACY_PROMOTION_STATUS_LABELS[status] ?? String(status);
   switch (status) {
-    case TPromotionStatus.Active:
+    case TLegacyPromotionStatus.Active:
       return (
         <Pill tone="emerald" icon={<CheckCircle2 />} className={className}>
           {label}
         </Pill>
       );
-    case TPromotionStatus.Scheduled:
+    case TLegacyPromotionStatus.Scheduled:
       return (
         <Pill tone="sky" icon={<CalendarClock />} className={className}>
           {label}
         </Pill>
       );
-    case TPromotionStatus.Canceled:
+    case TLegacyPromotionStatus.Canceled:
       return (
         <Pill tone="rose" icon={<Ban />} className={className}>
           {label}
@@ -290,11 +290,11 @@ export function PromotionSourceBadge({
   source,
   className,
 }: {
-  source: TPromotionSource;
+  source: TLegacyPromotionSource;
   className?: string;
 }) {
-  const label = PROMOTION_SOURCE_LABELS[source] ?? String(source);
-  if (source === TPromotionSource.AiRecommendation)
+  const label = LEGACY_PROMOTION_SOURCE_LABELS[source] ?? String(source);
+  if (source === TLegacyPromotionSource.AiRecommendation)
     return (
       <Pill tone="violet" icon={<Sparkles />} className={className}>
         {label}
@@ -316,7 +316,7 @@ export function RecommendationSuggestion({
   className?: string;
 }) {
   const rec = recommendation;
-  if (rec.action === TRecommendationAction.Buy) {
+  if (rec.action === TLegacyRecommendationAction.Buy) {
     return (
       <span className={cn("text-sm", className)}>
         <span className="font-semibold">
@@ -330,7 +330,7 @@ export function RecommendationSuggestion({
       </span>
     );
   }
-  if (rec.action === TRecommendationAction.Promote) {
+  if (rec.action === TLegacyRecommendationAction.Promote) {
     return (
       <span className={cn("text-sm", className)}>
         <span className="font-semibold">

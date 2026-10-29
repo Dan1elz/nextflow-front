@@ -67,7 +67,7 @@ import type {
   ICreatePurchaseOrder,
   IUpdatePurchaseOrder,
 } from "@/interfaces/purchase-order.interface";
-import { PURCHASE_STATUS_LABELS, TPurchaseStatus } from "@/types/enums";
+import { LEGACY_PURCHASE_STATUS_LABELS, TLegacyPurchaseStatus } from "@/types/enums";
 import { API_URL } from "@/configs/api";
 import type { IOption } from "@/interfaces/api.interface";
 
@@ -118,7 +118,7 @@ export function PurchaseOrderForm({
   const [supplierId, setSupplierId] = useState<string>("");
   const [note, setNote] = useState<string>("");
   const [purchaseStatus, setPurchaseStatus] = useState<number>(
-    TPurchaseStatus.Budget
+    TLegacyPurchaseStatus.Budget
   );
   const [loadedOrder, setLoadedOrder] = useState<IPurchaseOrder | null>(null);
   const [loading, setLoading] = useState(false);
@@ -203,7 +203,7 @@ export function PurchaseOrderForm({
           setLoadedOrder(order);
           setSupplierId(order.supplierId);
           setNote(order.note ?? "");
-          setPurchaseStatus(order.status ?? TPurchaseStatus.Budget);
+          setPurchaseStatus(order.status ?? TLegacyPurchaseStatus.Budget);
 
           // Map items to cart items
           if (order.items && order.items.length > 0) {
@@ -355,7 +355,7 @@ export function PurchaseOrderForm({
         // If creating as Pending, update status after creation
         if (asPending && created?.id) {
           await updatePurchaseOrder(created.id, {
-            status: TPurchaseStatus.Pending,
+            status: TLegacyPurchaseStatus.Pending,
           });
         }
 
@@ -388,7 +388,7 @@ export function PurchaseOrderForm({
     if (!purchaseOrderId) return;
     try {
       await updatePurchaseOrder(purchaseOrderId, {
-        status: TPurchaseStatus.Pending,
+        status: TLegacyPurchaseStatus.Pending,
       });
       handleSuccess("Pedido confirmado como pendente!");
       navigate("/purchase-orders");
@@ -412,7 +412,7 @@ export function PurchaseOrderForm({
     if (!purchaseOrderId) return;
     try {
       await updatePurchaseOrder(purchaseOrderId, {
-        status: TPurchaseStatus.Received,
+        status: TLegacyPurchaseStatus.Received,
       });
       handleSuccess("Pedido recebido! Estoque atualizado automaticamente.");
       navigate("/purchase-orders");
@@ -448,8 +448,8 @@ export function PurchaseOrderForm({
 
   const canReceive =
     (isEdit || isView) &&
-    (purchaseStatus === TPurchaseStatus.Budget ||
-      purchaseStatus === TPurchaseStatus.Pending);
+    (purchaseStatus === TLegacyPurchaseStatus.Budget ||
+      purchaseStatus === TLegacyPurchaseStatus.Pending);
 
   // Determine which actions are available based on status
   const handleResetForm = () => {
@@ -466,11 +466,11 @@ export function PurchaseOrderForm({
   const supplierLocked = isCreate && !!supplierId;
 
   const canCancel =
-    purchaseStatus === TPurchaseStatus.Budget ||
-    purchaseStatus === TPurchaseStatus.Pending;
+    purchaseStatus === TLegacyPurchaseStatus.Budget ||
+    purchaseStatus === TLegacyPurchaseStatus.Pending;
   const isFinalized =
-    purchaseStatus === TPurchaseStatus.Canceled ||
-    purchaseStatus === TPurchaseStatus.Received;
+    purchaseStatus === TLegacyPurchaseStatus.Canceled ||
+    purchaseStatus === TLegacyPurchaseStatus.Received;
 
   // Titles
   const pageTitle = isCreate
@@ -507,17 +507,17 @@ export function PurchaseOrderForm({
                 {!isCreate && (
                   <Badge
                     variant={
-                      purchaseStatus === TPurchaseStatus.Received
+                      purchaseStatus === TLegacyPurchaseStatus.Received
                         ? "default"
-                        : purchaseStatus === TPurchaseStatus.Canceled
+                        : purchaseStatus === TLegacyPurchaseStatus.Canceled
                           ? "destructive"
-                          : purchaseStatus === TPurchaseStatus.Pending
+                          : purchaseStatus === TLegacyPurchaseStatus.Pending
                             ? "outline"
                             : "secondary"
                     }
                   >
-                    {PURCHASE_STATUS_LABELS[
-                      purchaseStatus as TPurchaseStatus
+                    {LEGACY_PURCHASE_STATUS_LABELS[
+                      purchaseStatus as TLegacyPurchaseStatus
                     ] ?? "Desconhecido"}
                   </Badge>
                 )}
@@ -899,7 +899,7 @@ export function PurchaseOrderForm({
                     <Check className="w-5 h-5 mr-2" />
                     Salvar Alterações
                   </Button>
-                  {purchaseStatus === TPurchaseStatus.Budget && (
+                  {purchaseStatus === TLegacyPurchaseStatus.Budget && (
                     <Button
                       variant="outline"
                       className="w-full bg-background border-primary text-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"

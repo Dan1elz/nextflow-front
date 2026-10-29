@@ -35,9 +35,9 @@ import { useForecast } from "@/hooks/use-forecast";
 import { useAuth } from "@/hooks/use-auth";
 import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
 import {
-  TForecastRunStatus,
-  TRecommendationAction,
-  type TForecastRunStatus as TForecastRunStatusType,
+  TLegacyForecastRunStatus,
+  TLegacyRecommendationAction,
+  type TLegacyForecastRunStatus as TForecastRunStatusType,
 } from "@/types/enums";
 import { isAdmin } from "@/utils/auth.helpers";
 import { formatDateTime } from "@/utils/format.helpers";
@@ -113,12 +113,12 @@ function AiRecommendationsCardContent() {
   const handleGenerate = async () => {
     try {
       const run = await generateForecast(DEFAULT_HORIZON);
-      if (run.status === TForecastRunStatus.Failed) {
+      if (run.status === TLegacyForecastRunStatus.Failed) {
         handleError(
           new Error(run.errorMessage || "A análise de demanda falhou."),
           "A análise de demanda falhou."
         );
-      } else if (run.status === TForecastRunStatus.CompletedWithoutAi) {
+      } else if (run.status === TLegacyForecastRunStatus.CompletedWithoutAi) {
         handleSuccess(
           "Análise gerada sem IA: recomendações baseadas apenas no cálculo estatístico."
         );
@@ -193,7 +193,7 @@ function AiRecommendationsCardContent() {
       );
     }
 
-    if (runStatus === TForecastRunStatus.Failed) {
+    if (runStatus === TLegacyForecastRunStatus.Failed) {
       return (
         <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
           <AlertTriangle className="h-8 w-8 text-rose-500" />
@@ -269,13 +269,13 @@ function AiRecommendationsCardContent() {
                     className="lg:min-w-[120px] lg:text-right"
                   />
                   <div className="flex items-center gap-2">
-                    {rec.action === TRecommendationAction.Buy && (
+                    {rec.action === TLegacyRecommendationAction.Buy && (
                       <Button size="sm" onClick={() => setPurchaseRecs([rec])}>
                         <ShoppingCart className="h-4 w-4" />
                         Comprar
                       </Button>
                     )}
-                    {rec.action === TRecommendationAction.Promote && admin && (
+                    {rec.action === TLegacyRecommendationAction.Promote && admin && (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -326,7 +326,7 @@ function AiRecommendationsCardContent() {
             <CardTitle className="flex flex-wrap items-center gap-2">
               Recomendações da IA
               {runStatus !== undefined &&
-                runStatus !== TForecastRunStatus.Completed && (
+                runStatus !== TLegacyForecastRunStatus.Completed && (
                   <RunStatusBadge status={runStatus} />
                 )}
             </CardTitle>

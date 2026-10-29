@@ -18,12 +18,12 @@ export function StatesProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await stateService.getAll(query, token ?? undefined);
-      setStates(response.data || []);
+      setStates(response.items || []);
 
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil(response.totalItems / perPage) || 1,
-        total: response.totalItems,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
@@ -36,8 +36,8 @@ export function StatesProvider({ children }: { children: ReactNode }) {
     ): Promise<{ data: IState[]; totalItems: number }> => {
       const response = await stateService.getAll(query, token ?? undefined);
       return {
-        data: response.data || [],
-        totalItems: response.totalItems,
+        data: response.items || [],
+        totalItems: response.total,
       };
     },
     [token]

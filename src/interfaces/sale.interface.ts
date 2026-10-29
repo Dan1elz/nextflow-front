@@ -1,11 +1,11 @@
-import type { TPaymentMethod } from "@/types/enums";
+import type { TLegacyPaymentMethod } from "@/types/enums";
 import type { IUser } from "./user.interface";
 import type { IOrder } from "./order.interface";
 
 export interface IPayment {
   id?: string;
   amount: number;
-  paymentMethod: TPaymentMethod;
+  paymentMethod: TLegacyPaymentMethod;
 }
 
 export interface ISale {

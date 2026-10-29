@@ -7,4 +7,6 @@ export type DashboardContextType = {
   fetchStats: () => Promise<void>;
 };
 
-export const DashboardContext = createContext<DashboardContextType | null>(null);
+export const DashboardContext = createContext<DashboardContextType | null>(
+  null
+);

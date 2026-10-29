@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TPaymentMethod } from "@/types/enums";
+import { TLegacyPaymentMethod } from "@/types/enums";
 
 export const paymentSchema = z.object({
   amount: z.coerce
@@ -8,7 +8,7 @@ export const paymentSchema = z.object({
   paymentMethod: z.coerce
     .number()
     .refine(
-      (val) => Object.values(TPaymentMethod).includes(val as TPaymentMethod),
+      (val) => Object.values(TLegacyPaymentMethod).includes(val as TLegacyPaymentMethod),
       { message: "Método de pagamento inválido" }
     ),
 });

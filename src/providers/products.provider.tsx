@@ -17,11 +17,11 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await productService.getAll(query, token ?? undefined);
-      setProducts(response.data || []);
+      setProducts(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil(response.totalItems / perPage) || 1,
-        total: response.totalItems,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
@@ -34,8 +34,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     ): Promise<{ data: IProduct[]; totalItems: number }> => {
       const response = await productService.getAll(query, token ?? undefined);
       return {
-        data: response.data || [],
-        totalItems: response.totalItems,
+        data: response.items || [],
+        totalItems: response.total,
       };
     },
     [token]

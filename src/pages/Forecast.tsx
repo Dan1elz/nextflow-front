@@ -81,9 +81,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProductForecast } from "@/hooks/use-product-forecast";
 import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
 import {
-  TForecastRunStatus,
-  TRecommendationAction,
-  TRecommendationStatus,
+  TLegacyForecastRunStatus,
+  TLegacyRecommendationAction,
+  TLegacyRecommendationStatus,
 } from "@/types/enums";
 import { isAdmin } from "@/utils/auth.helpers";
 import {
@@ -104,24 +104,24 @@ type ActionFilter = "all" | "buy" | "promote" | "hold";
 type StatusFilter = "pending" | "applied" | "dismissed" | "expired" | "all";
 
 const ACTION_FILTER_MAP: Record<Exclude<ActionFilter, "all">, number> = {
-  buy: TRecommendationAction.Buy,
-  promote: TRecommendationAction.Promote,
-  hold: TRecommendationAction.Hold,
+  buy: TLegacyRecommendationAction.Buy,
+  promote: TLegacyRecommendationAction.Promote,
+  hold: TLegacyRecommendationAction.Hold,
 };
 
 const STATUS_FILTER_MAP: Record<Exclude<StatusFilter, "all">, number> = {
-  pending: TRecommendationStatus.Pending,
-  applied: TRecommendationStatus.Applied,
-  dismissed: TRecommendationStatus.Dismissed,
-  expired: TRecommendationStatus.Expired,
+  pending: TLegacyRecommendationStatus.Pending,
+  applied: TLegacyRecommendationStatus.Applied,
+  dismissed: TLegacyRecommendationStatus.Dismissed,
+  expired: TLegacyRecommendationStatus.Expired,
 };
 
 const EXPECTED_GENERATION_SECONDS = 60;
 
 function isSelectableForPurchase(rec: IForecastRecommendation) {
   return (
-    rec.action === TRecommendationAction.Buy &&
-    rec.status === TRecommendationStatus.Pending
+    rec.action === TLegacyRecommendationAction.Buy &&
+    rec.status === TLegacyRecommendationStatus.Pending
   );
 }
 
@@ -193,10 +193,10 @@ function RecommendationActions({
   onDismiss,
   compact = false,
 }: RecommendationActionsProps) {
-  if (rec.status !== TRecommendationStatus.Pending) return null;
+  if (rec.status !== TLegacyRecommendationStatus.Pending) return null;
 
   const buttons: React.ReactNode[] = [];
-  if (rec.action === TRecommendationAction.Buy) {
+  if (rec.action === TLegacyRecommendationAction.Buy) {
     buttons.push(
       compact ? (
         <Tooltip key="buy">
@@ -223,7 +223,7 @@ function RecommendationActions({
       )
     );
   }
-  if (rec.action === TRecommendationAction.Promote && admin) {
+  if (rec.action === TLegacyRecommendationAction.Promote && admin) {
     buttons.push(
       compact ? (
         <Tooltip key="promote">
@@ -338,7 +338,7 @@ function ProductDetails({
           <p className="whitespace-pre-line">{rec.reason}</p>
         </div>
 
-        {rec.status === TRecommendationStatus.Applied && (
+        {rec.status === TLegacyRecommendationStatus.Applied && (
           <p className="text-sm text-muted-foreground">
             Aplicada
             {rec.appliedAt ? ` em ${formatDateTime(rec.appliedAt)}` : ""}.
@@ -366,7 +366,7 @@ function ProductDetails({
             )}
           </p>
         )}
-        {rec.status === TRecommendationStatus.Dismissed &&
+        {rec.status === TLegacyRecommendationStatus.Dismissed &&
           rec.dismissReason && (
             <p className="text-sm text-muted-foreground">
               Motivo do descarte: {rec.dismissReason}
@@ -518,13 +518,13 @@ function ForecastContent() {
   const actionCounts = useMemo(
     () => ({
       all: statusFiltered.length,
-      buy: statusFiltered.filter((r) => r.action === TRecommendationAction.Buy)
+      buy: statusFiltered.filter((r) => r.action === TLegacyRecommendationAction.Buy)
         .length,
       promote: statusFiltered.filter(
-        (r) => r.action === TRecommendationAction.Promote
+        (r) => r.action === TLegacyRecommendationAction.Promote
       ).length,
       hold: statusFiltered.filter(
-        (r) => r.action === TRecommendationAction.Hold
+        (r) => r.action === TLegacyRecommendationAction.Hold
       ).length,
     }),
     [statusFiltered]
@@ -611,12 +611,12 @@ function ForecastContent() {
       const run = await generateForecast(Number(horizon));
       setSelectedIds(new Set());
       setFocusedProductId(null);
-      if (run.status === TForecastRunStatus.Failed) {
+      if (run.status === TLegacyForecastRunStatus.Failed) {
         handleError(
           new Error(run.errorMessage || "A análise de demanda falhou."),
           "A análise de demanda falhou."
         );
-      } else if (run.status === TForecastRunStatus.CompletedWithoutAi) {
+      } else if (run.status === TLegacyForecastRunStatus.CompletedWithoutAi) {
         handleSuccess(
           "Análise gerada sem IA: recomendações baseadas apenas no cálculo estatístico."
         );
@@ -784,7 +784,7 @@ function ForecastContent() {
     <div className="flex flex-col gap-4 animate-in fade-in duration-300">
       {renderHeader()}
 
-      {latestRun.status === TForecastRunStatus.CompletedWithoutAi && (
+      {latestRun.status === TLegacyForecastRunStatus.CompletedWithoutAi && (
         <Alert className="border-amber-300/60 bg-amber-50 text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Análise concluída sem IA</AlertTitle>
@@ -794,7 +794,7 @@ function ForecastContent() {
           </AlertDescription>
         </Alert>
       )}
-      {latestRun.status === TForecastRunStatus.Failed && (
+      {latestRun.status === TLegacyForecastRunStatus.Failed && (
         <Alert variant="destructive">
           <XCircle className="h-4 w-4" />
           <AlertTitle>A análise falhou</AlertTitle>

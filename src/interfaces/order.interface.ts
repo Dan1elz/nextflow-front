@@ -1,4 +1,4 @@
-import type { TOrderStatus, TOrderType } from "@/types/enums";
+import type { TLegacyOrderStatus, TOrderType } from "@/types/enums";
 import type { IClient } from "./client.interface";
 import type { IProduct } from "./product.interface";
 import type { IUser } from "./user.interface";
@@ -19,7 +19,7 @@ export interface IOrder {
   client?: IClient;
   userId?: string;
   user?: IUser;
-  status?: TOrderStatus;
+  status?: TLegacyOrderStatus;
   type: TOrderType;
   lossReason?: string | null;
   totalAmount?: number | string;

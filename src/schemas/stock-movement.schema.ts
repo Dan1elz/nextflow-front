@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TMovementType } from "@/types/enums";
+import { TLegacyMovementType } from "@/types/enums";
 
 export const stockMovementSchema = z.object({
   productId: z
@@ -17,9 +17,9 @@ export const stockMovementSchema = z.object({
     .number()
     .refine(
       (val) =>
-        val === TMovementType.Entry ||
-        val === TMovementType.Exit ||
-        val === TMovementType.Adjustment,
+        val === TLegacyMovementType.Entry ||
+        val === TLegacyMovementType.Exit ||
+        val === TLegacyMovementType.Adjustment,
       { message: "Apenas Entrada, Remoção ou Ajuste são permitidos aqui." }
     ),
 

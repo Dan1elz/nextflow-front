@@ -17,11 +17,11 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
       const perPage = query?.perPage ?? 10;
 
       const response = await orderService.getAll(query, token ?? undefined);
-      setOrders(response.data || []);
+      setOrders(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.totalItems || 0) / perPage) || 1,
-        total: response.totalItems || 0,
+        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
+        total: response.total || 0,
         perPage,
       });
     },
