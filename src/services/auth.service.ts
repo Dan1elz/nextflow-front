@@ -1,20 +1,24 @@
-import type { ILogin, ILoginResponse } from "@/interfaces/user.interface";
+import type {
+  ChangePasswordRequestDto,
+  CurrentUserDto,
+  LoginRequestDto,
+  LoginResponseDto,
+  UpdateProfileRequestDto,
+} from "@/interfaces/user.interface";
 import { ApiService } from "./api.service";
 
 const apiService = new ApiService();
 
 export const authService = {
-  login: async (form: ILogin): Promise<ILoginResponse> => {
-    const response = await apiService.post<ILoginResponse>("users/login", form);
-    return response;
-  },
+  login: (dto: LoginRequestDto) =>
+    apiService.post<LoginResponseDto>("auth/login", dto),
 
-  checkAuth: async (token: string): Promise<ILoginResponse> => {
-    const response = await apiService.get<ILoginResponse>(
-      "users/check-auth",
-      undefined,
-      token
-    );
-    return response;
-  },
+  me: (token: string) =>
+    apiService.get<CurrentUserDto>("auth/me", undefined, token),
+
+  updateProfile: (dto: UpdateProfileRequestDto, token?: string) =>
+    apiService.put<CurrentUserDto>("auth/me", dto, token),
+
+  changePassword: (dto: ChangePasswordRequestDto, token?: string) =>
+    apiService.post<void>("auth/change-password", dto, token),
 };

@@ -1,11 +1,11 @@
 import { useState, useCallback, type ReactNode } from "react";
 
 import type {
-  IUser,
-  ICreateUser,
-  IUpdateUser,
-  IRecoverPasswordRequest,
-  IResetPasswordRequest,
+  UpdateUserRequestDto,
+  UserListItemDto,
+  UserOption,
+  UserRequestDto,
+  UserResponseDto,
 } from "@/interfaces/user.interface";
 import { userService } from "@/services/user.service";
 import { UsersContext } from "@/contexts/users.context";
@@ -13,9 +13,11 @@ import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 import { useAuth } from "@/hooks/use-auth";
 
 export function UsersProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<IUser[]>([]);
+  const [users, setUsers] = useState<UserListItemDto[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserResponseDto | null>(
+    null
+  );
   const { token } = useAuth();
 
   const searchUsers = useCallback(
@@ -38,15 +40,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
 
   const selectUser = useCallback(
     async (id: string): Promise<void> => {
-      const data = await userService.getById(id, token ?? undefined);
-      setSelectedUser(data);
-    },
-    [token]
-  );
-
-  const getUserById = useCallback(
-    async (id: string): Promise<IUser> => {
-      return await userService.getById(id, token ?? undefined);
+      setSelectedUser(await userService.getById(id, token ?? undefined));
     },
     [token]
   );
@@ -59,47 +53,33 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     [token]
   );
 
-  const createUser = useCallback(
-    async (user: ICreateUser): Promise<IUser> => {
-      const data = await userService.create(user, token ?? undefined);
-      return data;
+  const getUserOption = useCallback(
+    async (id: string): Promise<UserOption> => {
+      const user = await userService.getById(id, token ?? undefined);
+      return { id: user.id, fullName: `${user.name} ${user.lastName}` };
     },
+    [token]
+  );
+
+  const createUser = useCallback(
+    (dto: UserRequestDto) => userService.create(dto, token ?? undefined),
     [token]
   );
 
   const updateUser = useCallback(
-    async (id: string, user: IUpdateUser): Promise<IUser> => {
-      const data = await userService.update(id, user, token ?? undefined);
-      return data;
-    },
+    (id: string, dto: UpdateUserRequestDto) =>
+      userService.update(id, dto, token ?? undefined),
     [token]
   );
 
   const deleteUser = useCallback(
-    async (id: string): Promise<void> => {
-      await userService.delete(id, token ?? undefined);
-    },
+    (id: string) => userService.delete(id, token ?? undefined),
     [token]
   );
+
   const reactivateUser = useCallback(
-    async (id: string): Promise<void> => {
-      await userService.reactivate(id, token ?? undefined);
-    },
+    (id: string) => userService.reactivate(id, token ?? undefined),
     [token]
-  );
-
-  const recoverPassword = useCallback(
-    async (data: IRecoverPasswordRequest): Promise<void> => {
-      await userService.recoverPassword(data);
-    },
-    []
-  );
-
-  const resetPassword = useCallback(
-    async (data: IResetPasswordRequest): Promise<void> => {
-      await userService.resetPassword(data);
-    },
-    []
   );
 
   return (
@@ -110,13 +90,11 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         selectedUser,
         searchUsers,
         searchUsersForOptions,
+        getUserOption,
         selectUser,
-        getUserById,
         createUser,
         updateUser,
         deleteUser,
-        recoverPassword,
-        resetPassword,
         reactivateUser,
       }}
     >

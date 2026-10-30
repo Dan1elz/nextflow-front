@@ -1,115 +1,79 @@
-import { useState, useCallback, type ReactNode, useEffect } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import type {
-  IUser,
-  ILogin,
-  ILoginResponse,
+  ChangePasswordRequestDto,
+  CurrentUserDto,
+  LoginRequestDto,
+  UpdateProfileRequestDto,
 } from "@/interfaces/user.interface";
 import { authService } from "@/services/auth.service";
 import { AuthContext, type AuthContextType } from "@/contexts/auth.context";
-import { ApiError } from "@/services/api.service";
+import { onUnauthorized } from "@/services/api.service";
 import { Spinner } from "@/components/ui/spinner";
+import { handleError } from "@/utils/toast.helpers";
 
-export function AuthProvider({
-  children,
-  tokenStorageKey = "user-auth-token",
-  userStorageKey = "user",
-}: {
-  children: ReactNode;
-  tokenStorageKey?: string;
-  userStorageKey?: string;
-}) {
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem(tokenStorageKey)
+const TOKEN_STORAGE_KEY = "user-auth-token";
+
+/** Lida pela tela de login para explicar por que a sessão acabou. */
+export const SESSION_MESSAGE_KEY = "auth-error-message";
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [token, setToken] = useState(() =>
+    localStorage.getItem(TOKEN_STORAGE_KEY)
   );
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<IUser | null>(null);
-
-  const handleLoginResponse = useCallback(
-    (response: ILoginResponse) => {
-      setToken(response.token);
-      localStorage.setItem(tokenStorageKey, response.token);
-
-      if (response.user) {
-        setUser(response.user);
-        localStorage.setItem(userStorageKey, JSON.stringify(response.user));
-      }
-    },
-    [tokenStorageKey, userStorageKey]
+  const [user, setUser] = useState<CurrentUserDto | null>(null);
+  const [loading, setLoading] = useState(
+    () => !!localStorage.getItem(TOKEN_STORAGE_KEY)
   );
 
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem(tokenStorageKey);
-    localStorage.removeItem(userStorageKey);
-  }, [tokenStorageKey, userStorageKey]);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+  }, []);
 
-  const checkAuth = useCallback(async () => {
-    const currentToken = localStorage.getItem(tokenStorageKey);
-    if (!currentToken) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await authService.checkAuth(currentToken);
-
-      if (response.token) {
-        handleLoginResponse(response);
-      }
-    } catch (error) {
-      if (
-        error instanceof ApiError &&
-        (error.status === 401 ||
-          error.message.includes("Token") ||
-          error.message.includes("autentic"))
-      ) {
-        sessionStorage.setItem(
-          "auth-error-message",
-          "Sessão expirada. Por favor, faça login novamente."
-        );
-        logout();
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [tokenStorageKey, handleLoginResponse, logout]);
+  // Token vencido (L-AC4) ou usuário inativado (RN-AC02): qualquer 401 encerra a sessão.
+  useEffect(() => {
+    onUnauthorized(() => {
+      sessionStorage.setItem(
+        SESSION_MESSAGE_KEY,
+        "Sessão expirada. Por favor, faça login novamente."
+      );
+      logout();
+    });
+    return () => onUnauthorized(undefined);
+  }, [logout]);
 
   useEffect(() => {
-    const initializeAuth = () => {
-      const storedToken = localStorage.getItem(tokenStorageKey);
-      let storedUser: IUser | null = null;
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!storedToken) return;
 
-      try {
-        const userData = localStorage.getItem(userStorageKey);
-        if (userData) {
-          storedUser = JSON.parse(userData) as IUser;
-        }
-      } catch (error) {
-        console.error("Erro ao parsear dados do usuário:", error);
-        localStorage.removeItem(userStorageKey);
-      }
+    authService
+      .me(storedToken)
+      .then(setUser)
+      .catch((error) => handleError(error))
+      .finally(() => setLoading(false));
+  }, []);
 
-      setToken(storedToken);
-      setUser(storedUser);
+  const login = useCallback(async (dto: LoginRequestDto) => {
+    const response = await authService.login(dto);
+    localStorage.setItem(TOKEN_STORAGE_KEY, response.token);
+    setToken(response.token);
+    setUser(response.user);
+  }, []);
 
-      if (storedToken) {
-        checkAuth();
-      } else {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-  }, [tokenStorageKey, userStorageKey, checkAuth]);
-
-  const login = useCallback(
-    async (data: ILogin) => {
-      const response = await authService.login(data);
-      handleLoginResponse(response);
+  const updateProfile = useCallback(
+    async (dto: UpdateProfileRequestDto) => {
+      setUser(await authService.updateProfile(dto, token ?? undefined));
     },
-    [handleLoginResponse]
+    [token]
+  );
+
+  const changePassword = useCallback(
+    async (dto: ChangePasswordRequestDto) => {
+      await authService.changePassword(dto, token ?? undefined);
+    },
+    [token]
   );
 
   if (loading)
@@ -126,7 +90,8 @@ export function AuthProvider({
     loading,
     login,
     logout,
-    checkAuth,
+    updateProfile,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

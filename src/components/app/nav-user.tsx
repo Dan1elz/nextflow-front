@@ -1,37 +1,67 @@
-import { useAuth } from "@/hooks/use-auth";
-import { LogOut } from "lucide-react";
+import { ChevronsUpDown, LogOut, UserCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/hooks/use-auth";
 
 export function NavUser() {
   const { user, logout } = useAuth();
 
-  const getInitials = (name: string, lastName: string): string => {
-    return `${name.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
+  const initials = user
+    ? `${user.name.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+    : "U";
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" onClick={logout}>
-          <div className="flex items-center gap-2 flex-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground text-sm font-semibold">
-              {user ? getInitials(user.name, user.lastName) : "U"}
-            </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">
-                {user ? `${user.name} ${user.lastName}` : "Usuário"}
-              </span>
-              <span className="truncate text-xs text-sidebar-foreground/70">
-                {user?.email}
-              </span>
-            </div>
-          </div>
-          <LogOut className="ml-auto size-4" />
-        </SidebarMenuButton>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton size="lg">
+              <Avatar className="rounded-lg">
+                <AvatarFallback className="rounded-lg">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">
+                  {user ? `${user.name} ${user.lastName}` : "Usuário"}
+                </span>
+                <span className="truncate text-xs">{user?.email}</span>
+              </div>
+              <ChevronsUpDown className="ml-auto" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link to="/profile">
+                  <UserCircle />
+                  Meu perfil
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={logout}>
+                <LogOut />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
   );

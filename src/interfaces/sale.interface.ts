@@ -1,5 +1,5 @@
 import type { TLegacyPaymentMethod } from "@/types/enums";
-import type { IUser } from "./user.interface";
+import type { UserResponseDto } from "./user.interface";
 import type { IOrder } from "./order.interface";
 
 export interface IPayment {
@@ -11,7 +11,7 @@ export interface IPayment {
 export interface ISale {
   id?: string;
   userId?: string;
-  user?: IUser;
+  user?: UserResponseDto;
   orderId: string;
   order?: IOrder;
   payments: IPayment[];

@@ -1,251 +1,170 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Mail, CreditCard, Lock } from "lucide-react";
+import { CreditCard, Lock, Mail, User } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/app/date-picker";
+import { FormInputField } from "@/components/app/form-input-field";
+import { Button } from "@/components/ui/button";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { ButtonLoader } from "@/components/ui/button-loader";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { useApiForm } from "@/hooks/use-api-form";
+import type { UserResponseDto } from "@/interfaces/user.interface";
 import {
   createUserSchema,
   updateUserSchema,
-  type CreateUserFormData,
-  type UpdateUserFormData,
+  type UserFormData,
 } from "@/schemas/user.schema";
+import { ROLE_ENUM_LABELS, TRoleEnum } from "@/types/enums";
 import { formatCpfCnpj, formatOnlyNumbers } from "@/utils/format.helpers";
-import type { IUser } from "@/interfaces/user.interface";
 
 interface UserFormProps {
-  onSubmit: (
-    data: CreateUserFormData | UpdateUserFormData
-  ) => void | Promise<void>;
-  isLoading?: boolean;
-  initialData?: IUser;
-  isEdit?: boolean;
-  disabled?: boolean;
-  onBack?: () => void;
+  mode: "create" | "edit" | "view";
+  initialData?: UserResponseDto;
+  onSubmit?: (data: UserFormData) => Promise<void>;
+  onBack: () => void;
 }
 
+const formatCpf = (value: string) =>
+  formatCpfCnpj(formatOnlyNumbers(value).slice(0, 11));
+
 export function UserForm({
-  onSubmit,
-  isLoading = false,
+  mode,
   initialData,
-  isEdit = false,
-  disabled = false,
+  onSubmit,
   onBack,
 }: UserFormProps) {
-  const schema = isEdit ? updateUserSchema : createUserSchema;
-  const form = useForm<CreateUserFormData | UpdateUserFormData>({
-    resolver: zodResolver(schema),
-    defaultValues: initialData
-      ? {
-          name: initialData.name,
-          lastName: initialData.lastName,
-          email: initialData.email,
-          cpf: formatCpfCnpj(initialData.cpf),
-          birthDate: initialData.birthDate || "",
-        }
-      : {
-          name: "",
-          lastName: "",
-          email: "",
-          cpf: "",
-          birthDate: "",
-          ...(isEdit ? {} : { password: "" }),
-        },
+  const form = useForm<UserFormData>({
+    resolver: zodResolver(
+      mode === "create" ? createUserSchema : updateUserSchema
+    ) as Resolver<UserFormData>,
+    defaultValues: {
+      name: initialData?.name ?? "",
+      lastName: initialData?.lastName ?? "",
+      cpf: initialData ? formatCpf(initialData.cpf) : "",
+      birthDate: initialData?.birthDate ?? "",
+      email: initialData?.email ?? "",
+      password: "",
+      newPassword: "",
+    },
   });
-
-  const handleCpfChange = (
-    value: string,
-    onChange: (value: string) => void
-  ) => {
-    const numbers = formatOnlyNumbers(value);
-    if (numbers.length <= 11) {
-      const formatted = formatCpfCnpj(numbers);
-      onChange(formatted);
-    }
-  };
+  const { submit } = useApiForm(form);
+  const { isSubmitting } = form.formState;
+  const locked = mode === "view" || isSubmitting;
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="grid grid-cols-2 gap-4"
-      >
-        <FormField
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(async (data) => {
+        await submit(async () => onSubmit?.(data));
+      })}
+    >
+      <FieldGroup className="grid gap-5 md:grid-cols-2">
+        <FormInputField
           control={form.control}
           name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="Nome"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                    autoComplete="given-name"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Nome"
+          icon={User}
+          placeholder="Nome"
+          autoComplete="given-name"
+          disabled={locked}
         />
-
-        <FormField
+        <FormInputField
           control={form.control}
           name="lastName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sobrenome</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="Sobrenome"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                    autoComplete="family-name"
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Sobrenome"
+          icon={User}
+          placeholder="Sobrenome"
+          autoComplete="family-name"
+          disabled={locked}
         />
-
-        <FormField
+        <FormInputField
           control={form.control}
           name="cpf"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>CPF</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    type="text"
-                    placeholder="000.000.000-00"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                    maxLength={14}
-                    onChange={(e) =>
-                      handleCpfChange(e.target.value, field.onChange)
-                    }
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="CPF"
+          icon={CreditCard}
+          placeholder="000.000.000-00"
+          mask={formatCpf}
+          disabled={locked || mode !== "create"}
         />
-
-        <FormField
+        <Controller
           control={form.control}
           name="birthDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Data de Nascimento</FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  disabled={isLoading || disabled}
-                  maxDate={new Date()}
-                  placeholder="dd/mm/aaaa"
-                  error={!!form.formState.errors.birthDate}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid} data-disabled={locked}>
+              <FieldLabel>Data de nascimento</FieldLabel>
+              <DatePicker
+                value={field.value}
+                onChange={field.onChange}
+                disabled={locked}
+                maxDate={new Date()}
+                error={fieldState.invalid}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
         />
-
-        <div className="col-span-2">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="seu@email.com"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      autoComplete="email"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+        <FormInputField
+          control={form.control}
+          name="email"
+          label="E-mail"
+          icon={Mail}
+          type="email"
+          placeholder="seu@email.com"
+          autoComplete="off"
+          disabled={locked}
+        />
+        <Field data-disabled>
+          <FieldLabel htmlFor="role">Perfil</FieldLabel>
+          {/* RN-AC04: enquanto só existir Admin, o perfil é fixo. */}
+          <Input
+            id="role"
+            value={ROLE_ENUM_LABELS[initialData?.role ?? TRoleEnum.Admin]}
+            disabled
           />
+        </Field>
+        {mode === "create" && (
+          <FormInputField
+            control={form.control}
+            name="password"
+            label="Senha"
+            icon={Lock}
+            type="password"
+            description="Mínimo de 8 caracteres, com letra e número."
+            autoComplete="new-password"
+            disabled={locked}
+          />
+        )}
+        {mode === "edit" && (
+          <FormInputField
+            control={form.control}
+            name="newPassword"
+            label="Nova senha"
+            icon={Lock}
+            type="password"
+            description="Deixe em branco para manter a senha atual."
+            autoComplete="new-password"
+            disabled={locked}
+          />
+        )}
 
-          {!isEdit && (
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Senha</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        {...field}
-                        type="password"
-                        placeholder="••••••••"
-                        className="pl-9"
-                        disabled={isLoading || disabled}
-                        autoComplete="new-password"
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-        </div>
-
-        <div className="col-span-2 flex justify-end gap-2 pt-4">
-          {onBack && (
-            <Button type="button" onClick={onBack} variant="secondary">
-              Voltar
-            </Button>
-          )}
-          {!disabled && (
-            <Button type="submit" disabled={isLoading || disabled}>
-              <ButtonLoader
-                isLoading={isLoading}
-                loadingText={isEdit ? "Salvando..." : "Criando..."}
-              >
-                {isEdit ? "Salvar" : "Criar"}
-              </ButtonLoader>
+        <div className="flex justify-end gap-2 md:col-span-2">
+          <Button type="button" variant="secondary" onClick={onBack}>
+            Voltar
+          </Button>
+          {mode !== "view" && (
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Spinner data-icon="inline-start" />}
+              {mode === "edit" ? "Salvar" : "Criar"}
             </Button>
           )}
         </div>
-      </form>
-    </Form>
+      </FieldGroup>
+    </form>
   );
 }

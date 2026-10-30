@@ -7,6 +7,7 @@ import { Login } from "@/pages/Auth/Login";
 import { PrivateRoutes } from "./PrivateRoutes";
 import { PublicRoutes } from "./PublicRoutes";
 import { Home } from "@/pages/Home";
+import Profile from "@/pages/Profile";
 import ViewUserPageWrapper from "@/pages/User/View";
 import StatesPageWrapper from "@/pages/States";
 import CitiesPageWrapper from "@/pages/Cities";
@@ -71,6 +72,7 @@ function AppRoutes() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="users" element={<UsersPageWrapper />} />
         <Route path="users/create" element={<CreateUserPageWrapper />} />
         <Route path="users/:id/edit" element={<EditUserPageWrapper />} />

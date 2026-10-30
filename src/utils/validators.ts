@@ -169,52 +169,6 @@ export function validateRange(
 }
 
 /**
- * Valida se a senha atende aos critérios mínimos
- * @param password - Senha a ser validada
- * @param minLength - Tamanho mínimo (padrão: 6)
- * @param requireUppercase - Requer letra maiúscula (padrão: false)
- * @param requireLowercase - Requer letra minúscula (padrão: false)
- * @param requireNumber - Requer número (padrão: false)
- * @param requireSpecialChar - Requer caractere especial (padrão: false)
- * @returns object - { valid: boolean, errors: string[] }
- */
-export function validatePassword(
-  password: string,
-  minLength = 6,
-  requireUppercase = false,
-  requireLowercase = false,
-  requireNumber = false,
-  requireSpecialChar = false
-): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  if (password.length < minLength) {
-    errors.push(`A senha deve ter no mínimo ${minLength} caracteres`);
-  }
-
-  if (requireUppercase && !/[A-Z]/.test(password)) {
-    errors.push("A senha deve conter pelo menos uma letra maiúscula");
-  }
-
-  if (requireLowercase && !/[a-z]/.test(password)) {
-    errors.push("A senha deve conter pelo menos uma letra minúscula");
-  }
-
-  if (requireNumber && !/\d/.test(password)) {
-    errors.push("A senha deve conter pelo menos um número");
-  }
-
-  if (requireSpecialChar && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    errors.push("A senha deve conter pelo menos um caractere especial");
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
-
-/**
  * Valida URL
  * @param url - URL a ser validada
  * @returns boolean - true se válido

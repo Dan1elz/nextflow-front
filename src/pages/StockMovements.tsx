@@ -30,7 +30,7 @@ import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSearchOptions } from "@/hooks/use-search-options";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
 import type { IProduct } from "@/interfaces/product.interface";
-import type { IUser } from "@/interfaces/user.interface";
+import type { UserOption } from "@/interfaces/user.interface";
 import { StockMovementsProvider } from "@/providers/stock-movements.provider";
 import { ProductsProvider } from "@/providers/products.provider";
 import { UsersProvider } from "@/providers/users.provider";
@@ -60,7 +60,7 @@ function StockMovements() {
     deleteStockMovement,
   } = useStockMovements();
   const { searchProductsForOptions, getProductById } = useProducts();
-  const { searchUsersForOptions, getUserById } = useUsers();
+  const { searchUsersForOptions, getUserOption } = useUsers();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedMovement, setSelectedMovement] =
@@ -132,16 +132,16 @@ function StockMovements() {
     });
 
   const { options: userOptions, handleSearch: handleSearchUsers } =
-    useSearchOptions<IUser>({
+    useSearchOptions<UserOption>({
       searchFn: async (params) => {
         return await searchUsersForOptions(params);
       },
       mapFn: (user) => ({
         value: user.id ?? "",
-        label: `${user.name} ${user.lastName}`,
+        label: user.fullName,
       }),
       selectFn: async (id) => {
-        return await getUserById(id);
+        return await getUserOption(id);
       },
       errorLabel: "usuários",
       autoLoad: false,
@@ -399,7 +399,11 @@ function StockMovements() {
                         const type = TypesObj[key];
                         return (
                           <SelectItem key={type} value={String(type)}>
-                            {LEGACY_MOVEMENT_TYPE_LABELS[type as TLegacyMovementType]}
+                            {
+                              LEGACY_MOVEMENT_TYPE_LABELS[
+                                type as TLegacyMovementType
+                              ]
+                            }
                           </SelectItem>
                         );
                       })}

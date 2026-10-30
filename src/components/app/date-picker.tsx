@@ -41,8 +41,13 @@ export function DatePicker({
   const [displayValue, setDisplayValue] = useState("");
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Enquanto digita, o valor fica vazio até a data estar completa: isso não pode apagar o que foi digitado.
+  const isTyping = useRef(false);
 
   useEffect(() => {
+    const typing = isTyping.current;
+    isTyping.current = false;
+
     if (value && isValid(new Date(value + "T00:00:00"))) {
       const formattedDate = format(
         new Date(value + "T00:00:00"),
@@ -52,7 +57,7 @@ export function DatePicker({
       setDisplayValue((prev) =>
         formattedDate !== prev.trim() ? formattedDate : prev
       );
-    } else if (!value) {
+    } else if (!value && !typing) {
       setDisplayValue("");
     }
   }, [value]);
@@ -107,6 +112,7 @@ export function DatePicker({
     }
 
     setDisplayValue(formattedInput);
+    isTyping.current = true;
 
     if (formattedInput.length === 10) {
       const parsed = parseDateString(formattedInput);
@@ -141,7 +147,6 @@ export function DatePicker({
             ref={inputRef}
             value={displayValue}
             onChange={handleInputChange}
-            onFocus={() => setIsPopoverOpen(true)}
             disabled={disabled}
             placeholder={placeholder}
             className={cn(

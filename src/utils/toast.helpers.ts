@@ -9,6 +9,8 @@ export function handleError(
   error: unknown,
   fallbackMessage: string = "Erro desconhecido"
 ): void {
+  if (error instanceof ApiError && error.sessionEnded) return;
+
   if (error instanceof ApiError) {
     const description =
       error.errors.length > 1 ? error.errors.join("\n") : undefined;

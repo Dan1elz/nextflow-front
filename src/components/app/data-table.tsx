@@ -148,10 +148,13 @@ export function DataTable<TData, TValue>({
       <div className="grid gap-3 md:hidden">
         {table.getRowModel().rows?.length ? (
           table.getRowModel().rows.map((row) => {
-            const cells = row.getVisibleCells();
-            const firstCell = cells[1];
+            // A coluna de seleção é opcional e não aparece no card.
+            const cells = row
+              .getVisibleCells()
+              .filter((cell) => cell.column.id !== "select");
+            const firstCell = cells[0];
             const actionCell = cells[cells.length - 1];
-            const otherCells = cells.slice(2, -1);
+            const otherCells = cells.slice(1, -1);
 
             return (
               <Card

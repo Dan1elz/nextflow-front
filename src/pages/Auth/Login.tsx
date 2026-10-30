@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -9,46 +8,25 @@ import {
 } from "@/components/ui/card";
 import { LoginForm } from "@/components/forms/login-form";
 import { useAuth } from "@/hooks/use-auth";
+import { SESSION_MESSAGE_KEY } from "@/providers/auth.provider";
 import { handleError } from "@/utils/toast.helpers";
-import type { LoginFormData } from "@/schemas/login.schema";
 import { NextflowLogo } from "@/components/app/NextflowLogo";
 
 export function Login() {
-  const { isAuthenticated, login } = useAuth();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
-
-  useEffect(() => {
-    const authErrorMessage = sessionStorage.getItem("auth-error-message");
-
-    if (authErrorMessage) {
-      handleError(null, authErrorMessage);
-      sessionStorage.removeItem("auth-error-message");
+    const message = sessionStorage.getItem(SESSION_MESSAGE_KEY);
+    if (message) {
+      handleError(null, message);
+      sessionStorage.removeItem(SESSION_MESSAGE_KEY);
     }
   }, []);
 
-  const handleSubmit = async (data: LoginFormData) => {
-    try {
-      setIsLoading(true);
-      await login(data);
-      navigate("/");
-    } catch (err) {
-      handleError(err, "Erro ao fazer login. Verifique suas credenciais.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
+        <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex items-center justify-center">
             <NextflowLogo className="h-12 w-auto" />
           </div>
@@ -58,7 +36,7 @@ export function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <LoginForm onSubmit={handleSubmit} isLoading={isLoading} />
+          <LoginForm onSubmit={login} />
         </CardContent>
       </Card>
     </div>

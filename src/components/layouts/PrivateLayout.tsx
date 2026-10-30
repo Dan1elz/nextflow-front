@@ -25,7 +25,7 @@ export default function PrivateLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <header className="flex p-4 items-center">
           <SidebarTrigger />
           <Separator orientation="vertical" className="mx-4 h-6" />

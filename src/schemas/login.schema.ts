@@ -1,33 +1,12 @@
 import { z } from "zod";
-import { validateEmail } from "@/utils/validators";
 
+/**
+ * Só presença: o formato do e-mail é do validator da API (422 por campo, via `useApiForm`), e a política de senha não
+ * vale no login (RN-AC03: credencial errada tem mensagem genérica).
+ */
 export const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email é obrigatório")
-    .refine((email) => validateEmail(email), {
-      message: "Email inválido",
-    }),
-  password: z
-    .string()
-    .min(1, "Senha é obrigatória")
-    .min(8, "A senha deve ter no mínimo 8 caracteres")
-    .refine(
-      (password) => /[A-Z]/.test(password),
-      "A senha deve conter pelo menos uma letra maiúscula"
-    )
-    .refine(
-      (password) => /[a-z]/.test(password),
-      "A senha deve conter pelo menos uma letra minúscula"
-    )
-    .refine(
-      (password) => /\d/.test(password),
-      "A senha deve conter pelo menos um número"
-    )
-    .refine(
-      (password) => /[!@#$%^&*(),.?":{}|<>]/.test(password),
-      "A senha deve conter pelo menos um caractere especial"
-    ),
+  email: z.string().min(1, "Informe o e-mail."),
+  password: z.string().min(1, "Informe a senha."),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

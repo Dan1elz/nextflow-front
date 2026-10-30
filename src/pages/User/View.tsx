@@ -1,63 +1,43 @@
-import { UserForm } from "@/components/forms/user-form";
+import { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { UserForm } from "@/components/forms/user-form";
 import { useUsers } from "@/hooks/use-users";
 import { UsersProvider } from "@/providers/users.provider";
 import { handleError } from "@/utils/toast.helpers";
-import { useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 
 function ViewUser() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedUser, selectUser } = useUsers();
 
-  const handleBack = () => {
-    navigate("/users");
-  };
-
   useEffect(() => {
-    if (!id) {
-      navigate("/users");
-      return;
-    }
+    if (!id) return;
 
     selectUser(id).catch((error) => {
-      handleError(error, "Erro desconhecido ao buscar usuário");
+      handleError(error, "Erro ao buscar usuário");
       navigate("/users");
     });
   }, [id, navigate, selectUser]);
 
-  if (!selectedUser) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              Carregando...
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Visualizar Usuário</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <Card>
+      <CardHeader>
+        <CardTitle>Visualizar usuário</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {selectedUser ? (
           <UserForm
-            onSubmit={() => {}}
-            onBack={handleBack}
-            isLoading={false}
+            mode="view"
             initialData={selectedUser}
-            disabled={true}
-            isEdit={true}
+            onBack={() => navigate("/users")}
           />
-        </CardContent>
-      </Card>
-    </div>
+        ) : (
+          <Skeleton className="h-64 w-full" />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

@@ -32,7 +32,7 @@ import { useSearchOptions } from "@/hooks/use-search-options";
 
 import type { IOrder } from "@/interfaces/order.interface";
 import type { IClient } from "@/interfaces/client.interface";
-import type { IUser } from "@/interfaces/user.interface";
+import type { UserOption } from "@/interfaces/user.interface";
 import type { ISale, IPayment } from "@/interfaces/sale.interface";
 import type { IIndexParams, IOption } from "@/interfaces/api.interface";
 
@@ -69,7 +69,7 @@ function Orders() {
   const { orders, pagination, searchOrders, cancelOrder, refundOrder } =
     useOrders();
   const { searchClientsForOptions, getClientById } = useClients();
-  const { searchUsersForOptions, getUserById } = useUsers();
+  const { searchUsersForOptions, getUserOption } = useUsers();
   const { searchSalesForOptions } = useSales();
 
   const [orderToFinalize, setOrderToFinalize] = useState<IOrder | null>(null);
@@ -132,13 +132,13 @@ function Orders() {
     });
 
   const { options: userOptions, handleSearch: handleSearchUsers } =
-    useSearchOptions<IUser>({
+    useSearchOptions<UserOption>({
       searchFn: searchUsersForOptions,
       mapFn: (user) => ({
         value: user.id ?? "",
-        label: `${user.name} ${user.lastName}`,
+        label: user.fullName,
       }),
-      selectFn: getUserById,
+      selectFn: getUserOption,
       errorLabel: "usuários",
       autoLoad: false,
       perPage: 50,
@@ -239,7 +239,8 @@ function Orders() {
         cell: ({ row }) => {
           if (!row.original.status) return "-";
           const label =
-            LEGACY_ORDER_STATUS_LABELS[row.original.status] ?? row.original.status;
+            LEGACY_ORDER_STATUS_LABELS[row.original.status] ??
+            row.original.status;
 
           let extraClass = "";
           if (row.original.status === TLegacyOrderStatus.PaymentConfirmed)
@@ -576,8 +577,9 @@ function Orders() {
                 className="flex justify-between items-center bg-muted/30 border p-3 rounded-lg"
               >
                 <span className="font-semibold">
-                  {LEGACY_PAYMENT_METHOD_LABELS[p.paymentMethod as TLegacyPaymentMethod] ??
-                    p.paymentMethod}
+                  {LEGACY_PAYMENT_METHOD_LABELS[
+                    p.paymentMethod as TLegacyPaymentMethod
+                  ] ?? p.paymentMethod}
                 </span>
                 <span className="font-bold text-primary">
                   {formatCurrency(p.amount)}

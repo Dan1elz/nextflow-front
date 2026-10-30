@@ -24,6 +24,8 @@ export class ApiError extends Error {
   status: number;
   errors: string[];
   fieldErrors: Record<string, string[]>;
+  /** 401 de uma requisição autenticada: o AuthProvider já encerrou a sessão e a tela de login explica. */
+  sessionEnded = false;
 
   constructor(
     status: number,
@@ -154,8 +156,15 @@ export class ApiService {
     }
 
     if (!response.ok) {
-      if (response.status === 401 && token) unauthorizedHandler?.();
-      throw ApiError.fromResult(response.status, content as Partial<ResultDto>);
+      const error = ApiError.fromResult(
+        response.status,
+        content as Partial<ResultDto>
+      );
+      if (response.status === 401 && token) {
+        error.sessionEnded = true;
+        unauthorizedHandler?.();
+      }
+      throw error;
     }
 
     return content as T;

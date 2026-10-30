@@ -1,89 +1,57 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UserForm } from "@/components/forms/user-form";
 import { useUsers } from "@/hooks/use-users";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import type { UpdateUserFormData } from "@/schemas/user.schema";
-import type { IUpdateUser } from "@/interfaces/user.interface";
 import { UsersProvider } from "@/providers/users.provider";
+import type { UserFormData } from "@/schemas/user.schema";
+import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
 function EditUser() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { selectedUser, selectUser, updateUser } = useUsers();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleBack = () => {
-    navigate("/users");
-  };
 
   useEffect(() => {
-    if (!id) {
-      navigate("/users");
-      return;
-    }
+    if (!id) return;
 
     selectUser(id).catch((error) => {
-      handleError(error, "Erro desconhecido ao buscar usuário");
+      handleError(error, "Erro ao buscar usuário");
       navigate("/users");
     });
   }, [id, navigate, selectUser]);
 
-  const handleSubmit = async (data: UpdateUserFormData) => {
-    if (!id) return;
-
-    try {
-      setIsLoading(true);
-      const userData: IUpdateUser = {
-        name: data.name,
-        lastName: data.lastName,
-        email: data.email,
-        cpf: data.cpf.replace(/\D/g, ""), // Remove formatação do CPF
-        birthDate: data.birthDate,
-      };
-
-      await updateUser(id, userData);
-      handleSuccess("Usuário atualizado com sucesso");
-      navigate("/users");
-    } catch (error) {
-      handleError(error, "Erro ao atualizar usuário");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSubmit = async (data: UserFormData) => {
+    await updateUser(id!, {
+      name: data.name,
+      lastName: data.lastName,
+      birthDate: data.birthDate,
+      email: data.email,
+      newPassword: data.newPassword || undefined,
+    });
+    handleSuccess("Usuário atualizado com sucesso");
+    navigate("/users");
   };
 
-  if (!selectedUser) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              Carregando...
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Editar Usuário</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <Card>
+      <CardHeader>
+        <CardTitle>Editar usuário</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {selectedUser ? (
           <UserForm
-            onSubmit={handleSubmit}
-            onBack={handleBack}
-            isLoading={isLoading}
+            mode="edit"
             initialData={selectedUser}
-            isEdit={true}
+            onSubmit={handleSubmit}
+            onBack={() => navigate("/users")}
           />
-        </CardContent>
-      </Card>
-    </div>
+        ) : (
+          <Skeleton className="h-64 w-full" />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

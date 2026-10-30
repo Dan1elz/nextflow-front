@@ -65,7 +65,6 @@ export {
   validateMinLength,
   validateMaxLength,
   validateRange,
-  validatePassword,
   validateUrl,
   validateDate,
   validateFutureDate,

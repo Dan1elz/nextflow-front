@@ -1,70 +1,44 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserForm } from "@/components/forms/user-form";
 import { useUsers } from "@/hooks/use-users";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import type {
-  CreateUserFormData,
-  UpdateUserFormData,
-} from "@/schemas/user.schema";
-import type { ICreateUser } from "@/interfaces/user.interface";
+import { UsersProvider } from "@/providers/users.provider";
+import type { UserFormData } from "@/schemas/user.schema";
+import { formatOnlyNumbers } from "@/utils/format.helpers";
+import { handleSuccess } from "@/utils/toast.helpers";
 
 function CreateUser() {
   const navigate = useNavigate();
   const { createUser } = useUsers();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleBack = () => {
+  const handleSubmit = async (data: UserFormData) => {
+    await createUser({
+      name: data.name,
+      lastName: data.lastName,
+      cpf: formatOnlyNumbers(data.cpf),
+      birthDate: data.birthDate,
+      email: data.email,
+      password: data.password,
+    });
+    handleSuccess("Usuário criado com sucesso");
     navigate("/users");
-  };
-  const handleSubmit = async (
-    data: CreateUserFormData | UpdateUserFormData
-  ) => {
-    if (!("password" in data)) {
-      return;
-    }
-    try {
-      setIsLoading(true);
-      const userData: ICreateUser = {
-        name: data.name,
-        lastName: data.lastName,
-        email: data.email,
-        cpf: data.cpf.replace(/\D/g, ""), // Remove formatação do CPF
-        birthDate: data.birthDate,
-        password: data.password,
-      };
-
-      await createUser(userData);
-      handleSuccess("Usuário criado com sucesso");
-      navigate("/users");
-    } catch (error) {
-      handleError(error, "Erro ao criar usuário");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Criar Usuário</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <UserForm
-            onSubmit={handleSubmit}
-            onBack={handleBack}
-            isLoading={isLoading}
-            isEdit={false}
-          />
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Criar usuário</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <UserForm
+          mode="create"
+          onSubmit={handleSubmit}
+          onBack={() => navigate("/users")}
+        />
+      </CardContent>
+    </Card>
   );
 }
-
-import { UsersProvider } from "@/providers/users.provider";
 
 export default function CreateUserPageWrapper() {
   return (

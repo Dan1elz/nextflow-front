@@ -1,30 +1,31 @@
 import { createContext } from "react";
 
 import type {
-  IUser,
-  ICreateUser,
-  IUpdateUser,
-  IRecoverPasswordRequest,
-  IResetPasswordRequest,
+  UpdateUserRequestDto,
+  UserListItemDto,
+  UserOption,
+  UserRequestDto,
+  UserResponseDto,
 } from "@/interfaces/user.interface";
 import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
 
 export type UsersContextType = {
-  users: IUser[];
-  selectedUser: IUser | null;
+  users: UserListItemDto[];
+  selectedUser: UserResponseDto | null;
   pagination: IPaginationInfo | null;
   searchUsers: (query?: IIndexParams) => Promise<void>;
   searchUsersForOptions: (
     query?: IIndexParams
-  ) => Promise<{ data: IUser[]; totalItems: number }>;
+  ) => Promise<{ data: UserOption[]; totalItems: number }>;
+  getUserOption: (id: string) => Promise<UserOption>;
   selectUser: (id: string) => Promise<void>;
-  getUserById: (id: string) => Promise<IUser>;
-  createUser: (user: ICreateUser) => Promise<IUser>;
-  updateUser: (id: string, user: IUpdateUser) => Promise<IUser>;
+  createUser: (dto: UserRequestDto) => Promise<UserResponseDto>;
+  updateUser: (
+    id: string,
+    dto: UpdateUserRequestDto
+  ) => Promise<UserResponseDto>;
   deleteUser: (id: string) => Promise<void>;
   reactivateUser: (id: string) => Promise<void>;
-  recoverPassword: (data: IRecoverPasswordRequest) => Promise<void>;
-  resetPassword: (data: IResetPasswordRequest) => Promise<void>;
 };
 
 export const UsersContext = createContext<UsersContextType | null>(null);

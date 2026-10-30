@@ -53,7 +53,7 @@ src/
 ├── services/                    # Camada de comunicação com API
 │   ├── api.service.ts           # HttpClient genérico (fetch wrapper com ApiError)
 │   ├── base.service.ts          # CRUD genérico (getAll, getById, create, update, delete)
-│   ├── auth.service.ts          # Login
+│   ├── auth.service.ts          # Login, me, perfil, troca de senha
 │   ├── viacep.service.ts        # Auto-preenchimento de CEP
 │   └── [entity].service.ts      # 14 services específicos
 │
@@ -63,7 +63,7 @@ src/
 │   └── [entity].context.tsx     # 14 contexts de entidades
 │
 ├── providers/                   # Context Providers (16)
-│   ├── auth.provider.tsx        # JWT token management, login/logout, checkAuth
+│   ├── auth.provider.tsx        # Token JWT (8 h), login/logout, /auth/me; 401 encerra a sessão
 │   ├── theme.provider.tsx       # Dark/light mode
 │   └── [entity].provider.tsx    # 14 providers de entidades
 │
@@ -277,6 +277,7 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Módulo          | List               | Create               | Edit                   | View                   |
 | --------------- | ------------------ | -------------------- | ---------------------- | ---------------------- |
 | Home            | `/`                | —                    | —                      | —                      |
+| Meu perfil      | `/profile`         | —                    | —                      | —                      |
 | Users           | `/users`           | `/users/create`      | `/users/:id/edit`      | `/users/:id/view`      |
 | Clients         | `/clients`         | `/clients/create`    | `/clients/:id/edit`    | `/clients/:id/view`    |
 | Suppliers       | `/suppliers`       | `/suppliers/create`  | `/suppliers/:id/edit`  | `/suppliers/:id/view`  |
@@ -301,8 +302,8 @@ Rota catch-all `*` → redireciona para `/login`.
 | --------------------------- | ------------------ | ----------------------------------------------------------------------------- |
 | `api.service.ts`            | —                  | HTTP client base (fetch wrapper)                                              |
 | `base.service.ts`           | —                  | CRUD genérico                                                                 |
-| `auth.service.ts`           | `/users/login`     | Login                                                                         |
-| `user.service.ts`           | `/users`           | CRUD + checkAuth + reativação                                                 |
+| `auth.service.ts`           | `/auth`            | Login, me, perfil e troca de senha                                            |
+| `user.service.ts`           | `/users`           | CRUD + reativação (`BaseService`)                                             |
 | `client.service.ts`         | `/clients`         | CRUD + reativação                                                             |
 | `supplier.service.ts`       | `/suppliers`       | CRUD + reativação                                                             |
 | `category.service.ts`       | `/categories`      | CRUD                                                                          |
