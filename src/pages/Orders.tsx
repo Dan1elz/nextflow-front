@@ -31,7 +31,7 @@ import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSearchOptions } from "@/hooks/use-search-options";
 
 import type { IOrder } from "@/interfaces/order.interface";
-import type { IClient } from "@/interfaces/client.interface";
+import type { ClientOption } from "@/interfaces/client.interface";
 import type { UserOption } from "@/interfaces/user.interface";
 import type { ISale, IPayment } from "@/interfaces/sale.interface";
 import type { IIndexParams, IOption } from "@/interfaces/api.interface";
@@ -68,7 +68,7 @@ function Orders() {
   const navigate = useNavigate();
   const { orders, pagination, searchOrders, cancelOrder, refundOrder } =
     useOrders();
-  const { searchClientsForOptions, getClientById } = useClients();
+  const { searchClientsForOptions, getClientOption } = useClients();
   const { searchUsersForOptions, getUserOption } = useUsers();
   const { searchSalesForOptions } = useSales();
 
@@ -119,13 +119,13 @@ function Orders() {
   });
 
   const { options: clientOptions, handleSearch: handleSearchClients } =
-    useSearchOptions<IClient>({
+    useSearchOptions<ClientOption>({
       searchFn: searchClientsForOptions,
       mapFn: (client) => ({
         value: client.id ?? "",
-        label: `${client.name} ${client.lastName}`,
+        label: client.fullName,
       }),
-      selectFn: getClientById,
+      selectFn: getClientOption,
       errorLabel: "clientes",
       autoLoad: false,
       perPage: 50,

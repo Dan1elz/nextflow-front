@@ -1,33 +1,35 @@
-import { useMemo, useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
+import { NavActionColumn } from "@/components/app/nav-action-column";
+import { SearchSelect } from "@/components/app/search-select";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { SearchSelect } from "@/components/app/search-select";
-import type { IOption } from "@/interfaces/api.interface";
-import { EntityIndexPage } from "@/components/app/entity-index-page";
-import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
-import { NavActionColumn } from "@/components/app/nav-action-column";
-import { useSuppliers } from "@/hooks/use-suppliers";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import type { ISupplier } from "@/interfaces/supplier.interface";
-import { formatCpfCnpj } from "@/utils/format.helpers";
-import { SuppliersProvider } from "@/providers/suppliers.provider";
+import { useCityOptions } from "@/hooks/use-city-options";
 import { useIndexSearch } from "@/hooks/use-index-search";
+import { useSuppliers } from "@/hooks/use-suppliers";
+import type { IOption } from "@/interfaces/api.interface";
+import type { SupplierListItemDto } from "@/interfaces/supplier.interface";
+import { SuppliersProvider } from "@/providers/suppliers.provider";
+import {
+  formatCpfCnpj,
+  formatDateOnly,
+  formatPhone,
+} from "@/utils/format.helpers";
+import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
 type SupplierFilters = {
   search: string;
-  cnpj: string;
   isActive: string;
+  cityId: string;
 };
 
 const statusOptions: IOption[] = [
@@ -44,7 +46,7 @@ function Suppliers() {
     deleteSupplier,
     reactivateSupplier,
   } = useSuppliers();
-
+  const { cityOptions, searchCities } = useCityOptions();
   const {
     setPerPage,
     selectedIds,
@@ -58,43 +60,40 @@ function Suppliers() {
     handlePageChange,
   } = useIndexSearch<SupplierFilters, "search">({
     search: searchSuppliers,
-    initialFilters: {
-      search: "",
-      cnpj: "",
-      isActive: "",
-    },
+    initialFilters: { search: "", isActive: "", cityId: "" },
     quickSearchKey: "search",
     perPageInitial: 10,
     debounceMs: 400,
-    onError: (error) => {
-      handleError(error, "Erro desconhecido ao buscar fornecedores");
-    },
+    onError: (error) => handleError(error, "Erro ao buscar fornecedores"),
   });
 
-  const handleCreate = () => navigate("/suppliers/create");
-
   const handleEdit = useCallback(
-    (supplier: ISupplier) => {
-      if (supplier.id) {
-        navigate(`/suppliers/${supplier.id}/edit`);
-      }
-    },
+    (supplier: SupplierListItemDto) =>
+      navigate(`/suppliers/${supplier.id}/edit`),
     [navigate]
   );
 
   const handleView = useCallback(
-    (supplier: ISupplier) => {
-      if (supplier.id) {
-        navigate(`/suppliers/${supplier.id}/view`);
-      }
-    },
+    (supplier: SupplierListItemDto) =>
+      navigate(`/suppliers/${supplier.id}/view`),
     [navigate]
   );
 
-  const handleReactivate = useCallback(
-    async (supplier: ISupplier) => {
-      if (!supplier.id) return;
+  const handleDelete = useCallback(
+    async (supplier: SupplierListItemDto) => {
+      try {
+        await deleteSupplier(supplier.id);
+        handleSuccess("Fornecedor inativado com sucesso");
+        await handleSearch(1);
+      } catch (error) {
+        handleError(error, "Erro ao inativar fornecedor");
+      }
+    },
+    [deleteSupplier, handleSearch]
+  );
 
+  const handleReactivate = useCallback(
+    async (supplier: SupplierListItemDto) => {
       try {
         await reactivateSupplier(supplier.id);
         handleSuccess("Fornecedor reativado com sucesso");
@@ -106,78 +105,55 @@ function Suppliers() {
     [reactivateSupplier, handleSearch]
   );
 
-  const handleDelete = useCallback(
-    async (supplier: ISupplier) => {
-      if (!supplier.id) return;
-
-      try {
-        await deleteSupplier(supplier.id);
-        handleSuccess("Fornecedor excluído com sucesso");
-        await handleSearch(1);
-      } catch (error) {
-        handleError(error, "Erro ao excluir fornecedor");
-      }
-    },
-    [deleteSupplier, handleSearch]
-  );
-
-  const handleExport = useCallback((_ids?: string[]) => {
-    void _ids;
-  }, []);
-
-  const handleDeleteMultiple = useCallback((_ids: string[]) => {
-    void _ids;
-  }, []);
-
-  const columns = useMemo<ColumnDef<ISupplier>[]>(
+  const columns = useMemo<ColumnDef<SupplierListItemDto>[]>(
     () => [
-      {
-        id: "select",
-        header: ({ table }) => {
-          const isAllSelected = table.getIsAllPageRowsSelected();
-          const isSomeSelected = table.getIsSomePageRowsSelected();
-          return (
-            <Checkbox
-              checked={isAllSelected}
-              indeterminate={isSomeSelected && !isAllSelected}
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-              aria-label="Selecionar todos"
-            />
-          );
-        },
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Selecionar linha"
-          />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      },
-      {
-        accessorKey: "name",
-        header: "Nome/Razão Social",
-        cell: ({ row }) => row.original.name,
-      },
+      { accessorKey: "name", header: "Nome" },
       {
         accessorKey: "cnpj",
         header: "CNPJ",
-        cell: ({ row }) => formatCpfCnpj(row.original.cnpj),
+        cell: ({ row }) => (
+          <span className="whitespace-nowrap">
+            {formatCpfCnpj(row.original.cnpj)}
+          </span>
+        ),
       },
       {
-        accessorKey: "status",
-        header: "Status",
+        accessorKey: "cityState",
+        header: "Cidade/UF",
+        cell: ({ row }) => row.original.cityState ?? "-",
+      },
+      {
+        accessorKey: "mainContact",
+        header: "Contato",
         cell: ({ row }) => {
-          const supplier = row.original;
-          return (
-            <Badge variant={supplier.isActive ? "default" : "secondary"}>
-              {supplier.isActive ? "Ativo" : "Inativo"}
-            </Badge>
-          );
+          const contact = row.original.mainContact;
+          if (!contact) return "-";
+          return contact.includes("@") ? contact : formatPhone(contact);
         },
+      },
+      { accessorKey: "leadTimeDays", header: "Prazo (dias)" },
+      {
+        accessorKey: "realLeadTimeDays",
+        header: "Prazo real",
+        cell: ({ row }) => row.original.realLeadTimeDays ?? "-",
+      },
+      { accessorKey: "productCount", header: "Produtos" },
+      {
+        accessorKey: "lastPurchaseOn",
+        header: "Última compra",
+        cell: ({ row }) =>
+          row.original.lastPurchaseOn
+            ? formatDateOnly(row.original.lastPurchaseOn)
+            : "-",
+      },
+      {
+        accessorKey: "isActive",
+        header: "Status",
+        cell: ({ row }) => (
+          <Badge variant={row.original.isActive ? "default" : "secondary"}>
+            {row.original.isActive ? "Ativo" : "Inativo"}
+          </Badge>
+        ),
       },
       {
         id: "actions",
@@ -185,20 +161,24 @@ function Suppliers() {
         cell: ({ row }) => (
           <NavActionColumn
             object={row.original}
-            onEdit={handleEdit}
-            onReactivate={handleReactivate}
-            onDelete={handleDelete}
             onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onReactivate={handleReactivate}
             disableDelete={!row.original.isActive}
             disableEdit={!row.original.isActive}
             disableReactivate={row.original.isActive}
+            deleteLabel="Inativar"
+            deleteDialogTitle="Inativar este fornecedor?"
+            deleteDialogDescription="O fornecedor sai dos combos de compra. Você pode reativá-lo depois."
+            deleteButtonLabel="Inativar"
           />
         ),
         enableSorting: false,
         enableHiding: false,
       },
     ],
-    [handleDelete, handleEdit, handleView, handleReactivate]
+    [handleDelete, handleEdit, handleReactivate, handleView]
   );
 
   return (
@@ -210,14 +190,14 @@ function Suppliers() {
         <>
           <InputGroup className="w-full md:w-[280px]">
             <InputGroupAddon>
-              <Search className="h-4 w-4" />
+              <Search />
             </InputGroupAddon>
             <InputGroupInput
               value={filters.search}
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, search: e.target.value }))
               }
-              placeholder="Pesquisar fornecedor..."
+              placeholder="Pesquisar por nome ou CNPJ..."
               aria-label="Pesquisar fornecedor"
             />
           </InputGroup>
@@ -236,52 +216,33 @@ function Suppliers() {
               handleFiltersOpenChange(false);
             }}
           >
-            <div className="grid gap-2">
-              <Label htmlFor="supplierFilterSearch">Nome</Label>
-              <Input
-                id="supplierFilterSearch"
-                value={filters.search}
-                onChange={(e) =>
+            <SearchSelect<IOption>
+              field={{
+                value: filters.isActive,
+                onChange: (value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    search: e.target.value,
-                  }))
-                }
-                placeholder="Ex.: Distribuidora X"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="supplierFilterCnpj">CNPJ</Label>
-              <Input
-                id="supplierFilterCnpj"
-                value={filters.cnpj}
-                onChange={(e) =>
+                    isActive: value ? String(value) : "",
+                  })),
+              }}
+              label="Status"
+              data={statusOptions}
+              placeholder="Todos"
+            />
+            <SearchSelect<IOption>
+              field={{
+                value: filters.cityId,
+                onChange: (value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    cnpj: e.target.value,
-                  }))
-                }
-                placeholder="Ex.: 00.000.000/0000-00"
-                autoComplete="off"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <SearchSelect<IOption>
-                field={{
-                  value: filters.isActive,
-                  onChange: (value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      isActive: value ? String(value) : "",
-                    })),
-                }}
-                label="Status"
-                data={statusOptions}
-                placeholder="Todos"
-              />
-            </div>
+                    cityId: value ? String(value) : "",
+                  })),
+              }}
+              label="Cidade/UF"
+              data={cityOptions}
+              onSearch={searchCities}
+              placeholder="Digite para buscar"
+            />
           </ListFiltersSheet>
         </>
       }
@@ -290,9 +251,7 @@ function Suppliers() {
       pagination={pagination}
       onPageChange={handlePageChange}
       onPerPageChange={setPerPage}
-      onCreate={handleCreate}
-      onExport={handleExport}
-      onDeleteMultiple={handleDeleteMultiple}
+      onCreate={() => navigate("/suppliers/create")}
     />
   );
 }

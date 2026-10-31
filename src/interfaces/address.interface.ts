@@ -1,37 +1,31 @@
-import type { IClient } from "./client.interface";
-import type { ICity } from "./locations.interface";
-import type { IState } from "./locations.interface";
-import type { ISupplier } from "./supplier.interface";
+import type { TOwnerType } from "@/types/enums";
 
-export interface IAddress {
-  id?: string;
-  clientId?: string;
-  client?: IClient;
-  supplierId?: string;
-  supplier?: ISupplier;
-  description: string;
+export interface UpdateAddressRequestDto {
+  zipCode: string;
   street: string;
   number: string;
-  district: string;
+  complement?: string | null;
+  neighborhood: string;
   cityId: string;
-  city?: ICity;
-  stateId: string;
-  state?: IState;
-  complement: string;
-  zipCode: string;
+  isMain: boolean;
 }
 
-export type IResolveAddressFromCepPayload = {
-  stateAcronym?: string;
-  cityName?: string;
-  cityIbgeCode?: string;
-};
+export interface AddressRequestDto extends UpdateAddressRequestDto {
+  ownerType: TOwnerType;
+  ownerId: string;
+}
 
-export type IResolveAddressFromCepResult = {
-  stateId?: string;
-  stateName?: string;
-  stateAcronym?: string;
-  cityId?: string;
-  cityName?: string;
-  cityIbgeCode?: string;
-};
+export interface AddressResponseDto {
+  id: string;
+  ownerType: TOwnerType;
+  ownerId: string;
+  zipCode: string;
+  street: string;
+  number: string;
+  complement?: string | null;
+  neighborhood: string;
+  cityId: string;
+  cityName: string;
+  stateAbbreviation: string;
+  isMain: boolean;
+}

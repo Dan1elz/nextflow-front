@@ -1,29 +1,25 @@
 import { z } from "zod";
 import { validateCnpj } from "@/utils/validators";
-import { formatOnlyNumbers } from "@/utils/format.helpers";
 
-export const createSupplierSchema = z.object({
+/** CNPJ único (a unicidade é da API) e válido (RN-CD02); prazo de 1 a 180 dias (RN-CD03). */
+export const supplierSchema = z.object({
   name: z
     .string()
-    .min(1, "O Nome do fornecedor é obrigatório.")
-    .min(2, "O Nome do fornecedor deve ter no mínimo 2 caracteres.")
-    .max(100, "O Nome do fornecedor deve ter no máximo 100 caracteres."),
-
+    .trim()
+    .min(1, "Informe o nome.")
+    .max(150, "O nome deve ter no máximo 150 caracteres."),
   cnpj: z
     .string()
-    .min(1, "O CNPJ do fornecedor é obrigatório.")
-    .refine((v) => !v || !v.trim() || validateCnpj(formatOnlyNumbers(v)), {
-      message: "CNPJ inválido",
-    }),
-
-  leadTimeDays: z
-    .number({ message: "Informe o prazo de entrega em dias." })
-    .int("O prazo de entrega deve ser um número inteiro de dias.")
-    .min(1, "O prazo de entrega deve ser de no mínimo 1 dia.")
-    .max(180, "O prazo de entrega deve ser de no máximo 180 dias."),
+    .min(1, "Informe o CNPJ.")
+    .refine(validateCnpj, { message: "Informe um CNPJ válido." }),
+  leadTimeDays: z.string().refine(
+    (value) => {
+      const days = Number(value);
+      return Number.isInteger(days) && days >= 1 && days <= 180;
+    },
+    { message: "O prazo de entrega deve ser de 1 a 180 dias." }
+  ),
+  note: z.string().max(500, "A observação deve ter no máximo 500 caracteres."),
 });
 
-export const updateSupplierSchema = createSupplierSchema;
-
-export type CreateSupplierFormData = z.infer<typeof createSupplierSchema>;
-export type UpdateSupplierFormData = z.infer<typeof updateSupplierSchema>;
+export type SupplierFormData = z.infer<typeof supplierSchema>;

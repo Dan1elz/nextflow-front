@@ -1,5 +1,5 @@
 import type { IProduct } from "./product.interface";
-import type { ISupplier } from "./supplier.interface";
+import type { SupplierOption } from "./supplier.interface";
 import type { TLegacyPurchaseStatus } from "@/types/enums";
 
 export interface IPurchaseItem {
@@ -16,7 +16,7 @@ export interface IPurchaseItem {
 export interface IPurchaseOrder {
   id?: string;
   supplierId: string;
-  supplier?: ISupplier;
+  supplier?: SupplierOption;
   status?: TLegacyPurchaseStatus;
   totalAmount?: number | string;
   note?: string;

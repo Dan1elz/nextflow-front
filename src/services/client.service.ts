@@ -1,22 +1,36 @@
 import { BaseService } from "./base.service";
-import { ApiService } from "./api.service";
-import type { IClient } from "@/interfaces/client.interface";
+import type {
+  ClientListItemDto,
+  ClientOptionDto,
+  ClientRequestDto,
+  ClientResponseDto,
+  QuickCreateClientRequestDto,
+} from "@/interfaces/client.interface";
 
-const baseService = new BaseService<IClient>("clients");
-const apiService = new ApiService();
+class ClientService extends BaseService<
+  ClientResponseDto,
+  ClientRequestDto,
+  ClientListItemDto
+> {
+  constructor() {
+    super("clients");
+  }
 
-export const clientService = {
-  delete: baseService.delete.bind(baseService),
-  getAll: baseService.getAll.bind(baseService),
-  getById: baseService.getById.bind(baseService),
-  create: baseService.create.bind(baseService),
-  update: baseService.update.bind(baseService),
-  reactivate: async (id: string, token?: string) => {
-    const response = await apiService.patch<IClient>(
-      `clients/reactivate/${id}`,
-      {},
+  clientOptions(search?: string, token?: string) {
+    return this.apiService.get<ClientOptionDto[]>(
+      `${this.endpoint}/options`,
+      { search },
       token
     );
-    return response;
-  },
-};
+  }
+
+  quickCreate(dto: QuickCreateClientRequestDto, token?: string) {
+    return this.apiService.post<ClientOptionDto>(
+      `${this.endpoint}/quick`,
+      dto,
+      token
+    );
+  }
+}
+
+export const clientService = new ClientService();

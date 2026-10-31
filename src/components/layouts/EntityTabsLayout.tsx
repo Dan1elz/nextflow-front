@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -32,6 +32,7 @@ export function EntityTabsLayout({
   onBack,
 }: EntityTabsLayoutProps) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const tabsListRef = useRef<HTMLDivElement>(null);
   const firstTab = tabs[0];
   const firstTabValue = firstTab?.value ?? "main";
 
@@ -69,6 +70,13 @@ export function EntityTabsLayout({
     if (step < 1) return defaultTab ?? firstTabValue;
     return stepToTabValue(step);
   }, [stepFromUrl, defaultTab, firstTabValue, stepToTabValue]);
+
+  // Aberta pela URL (?step=5), a aba ativa pode nascer fora da faixa rolável do celular.
+  useEffect(() => {
+    tabsListRef.current
+      ?.querySelector('[data-state="active"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeValue]);
 
   useEffect(() => {
     if (stepFromUrl == null || stepFromUrl < 1) return;
@@ -125,11 +133,14 @@ export function EntityTabsLayout({
             className="w-full"
           >
             <TabsList
+              ref={tabsListRef}
               className={cn(
-                "grid w-full",
-                tabs.length === 2 && "grid-cols-2",
-                tabs.length === 3 && "grid-cols-3",
-                tabs.length >= 4 && "grid-cols-4"
+                // No celular as abas rolam: em colunas iguais, os rótulos se sobrepõem.
+                "flex w-full justify-start overflow-x-auto md:grid",
+                tabs.length === 2 && "md:grid-cols-2",
+                tabs.length === 3 && "md:grid-cols-3",
+                tabs.length === 4 && "md:grid-cols-4",
+                tabs.length >= 5 && "md:grid-cols-5"
               )}
             >
               {tabs.map((tab) => (

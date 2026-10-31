@@ -24,7 +24,7 @@ import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSearchOptions } from "@/hooks/use-search-options";
 
 import type { IPurchaseOrder } from "@/interfaces/purchase-order.interface";
-import type { ISupplier } from "@/interfaces/supplier.interface";
+import type { SupplierOption } from "@/interfaces/supplier.interface";
 import type { IIndexParams, IOption } from "@/interfaces/api.interface";
 
 import { PurchaseOrdersProvider } from "@/providers/purchase-orders.provider";
@@ -32,7 +32,10 @@ import { SuppliersProvider } from "@/providers/suppliers.provider";
 
 import { useSuppliers } from "@/hooks/use-suppliers";
 import { Badge } from "@/components/ui/badge";
-import { LEGACY_PURCHASE_STATUS_LABELS, TLegacyPurchaseStatus } from "@/types/enums";
+import {
+  LEGACY_PURCHASE_STATUS_LABELS,
+  TLegacyPurchaseStatus,
+} from "@/types/enums";
 
 type PurchaseOrderFilters = {
   search: string;
@@ -116,7 +119,7 @@ function PurchaseOrders() {
   });
 
   const { options: supplierOptions, handleSearch: handleSearchSuppliers } =
-    useSearchOptions<ISupplier>({
+    useSearchOptions<SupplierOption>({
       searchFn: searchSuppliersForOptions,
       mapFn: (supplier) => ({
         value: supplier.id ?? "",
@@ -210,7 +213,8 @@ function PurchaseOrders() {
         cell: ({ row }) => {
           if (!row.original.status) return "-";
           const label =
-            LEGACY_PURCHASE_STATUS_LABELS[row.original.status] ?? row.original.status;
+            LEGACY_PURCHASE_STATUS_LABELS[row.original.status] ??
+            row.original.status;
 
           let extraClass = "";
           if (row.original.status === TLegacyPurchaseStatus.Received)

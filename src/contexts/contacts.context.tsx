@@ -1,16 +1,15 @@
 import { createContext } from "react";
 
-import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
-import type { IContact } from "@/interfaces/contact.interface";
+import type {
+  ContactResponseDto,
+  UpdateContactRequestDto,
+} from "@/interfaces/contact.interface";
 
 export type ContactsContextType = {
-  contacts: IContact[];
-  selectedContact: IContact | null;
-  pagination: IPaginationInfo | null;
-  searchContacts: (query?: IIndexParams) => Promise<void>;
-  selectContact: (id: string) => Promise<void>;
-  createContact: (contact: IContact) => Promise<IContact>;
-  updateContact: (id: string, contact: IContact) => Promise<IContact>;
+  contacts: ContactResponseDto[];
+  loadContacts: () => Promise<void>;
+  createContact: (dto: UpdateContactRequestDto) => Promise<void>;
+  updateContact: (id: string, dto: UpdateContactRequestDto) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
 };
 

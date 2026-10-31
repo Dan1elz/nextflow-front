@@ -1,24 +1,16 @@
 import { createContext } from "react";
 
 import type {
-  IAddress,
-  IResolveAddressFromCepPayload,
-  IResolveAddressFromCepResult,
+  AddressResponseDto,
+  UpdateAddressRequestDto,
 } from "@/interfaces/address.interface";
-import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 
 export type AddressesContextType = {
-  addresses: IAddress[];
-  selectedAddress: IAddress | null;
-  pagination: IPaginationInfo | null;
-  searchAddresses: (query?: IIndexParams) => Promise<void>;
-  selectAddress: (id: string) => Promise<void>;
-  createAddress: (address: IAddress) => Promise<IAddress>;
-  updateAddress: (id: string, address: IAddress) => Promise<IAddress>;
+  addresses: AddressResponseDto[];
+  loadAddresses: () => Promise<void>;
+  createAddress: (dto: UpdateAddressRequestDto) => Promise<void>;
+  updateAddress: (id: string, dto: UpdateAddressRequestDto) => Promise<void>;
   deleteAddress: (id: string) => Promise<void>;
-  resolveFromCep: (
-    payload: IResolveAddressFromCepPayload
-  ) => Promise<IResolveAddressFromCepResult>;
 };
 
 export const AddressesContext = createContext<AddressesContextType | null>(

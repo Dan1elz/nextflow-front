@@ -1,20 +1,28 @@
 import { createContext } from "react";
 
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
-import type { IClient } from "@/interfaces/client.interface";
+import type {
+  ClientListItemDto,
+  ClientOption,
+  ClientRequestDto,
+  ClientResponseDto,
+} from "@/interfaces/client.interface";
 
 export type ClientsContextType = {
-  clients: IClient[];
-  selectedClient: IClient | null;
+  clients: ClientListItemDto[];
+  selectedClient: ClientResponseDto | null;
   pagination: IPaginationInfo | null;
   searchClients: (query?: IIndexParams) => Promise<void>;
   searchClientsForOptions: (
     query?: IIndexParams
-  ) => Promise<{ data: IClient[]; totalItems: number }>;
+  ) => Promise<{ data: ClientOption[]; totalItems: number }>;
+  getClientOption: (id: string) => Promise<ClientOption>;
   selectClient: (id: string) => Promise<void>;
-  getClientById: (id: string) => Promise<IClient>;
-  createClient: (client: IClient) => Promise<IClient>;
-  updateClient: (id: string, client: IClient) => Promise<IClient>;
+  createClient: (dto: ClientRequestDto) => Promise<ClientResponseDto>;
+  updateClient: (
+    id: string,
+    dto: ClientRequestDto
+  ) => Promise<ClientResponseDto>;
   deleteClient: (id: string) => Promise<void>;
   reactivateClient: (id: string) => Promise<void>;
 };

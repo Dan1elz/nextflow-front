@@ -52,7 +52,7 @@ import { useClients } from "@/hooks/use-clients";
 import { useProducts } from "@/hooks/use-products";
 import { useSearchOptions } from "@/hooks/use-search-options";
 
-import type { IClient } from "@/interfaces/client.interface";
+import type { ClientOption } from "@/interfaces/client.interface";
 import type { IProduct } from "@/interfaces/product.interface";
 import type { IOrder, IOrderItem } from "@/interfaces/order.interface";
 import type { ISale, IPayment } from "@/interfaces/sale.interface";
@@ -112,7 +112,7 @@ export function OrderForm({
   const navigate = useNavigate();
   const { createOrder, updateOrder, getOrderById, cancelOrder, refundOrder } =
     useOrders();
-  const { searchClientsForOptions, getClientById } = useClients();
+  const { searchClientsForOptions, getClientOption } = useClients();
   const { searchProductsForOptions, getProductById } = useProducts();
 
   const isView = mode === "view";
@@ -122,7 +122,9 @@ export function OrderForm({
   // Order Info
   const [clientId, setClientId] = useState<string>("");
   const [orderType, setOrderType] = useState<number>(TOrderType.Budget);
-  const [orderStatus, setOrderStatus] = useState<number>(TLegacyOrderStatus.Budget);
+  const [orderStatus, setOrderStatus] = useState<number>(
+    TLegacyOrderStatus.Budget
+  );
   const [loadedOrder, setLoadedOrder] = useState<IOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [associatedSale, setAssociatedSale] = useState<ISale | null>(null);
@@ -146,13 +148,13 @@ export function OrderForm({
 
   // Search options
   const { options: clientOptions, handleSearch: handleSearchClients } =
-    useSearchOptions<IClient>({
+    useSearchOptions<ClientOption>({
       searchFn: searchClientsForOptions,
       mapFn: (client) => ({
         value: client.id ?? "",
-        label: `${client.name} ${client.lastName}`,
+        label: client.fullName,
       }),
-      selectFn: getClientById,
+      selectFn: getClientOption,
       errorLabel: "clientes",
       autoLoad: false,
       perPage: 50,
@@ -476,8 +478,9 @@ export function OrderForm({
                             : "secondary"
                       }
                     >
-                      {LEGACY_ORDER_STATUS_LABELS[orderStatus as TLegacyOrderStatus] ??
-                        "Desconhecido"}
+                      {LEGACY_ORDER_STATUS_LABELS[
+                        orderStatus as TLegacyOrderStatus
+                      ] ?? "Desconhecido"}
                     </Badge>
                   </div>
                 )}

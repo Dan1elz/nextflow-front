@@ -1,12 +1,12 @@
 import type { TUnitType } from "@/types/enums";
 import type { ICategory } from "./category.interface";
-import type { ISupplier } from "./supplier.interface";
+import type { SupplierOption } from "./supplier.interface";
 import type { IPromotionSummary } from "./promotion.interface";
 
 export interface IProduct {
   id?: string;
   supplierId: string;
-  supplier?: ISupplier;
+  supplier?: SupplierOption;
   productCode: string;
   name: string;
   description: string;

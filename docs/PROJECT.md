@@ -288,9 +288,6 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Purchase Orders | `/purchase-orders` | —                    | —                      | —                      |
 | Forecast (IA)   | `/forecast`        | —                    | —                      | —                      |
 | Promotions      | `/promotions`      | —                    | —                      | —                      |
-| Countries       | `/countries`       | `/countries/create`  | `/countries/:id/edit`  | `/countries/:id/view`  |
-| States          | `/states`          | `/states/create`     | `/states/:id/edit`     | `/states/:id/view`     |
-| Cities          | `/cities`          | `/cities/create`     | `/cities/:id/edit`     | `/cities/:id/view`     |
 
 Rota catch-all `*` → redireciona para `/login`.
 
@@ -314,11 +311,9 @@ Rota catch-all `*` → redireciona para `/login`.
 | `purchase-order.service.ts` | `/PurchaseOrders`  | CRUD                                                                          |
 | `forecast.service.ts`       | `/forecasts`       | generate, latest, products/{id}, recommendations (purchase/promotion/dismiss) |
 | `promotion.service.ts`      | `/promotions`      | getAll (filtros productId/status/source), create, cancel                      |
-| `address.service.ts`        | `/addresses`       | CRUD + resolveFromCep                                                         |
-| `contact.service.ts`        | `/contacts`        | CRUD                                                                          |
-| `country.service.ts`        | `/countries`       | CRUD                                                                          |
-| `state.service.ts`          | `/states`          | CRUD                                                                          |
-| `city.service.ts`           | `/cities`          | CRUD                                                                          |
+| `address.service.ts`        | `/addresses`       | CRUD de um dono (`ownerType` + `ownerId`)                                     |
+| `contact.service.ts`        | `/contacts`        | CRUD de um dono (`ownerType` + `ownerId`)                                     |
+| `city.service.ts`           | `/cities/options`  | Só leitura: combo e busca pelo código IBGE                                    |
 | `viacep.service.ts`         | `viacep.com.br`    | Auto-preenchimento de CEP                                                     |
 
 ---

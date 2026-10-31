@@ -1,91 +1,68 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
+import { AddressesContext } from "@/contexts/addresses.context";
 import { useAuth } from "@/hooks/use-auth";
 import type {
-  IAddress,
-  IResolveAddressFromCepPayload,
-  IResolveAddressFromCepResult,
+  AddressResponseDto,
+  UpdateAddressRequestDto,
 } from "@/interfaces/address.interface";
 import { addressService } from "@/services/address.service";
-import { AddressesContext } from "@/contexts/addresses.context";
+import type { TOwnerType } from "@/types/enums";
 
-export function AddressesProvider({ children }: { children: ReactNode }) {
-  const [addresses, setAddresses] = useState<IAddress[]>([]);
-  const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedAddress, setSelectedAddress] = useState<IAddress | null>(null);
+/** Endereços de um dono: toda chamada leva `ownerType` e `ownerId` (decisão 4 de 29/10). */
+export function AddressesProvider({
+  ownerType,
+  ownerId,
+  children,
+}: {
+  ownerType: TOwnerType;
+  ownerId: string;
+  children: ReactNode;
+}) {
+  const [addresses, setAddresses] = useState<AddressResponseDto[]>([]);
   const { token } = useAuth();
+  const auth = token ?? undefined;
 
-  const searchAddresses = useCallback(
-    async (query?: IIndexParams) => {
-      const page = query?.page ?? 1;
-      const perPage = query?.perPage ?? 10;
-
-      const response = await addressService.getAll(query, token ?? undefined);
-      setAddresses(response.items || []);
-
-      setPagination({
-        currentPage: page,
-        lastPage: Math.ceil(response.total / perPage) || 1,
-        total: response.total,
-        perPage,
-      });
-    },
-    [token]
-  );
-
-  const selectAddress = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await addressService.getById(id, token ?? undefined);
-      setSelectedAddress(data);
-    },
-    [token]
-  );
+  const loadAddresses = useCallback(async () => {
+    const response = await addressService.getAll(
+      { filters: { ownerType, ownerId }, page: 1, perPage: 100 },
+      auth
+    );
+    setAddresses(response.items);
+  }, [auth, ownerId, ownerType]);
 
   const createAddress = useCallback(
-    async (address: IAddress): Promise<IAddress> => {
-      const data = await addressService.create(address, token ?? undefined);
-      return data;
+    async (dto: UpdateAddressRequestDto) => {
+      await addressService.create({ ...dto, ownerType, ownerId }, auth);
+      await loadAddresses();
     },
-    [token]
+    [auth, loadAddresses, ownerId, ownerType]
   );
 
   const updateAddress = useCallback(
-    async (id: string, address: IAddress): Promise<IAddress> => {
-      const data = await addressService.update(id, address, token ?? undefined);
-      return data;
+    async (id: string, dto: UpdateAddressRequestDto) => {
+      await addressService.update(id, dto, auth);
+      await loadAddresses();
     },
-    [token]
+    [auth, loadAddresses]
   );
 
   const deleteAddress = useCallback(
-    async (id: string): Promise<void> => {
-      await addressService.delete(id, token ?? undefined);
+    async (id: string) => {
+      await addressService.delete(id, auth);
+      await loadAddresses();
     },
-    [token]
-  );
-
-  const resolveFromCep = useCallback(
-    async (
-      payload: IResolveAddressFromCepPayload
-    ): Promise<IResolveAddressFromCepResult> => {
-      return await addressService.resolveFromCep(payload, token ?? undefined);
-    },
-    [token]
+    [auth, loadAddresses]
   );
 
   return (
     <AddressesContext.Provider
       value={{
         addresses,
-        pagination,
-        selectedAddress,
-        searchAddresses,
-        selectAddress,
+        loadAddresses,
         createAddress,
         updateAddress,
         deleteAddress,
-        resolveFromCep,
       }}
     >
       {children}

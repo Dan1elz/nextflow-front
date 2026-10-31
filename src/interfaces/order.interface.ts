@@ -1,5 +1,5 @@
 import type { TLegacyOrderStatus, TOrderType } from "@/types/enums";
-import type { IClient } from "./client.interface";
+import type { ClientResponseDto } from "./client.interface";
 import type { IProduct } from "./product.interface";
 import type { UserResponseDto } from "./user.interface";
 
@@ -16,7 +16,7 @@ export interface IOrderItem {
 export interface IOrder {
   id?: string;
   clientId: string;
-  client?: IClient;
+  client?: Pick<ClientResponseDto, "id" | "name" | "lastName">;
   userId?: string;
   user?: UserResponseDto;
   status?: TLegacyOrderStatus;

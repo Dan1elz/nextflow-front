@@ -1,23 +1,28 @@
-import { useState, useCallback, type ReactNode } from "react";
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
-import { useAuth } from "@/hooks/use-auth";
-import type { ISupplier } from "@/interfaces/supplier.interface";
+import { useCallback, useState, type ReactNode } from "react";
+
 import { SuppliersContext } from "@/contexts/suppliers.context";
+import { useAuth } from "@/hooks/use-auth";
+import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type {
+  SupplierListItemDto,
+  SupplierRequestDto,
+  SupplierResponseDto,
+} from "@/interfaces/supplier.interface";
 import { supplierService } from "@/services/supplier.service";
 
 export function SuppliersProvider({ children }: { children: ReactNode }) {
-  const [suppliers, setSuppliers] = useState<ISupplier[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierListItemDto[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedSupplier, setSelectedSupplier] = useState<ISupplier | null>(
-    null
-  );
+  const [selectedSupplier, setSelectedSupplier] =
+    useState<SupplierResponseDto | null>(null);
   const { token } = useAuth();
+  const auth = token ?? undefined;
 
   const searchSuppliers = useCallback(
     async (query?: IIndexParams) => {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
-      const response = await supplierService.getAll(query, token ?? undefined);
+      const response = await supplierService.getAll(query, auth);
       setSuppliers(response.items || []);
       setPagination({
         currentPage: page,
@@ -26,77 +31,56 @@ export function SuppliersProvider({ children }: { children: ReactNode }) {
         perPage,
       });
     },
-    [token]
+    [auth]
   );
 
   const searchSuppliersForOptions = useCallback(
-    async (
-      query?: IIndexParams
-    ): Promise<{ data: ISupplier[]; totalItems: number }> => {
-      const response = await supplierService.getAll(query, token ?? undefined);
-      return {
-        data: response.items || [],
-        totalItems: response.total,
-      };
+    async (query?: IIndexParams) => {
+      const response = await supplierService.getAll(query, auth);
+      return { data: response.items || [], totalItems: response.total };
     },
-    [token]
+    [auth]
   );
 
   const selectSupplier = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await supplierService.getById(id, token ?? undefined);
-      setSelectedSupplier(data);
+    async (id: string) => {
+      setSelectedSupplier(await supplierService.getById(id, auth));
     },
-    [token]
+    [auth]
   );
 
   const getSupplierById = useCallback(
-    async (id: string): Promise<ISupplier> => {
-      return supplierService.getById(id, token ?? undefined);
-    },
-    [token]
+    (id: string) => supplierService.getById(id, auth),
+    [auth]
   );
 
   const createSupplier = useCallback(
-    async (supplier: ISupplier): Promise<ISupplier> => {
-      const data = await supplierService.create(supplier, token ?? undefined);
-      return data;
-    },
-    [token]
+    (dto: SupplierRequestDto) => supplierService.create(dto, auth),
+    [auth]
   );
 
   const updateSupplier = useCallback(
-    async (id: string, supplier: ISupplier): Promise<ISupplier> => {
-      const data = await supplierService.update(
-        id,
-        supplier,
-        token ?? undefined
-      );
-      return data;
-    },
-    [token]
+    (id: string, dto: SupplierRequestDto) =>
+      supplierService.update(id, dto, auth),
+    [auth]
   );
 
   const deleteSupplier = useCallback(
-    async (id: string): Promise<void> => {
-      await supplierService.delete(id, token ?? undefined);
-    },
-    [token]
+    (id: string) => supplierService.delete(id, auth),
+    [auth]
   );
 
   const reactivateSupplier = useCallback(
-    async (id: string): Promise<void> => {
-      await supplierService.reactivate(id, token ?? undefined);
-    },
-    [token]
+    (id: string) => supplierService.reactivate(id, auth),
+    [auth]
   );
 
   return (
     <SuppliersContext.Provider
       value={{
         suppliers,
-        pagination,
         selectedSupplier,
+        pagination,
         searchSuppliers,
         searchSuppliersForOptions,
         selectSupplier,

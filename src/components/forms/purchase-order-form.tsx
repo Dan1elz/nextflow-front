@@ -60,14 +60,17 @@ import { ProductForm } from "@/components/forms/product-form";
 import type { ProductSchema } from "@/schemas/product.schema";
 import type { ICategory } from "@/interfaces/category.interface";
 
-import type { ISupplier } from "@/interfaces/supplier.interface";
+import type { SupplierOption } from "@/interfaces/supplier.interface";
 import type { IProduct } from "@/interfaces/product.interface";
 import type {
   IPurchaseOrder,
   ICreatePurchaseOrder,
   IUpdatePurchaseOrder,
 } from "@/interfaces/purchase-order.interface";
-import { LEGACY_PURCHASE_STATUS_LABELS, TLegacyPurchaseStatus } from "@/types/enums";
+import {
+  LEGACY_PURCHASE_STATUS_LABELS,
+  TLegacyPurchaseStatus,
+} from "@/types/enums";
 import { API_URL } from "@/configs/api";
 import type { IOption } from "@/interfaces/api.interface";
 
@@ -145,7 +148,7 @@ export function PurchaseOrderForm({
 
   // Search options
   const { options: supplierOptions, handleSearch: handleSearchSuppliers } =
-    useSearchOptions<ISupplier>({
+    useSearchOptions<SupplierOption>({
       searchFn: searchSuppliersForOptions,
       mapFn: (supplier) => ({
         value: supplier.id ?? "",

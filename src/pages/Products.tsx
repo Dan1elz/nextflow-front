@@ -32,7 +32,7 @@ import { useCategories } from "@/hooks/use-categories";
 import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSearchOptions } from "@/hooks/use-search-options";
 import type { IProduct } from "@/interfaces/product.interface";
-import type { ISupplier } from "@/interfaces/supplier.interface";
+import type { SupplierOption } from "@/interfaces/supplier.interface";
 import type { ICategory } from "@/interfaces/category.interface";
 import type { IOption } from "@/interfaces/api.interface";
 import { ProductsProvider } from "@/providers/products.provider";
@@ -117,7 +117,7 @@ function Products() {
 
   // SearchSelect: Fornecedores
   const { options: supplierOptions, handleSearch: handleSearchSuppliers } =
-    useSearchOptions<ISupplier>({
+    useSearchOptions<SupplierOption>({
       searchFn: async (params) => {
         return await searchSuppliersForOptions(params);
       },

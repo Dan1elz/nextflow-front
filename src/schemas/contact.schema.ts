@@ -1,45 +1,32 @@
 import { z } from "zod";
-import { validateEmail, validatePhone } from "@/utils/validators";
+import { TContactType } from "@/types/enums";
 import { formatOnlyNumbers } from "@/utils/format.helpers";
+import { validateEmail } from "@/utils/validators";
 
 export const contactSchema = z
   .object({
-    description: z
-      .string()
-      .min(1, "Descrição é obrigatória")
-      .min(2, "Descrição deve ter no mínimo 2 caracteres")
-      .max(100, "Descrição deve ter no máximo 100 caracteres"),
-
-    fone: z
-      .string()
-      .optional()
-      .refine(
-        (v) => {
-          if (!v || !v.trim()) return true;
-
-          const n = formatOnlyNumbers(v);
-          return validatePhone(n);
-        },
-        { message: "Telefone inválido (10 ou 11 dígitos)" }
-      ),
-
-    email: z
-      .string()
-      .optional()
-      .refine((v) => !v || !v.trim() || validateEmail(v), {
-        message: "E-mail inválido",
-      }),
+    type: z.enum(TContactType),
+    value: z.string().trim().min(1, "Informe o contato."),
+    isMain: z.boolean(),
   })
-  .refine(
-    (data) => {
-      return (
-        (data.fone && data.fone.trim()) || (data.email && data.email.trim())
-      );
-    },
-    {
-      message: "Informe pelo menos telefone ou e-mail",
-      path: ["fone"],
+  .superRefine((data, ctx) => {
+    if (!data.value) return;
+    if (data.type === TContactType.Email) {
+      if (!validateEmail(data.value))
+        ctx.addIssue({
+          code: "custom",
+          path: ["value"],
+          message: "Informe um e-mail válido.",
+        });
+      return;
     }
-  );
+    const digits = formatOnlyNumbers(data.value).length;
+    if (digits !== 10 && digits !== 11)
+      ctx.addIssue({
+        code: "custom",
+        path: ["value"],
+        message: "Informe um telefone com DDD.",
+      });
+  });
 
 export type ContactFormData = z.infer<typeof contactSchema>;

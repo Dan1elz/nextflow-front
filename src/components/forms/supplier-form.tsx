@@ -1,183 +1,114 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, CreditCard, Truck } from "lucide-react";
+import { Building2, CalendarClock, CreditCard } from "lucide-react";
 
+import { FormInputField } from "@/components/app/form-input-field";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { ButtonLoader } from "@/components/ui/button-loader";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { useApiForm } from "@/hooks/use-api-form";
+import type { SupplierResponseDto } from "@/interfaces/supplier.interface";
 import {
-  createSupplierSchema,
-  updateSupplierSchema,
-  type CreateSupplierFormData,
-  type UpdateSupplierFormData,
+  supplierSchema,
+  type SupplierFormData,
 } from "@/schemas/supplier.schema";
 import { formatCpfCnpj, formatOnlyNumbers } from "@/utils/format.helpers";
-import type { ISupplier } from "@/interfaces/supplier.interface";
 
 interface SupplierFormProps {
-  onSubmit: (
-    data: CreateSupplierFormData | UpdateSupplierFormData
-  ) => void | Promise<void>;
-  isLoading?: boolean;
-  initialData?: ISupplier;
-  isEdit?: boolean;
-  disabled?: boolean;
-  onBack?: () => void;
+  mode: "create" | "edit" | "view";
+  initialData?: SupplierResponseDto | null;
+  onSubmit?: (data: SupplierFormData) => Promise<void>;
 }
 
+const maskCnpj = (value: string) => {
+  const digits = formatOnlyNumbers(value).slice(0, 14);
+  // Até 11 dígitos o formatador comum aplicaria a máscara de CPF.
+  return digits.length > 11 ? formatCpfCnpj(digits) : digits;
+};
+
 export function SupplierForm({
-  onSubmit,
-  isLoading = false,
+  mode,
   initialData,
-  isEdit = false,
-  disabled = false,
-  onBack,
+  onSubmit,
 }: SupplierFormProps) {
-  const schema = isEdit ? updateSupplierSchema : createSupplierSchema;
-
-  const form = useForm<CreateSupplierFormData | UpdateSupplierFormData>({
-    resolver: zodResolver(schema),
-    defaultValues: initialData
-      ? {
-          name: initialData.name,
-          cnpj: initialData.cnpj ? formatCpfCnpj(initialData.cnpj) : "",
-          leadTimeDays: Number(initialData.leadTimeDays ?? 7) || 7,
-        }
-      : {
-          name: "",
-          cnpj: "",
-          leadTimeDays: 7,
-        },
+  const form = useForm<SupplierFormData>({
+    resolver: zodResolver(supplierSchema),
+    defaultValues: {
+      name: initialData?.name ?? "",
+      cnpj: initialData ? maskCnpj(initialData.cnpj) : "",
+      leadTimeDays: String(initialData?.leadTimeDays ?? 7),
+      note: initialData?.note ?? "",
+    },
   });
-
-  const handleCnpjChange = (
-    value: string,
-    onChange: (value: string) => void
-  ) => {
-    const numbers = formatOnlyNumbers(value);
-    // CNPJ tem 14 números
-    if (numbers.length <= 14) {
-      const formatted = formatCpfCnpj(numbers);
-      onChange(formatted);
-    }
-  };
+  const { submit } = useApiForm(form);
+  const { isSubmitting } = form.formState;
+  const locked = mode === "view" || isSubmitting;
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome do Fornecedor</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="Razão Social ou Nome Fantasia"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      autoComplete="organization"
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="cnpj"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CNPJ</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="00.000.000/0000-00"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      maxLength={18} // Tamanho do CNPJ formatado
-                      onChange={(e) =>
-                        handleCnpjChange(e.target.value, field.onChange)
-                      }
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="leadTimeDays"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Prazo de entrega (dias)</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Truck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      placeholder="7"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      min={1}
-                      max={180}
-                      step={1}
-                      value={
-                        field.value !== undefined && !Number.isNaN(field.value)
-                          ? field.value
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        field.onChange(v === "" ? undefined : Number(v));
-                      }}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="w-full flex justify-end gap-2 pt-4">
-          {onBack && (
-            <Button type="button" onClick={onBack} variant="secondary">
-              Voltar
-            </Button>
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(async (data) => {
+        await submit(async () => onSubmit?.(data));
+      })}
+    >
+      <FieldGroup className="grid gap-5 md:grid-cols-2">
+        <FormInputField
+          control={form.control}
+          name="name"
+          label="Nome"
+          icon={Building2}
+          disabled={locked}
+        />
+        <FormInputField
+          control={form.control}
+          name="cnpj"
+          label="CNPJ"
+          icon={CreditCard}
+          placeholder="00.000.000/0000-00"
+          mask={maskCnpj}
+          disabled={locked}
+        />
+        <FormInputField
+          control={form.control}
+          name="leadTimeDays"
+          label="Prazo de entrega (dias)"
+          icon={CalendarClock}
+          inputMode="numeric"
+          description="De 1 a 180 dias."
+          mask={formatOnlyNumbers}
+          disabled={locked}
+        />
+        <Controller
+          control={form.control}
+          name="note"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid} data-disabled={locked}>
+              <FieldLabel htmlFor="note">Observação</FieldLabel>
+              <Textarea
+                {...field}
+                id="note"
+                aria-invalid={fieldState.invalid}
+                disabled={locked}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
-          {!disabled && (
-            <Button type="submit" disabled={isLoading || disabled}>
-              <ButtonLoader
-                isLoading={isLoading}
-                loadingText={isEdit ? "Salvando..." : "Criando..."}
-              >
-                {isEdit ? "Salvar" : "Criar"}
-              </ButtonLoader>
+        />
+        {mode !== "view" && (
+          <div className="flex justify-end md:col-span-2">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Spinner data-icon="inline-start" />}
+              {mode === "edit" ? "Salvar" : "Criar"}
             </Button>
-          )}
-        </div>
-      </form>
-    </Form>
+          </div>
+        )}
+      </FieldGroup>
+    </form>
   );
 }

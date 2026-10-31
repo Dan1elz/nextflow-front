@@ -1,74 +1,65 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
-import { useAuth } from "@/hooks/use-auth";
-import type { IContact } from "@/interfaces/contact.interface";
-import { contactService } from "@/services/contact.service";
 import { ContactsContext } from "@/contexts/contacts.context";
+import { useAuth } from "@/hooks/use-auth";
+import type {
+  ContactResponseDto,
+  UpdateContactRequestDto,
+} from "@/interfaces/contact.interface";
+import { contactService } from "@/services/contact.service";
+import type { TOwnerType } from "@/types/enums";
 
-export function ContactsProvider({ children }: { children: ReactNode }) {
-  const [contacts, setContacts] = useState<IContact[]>([]);
-  const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedContact, setSelectedContact] = useState<IContact | null>(null);
+/** Contatos de um dono: toda chamada leva `ownerType` e `ownerId` (decisão 4 de 29/10). */
+export function ContactsProvider({
+  ownerType,
+  ownerId,
+  children,
+}: {
+  ownerType: TOwnerType;
+  ownerId: string;
+  children: ReactNode;
+}) {
+  const [contacts, setContacts] = useState<ContactResponseDto[]>([]);
   const { token } = useAuth();
+  const auth = token ?? undefined;
 
-  const searchContacts = useCallback(
-    async (query?: IIndexParams) => {
-      const page = query?.page ?? 1;
-      const perPage = query?.perPage ?? 10;
-
-      const response = await contactService.getAll(query, token ?? undefined);
-      setContacts(response.items || []);
-
-      setPagination({
-        currentPage: page,
-        lastPage: Math.ceil(response.total / perPage) || 1,
-        total: response.total,
-        perPage,
-      });
-    },
-    [token]
-  );
-
-  const selectContact = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await contactService.getById(id, token ?? undefined);
-      setSelectedContact(data);
-    },
-    [token]
-  );
+  const loadContacts = useCallback(async () => {
+    const response = await contactService.getAll(
+      { filters: { ownerType, ownerId }, page: 1, perPage: 100 },
+      auth
+    );
+    setContacts(response.items);
+  }, [auth, ownerId, ownerType]);
 
   const createContact = useCallback(
-    async (contact: IContact): Promise<IContact> => {
-      const data = await contactService.create(contact, token ?? undefined);
-      return data;
+    async (dto: UpdateContactRequestDto) => {
+      await contactService.create({ ...dto, ownerType, ownerId }, auth);
+      await loadContacts();
     },
-    [token]
+    [auth, loadContacts, ownerId, ownerType]
   );
 
   const updateContact = useCallback(
-    async (id: string, contact: IContact): Promise<IContact> => {
-      const data = await contactService.update(id, contact, token ?? undefined);
-      return data;
+    async (id: string, dto: UpdateContactRequestDto) => {
+      await contactService.update(id, dto, auth);
+      await loadContacts();
     },
-    [token]
+    [auth, loadContacts]
   );
 
   const deleteContact = useCallback(
-    async (id: string): Promise<void> => {
-      await contactService.delete(id, token ?? undefined);
+    async (id: string) => {
+      await contactService.delete(id, auth);
+      await loadContacts();
     },
-    [token]
+    [auth, loadContacts]
   );
 
   return (
     <ContactsContext.Provider
       value={{
         contacts,
-        pagination,
-        selectedContact,
-        searchContacts,
-        selectContact,
+        loadContacts,
         createContact,
         updateContact,
         deleteContact,

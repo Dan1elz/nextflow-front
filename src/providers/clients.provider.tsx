@@ -1,25 +1,30 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
-import { useAuth } from "@/hooks/use-auth";
-import type { IClient } from "@/interfaces/client.interface";
-import { clientService } from "@/services/client.service";
 import { ClientsContext } from "@/contexts/clients.context";
+import { useAuth } from "@/hooks/use-auth";
+import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type {
+  ClientListItemDto,
+  ClientOption,
+  ClientRequestDto,
+  ClientResponseDto,
+} from "@/interfaces/client.interface";
+import { clientService } from "@/services/client.service";
 
 export function ClientsProvider({ children }: { children: ReactNode }) {
-  const [clients, setClients] = useState<IClient[]>([]);
+  const [clients, setClients] = useState<ClientListItemDto[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedClient, setSelectedClient] = useState<IClient | null>(null);
+  const [selectedClient, setSelectedClient] =
+    useState<ClientResponseDto | null>(null);
   const { token } = useAuth();
+  const auth = token ?? undefined;
 
   const searchClients = useCallback(
     async (query?: IIndexParams) => {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
-
-      const response = await clientService.getAll(query, token ?? undefined);
+      const response = await clientService.getAll(query, auth);
       setClients(response.items || []);
-
       setPagination({
         currentPage: page,
         lastPage: Math.ceil(response.total / perPage) || 1,
@@ -27,77 +32,65 @@ export function ClientsProvider({ children }: { children: ReactNode }) {
         perPage,
       });
     },
-    [token]
-  );
-
-  const selectClient = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await clientService.getById(id, token ?? undefined);
-      setSelectedClient(data);
-    },
-    [token]
-  );
-
-  const getClientById = useCallback(
-    async (id: string): Promise<IClient> => {
-      return await clientService.getById(id, token ?? undefined);
-    },
-    [token]
+    [auth]
   );
 
   const searchClientsForOptions = useCallback(
-    async (
-      query?: IIndexParams
-    ): Promise<{ data: IClient[]; totalItems: number }> => {
-      const response = await clientService.getAll(query, token ?? undefined);
+    async (query?: IIndexParams) => {
+      const response = await clientService.getAll(query, auth);
+      return { data: response.items || [], totalItems: response.total };
+    },
+    [auth]
+  );
+
+  const getClientOption = useCallback(
+    async (id: string): Promise<ClientOption> => {
+      const client = await clientService.getById(id, auth);
       return {
-        data: response.items || [],
-        totalItems: response.total || 0,
+        id: client.id,
+        fullName: `${client.name} ${client.lastName ?? ""}`.trim(),
       };
     },
-    [token]
+    [auth]
+  );
+
+  const selectClient = useCallback(
+    async (id: string) => {
+      setSelectedClient(await clientService.getById(id, auth));
+    },
+    [auth]
   );
 
   const createClient = useCallback(
-    async (client: IClient): Promise<IClient> => {
-      const data = await clientService.create(client, token ?? undefined);
-      return data;
-    },
-    [token]
+    (dto: ClientRequestDto) => clientService.create(dto, auth),
+    [auth]
   );
 
   const updateClient = useCallback(
-    async (id: string, client: IClient): Promise<IClient> => {
-      const data = await clientService.update(id, client, token ?? undefined);
-      return data;
-    },
-    [token]
+    (id: string, dto: ClientRequestDto) => clientService.update(id, dto, auth),
+    [auth]
   );
 
   const deleteClient = useCallback(
-    async (id: string): Promise<void> => {
-      await clientService.delete(id, token ?? undefined);
-    },
-    [token]
+    (id: string) => clientService.delete(id, auth),
+    [auth]
   );
 
   const reactivateClient = useCallback(
-    async (id: string): Promise<void> => {
-      await clientService.reactivate(id, token ?? undefined);
-    },
-    [token]
+    (id: string) => clientService.reactivate(id, auth),
+    [auth]
   );
 
   return (
     <ClientsContext.Provider
       value={{
         clients,
-        pagination,
         selectedClient,
+        pagination,
         searchClients,
         searchClientsForOptions,
+        getClientOption,
         selectClient,
-        getClientById,
         createClient,
         updateClient,
         deleteClient,

@@ -2,7 +2,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useState, useCallback } from "react";
 import {
   Home,
-  MapPin,
   Users,
   UserCircle,
   ChevronDown,
@@ -85,15 +84,6 @@ const items: SidebarMenuGroup[] = [
         ],
       },
       { name: "Usuários", url: "/users", icon: Users },
-      {
-        name: "Localidades",
-        icon: MapPin,
-        items: [
-          { name: "Países", url: "/countries" },
-          { name: "Estados", url: "/states" },
-          { name: "Cidades", url: "/cities" },
-        ],
-      },
     ],
   },
 ];

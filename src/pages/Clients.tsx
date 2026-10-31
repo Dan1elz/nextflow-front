@@ -1,33 +1,37 @@
-import { useMemo, useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
-import { Checkbox } from "@/components/ui/checkbox";
+import { EntityIndexPage } from "@/components/app/entity-index-page";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
+import { NavActionColumn } from "@/components/app/nav-action-column";
+import { SearchSelect } from "@/components/app/search-select";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { SearchSelect } from "@/components/app/search-select";
-import type { IOption } from "@/interfaces/api.interface";
-import { EntityIndexPage } from "@/components/app/entity-index-page";
-import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
-import { NavActionColumn } from "@/components/app/nav-action-column";
 import { useClients } from "@/hooks/use-clients";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import type { IClient } from "@/interfaces/client.interface";
-import { formatCpfCnpj, formatDateOnly } from "@/utils/format.helpers";
-import { ClientsProvider } from "@/providers/clients.provider";
 import { useIndexSearch } from "@/hooks/use-index-search";
+import type { IOption } from "@/interfaces/api.interface";
+import type { ClientListItemDto } from "@/interfaces/client.interface";
+import { ClientsProvider } from "@/providers/clients.provider";
+import {
+  formatCpfCnpj,
+  formatCurrency,
+  formatDateOnly,
+  formatPhone,
+} from "@/utils/format.helpers";
+import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
 type ClientFilters = {
   search: string;
-  cpf: string;
   isActive: string;
+  birthdaysThisMonth: string;
 };
 
 const statusOptions: IOption[] = [
@@ -52,43 +56,38 @@ function Clients() {
     handlePageChange,
   } = useIndexSearch<ClientFilters, "search">({
     search: searchClients,
-    initialFilters: {
-      search: "",
-      cpf: "",
-      isActive: "",
-    },
+    initialFilters: { search: "", isActive: "", birthdaysThisMonth: "" },
     quickSearchKey: "search",
     perPageInitial: 10,
     debounceMs: 400,
-    onError: (error) => {
-      handleError(error, "Erro desconhecido ao buscar clientes");
-    },
+    onError: (error) => handleError(error, "Erro ao buscar clientes"),
   });
 
-  const handleCreate = () => navigate("/clients/create");
-
   const handleEdit = useCallback(
-    (client: IClient) => {
-      if (client.id) {
-        navigate(`/clients/${client.id}/edit`);
-      }
-    },
+    (client: ClientListItemDto) => navigate(`/clients/${client.id}/edit`),
     [navigate]
   );
 
   const handleView = useCallback(
-    (client: IClient) => {
-      if (client.id) {
-        navigate(`/clients/${client.id}/view`);
-      }
-    },
+    (client: ClientListItemDto) => navigate(`/clients/${client.id}/view`),
     [navigate]
   );
 
-  const handleReactivate = useCallback(
-    async (client: IClient) => {
-      if (!client.id) return;
+  const handleDelete = useCallback(
+    async (client: ClientListItemDto) => {
+      try {
+        await deleteClient(client.id);
+        handleSuccess("Cliente inativado com sucesso");
+        await handleSearch(1);
+      } catch (error) {
+        handleError(error, "Erro ao inativar cliente");
+      }
+    },
+    [deleteClient, handleSearch]
+  );
 
+  const handleReactivate = useCallback(
+    async (client: ClientListItemDto) => {
       try {
         await reactivateClient(client.id);
         handleSuccess("Cliente reativado com sucesso");
@@ -100,88 +99,48 @@ function Clients() {
     [reactivateClient, handleSearch]
   );
 
-  const handleDelete = useCallback(
-    async (client: IClient) => {
-      if (!client.id) return;
-
-      try {
-        await deleteClient(client.id);
-        handleSuccess("Cliente excluído com sucesso");
-        await handleSearch(1);
-      } catch (error) {
-        handleError(error, "Erro ao excluir cliente");
-      }
-    },
-    [deleteClient, handleSearch]
-  );
-  const handleExport = useCallback((_ids?: string[]) => {
-    void _ids;
-    // Função vazia conforme solicitado
-  }, []);
-
-  const handleDeleteMultiple = useCallback((_ids: string[]) => {
-    void _ids;
-    // Função vazia conforme solicitado
-  }, []);
-
-  const columns = useMemo<ColumnDef<IClient>[]>(
+  const columns = useMemo<ColumnDef<ClientListItemDto>[]>(
     () => [
-      {
-        id: "select",
-        header: ({ table }) => {
-          const isAllSelected = table.getIsAllPageRowsSelected();
-          const isSomeSelected = table.getIsSomePageRowsSelected();
-          return (
-            <Checkbox
-              checked={isAllSelected}
-              indeterminate={isSomeSelected && !isAllSelected}
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-              aria-label="Selecionar todos"
-            />
-          );
-        },
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Selecionar linha"
-          />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      },
-      {
-        accessorKey: "name",
-        header: "Nome",
-        cell: ({ row }) => {
-          const client = row.original;
-          return `${client.name} ${client.lastName}`;
-        },
-      },
-      {
-        accessorKey: "birthDate",
-        header: "Data de Nascimento",
-        cell: ({ row }) =>
-          row.original.birthDate ? formatDateOnly(row.original.birthDate) : "-",
-      },
+      { accessorKey: "fullName", header: "Nome" },
       {
         accessorKey: "cpf",
         header: "CPF",
-        cell: ({ row }) => formatCpfCnpj(row.original.cpf),
+        cell: ({ row }) =>
+          row.original.cpf ? formatCpfCnpj(row.original.cpf) : "-",
       },
       {
-        accessorKey: "status",
+        accessorKey: "mainPhone",
+        header: "Telefone",
+        cell: ({ row }) =>
+          row.original.mainPhone ? formatPhone(row.original.mainPhone) : "-",
+      },
+      {
+        accessorKey: "cityState",
+        header: "Cidade/UF",
+        cell: ({ row }) => row.original.cityState ?? "-",
+      },
+      { accessorKey: "orderCount", header: "Compras" },
+      {
+        accessorKey: "totalSpent",
+        header: "Total comprado",
+        cell: ({ row }) => formatCurrency(row.original.totalSpent),
+      },
+      {
+        accessorKey: "lastPurchaseOn",
+        header: "Última compra",
+        cell: ({ row }) =>
+          row.original.lastPurchaseOn
+            ? formatDateOnly(row.original.lastPurchaseOn)
+            : "-",
+      },
+      {
+        accessorKey: "isActive",
         header: "Status",
-        cell: ({ row }) => {
-          const client = row.original;
-          return (
-            <Badge variant={client.isActive ? "default" : "secondary"}>
-              {client.isActive ? "Ativo" : "Inativo"}
-            </Badge>
-          );
-        },
+        cell: ({ row }) => (
+          <Badge variant={row.original.isActive ? "default" : "secondary"}>
+            {row.original.isActive ? "Ativo" : "Inativo"}
+          </Badge>
+        ),
       },
       {
         id: "actions",
@@ -189,20 +148,24 @@ function Clients() {
         cell: ({ row }) => (
           <NavActionColumn
             object={row.original}
-            onEdit={handleEdit}
-            onReactivate={handleReactivate}
-            onDelete={handleDelete}
             onView={handleView}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onReactivate={handleReactivate}
             disableDelete={!row.original.isActive}
             disableEdit={!row.original.isActive}
             disableReactivate={row.original.isActive}
+            deleteLabel="Inativar"
+            deleteDialogTitle="Inativar este cliente?"
+            deleteDialogDescription="O cliente sai dos combos de venda. Você pode reativá-lo depois."
+            deleteButtonLabel="Inativar"
           />
         ),
         enableSorting: false,
         enableHiding: false,
       },
     ],
-    [handleDelete, handleEdit, handleView, handleReactivate]
+    [handleDelete, handleEdit, handleReactivate, handleView]
   );
 
   return (
@@ -214,14 +177,14 @@ function Clients() {
         <>
           <InputGroup className="w-full md:w-[280px]">
             <InputGroupAddon>
-              <Search className="h-4 w-4" />
+              <Search />
             </InputGroupAddon>
             <InputGroupInput
               value={filters.search}
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, search: e.target.value }))
               }
-              placeholder="Pesquisar cliente..."
+              placeholder="Pesquisar por nome, CPF ou telefone..."
               aria-label="Pesquisar cliente"
             />
           </InputGroup>
@@ -240,52 +203,34 @@ function Clients() {
               handleFiltersOpenChange(false);
             }}
           >
-            <div className="grid gap-2">
-              <Label htmlFor="clientFilterSearch">Nome</Label>
-              <Input
-                id="clientFilterSearch"
-                value={filters.search}
-                onChange={(e) =>
+            <SearchSelect<IOption>
+              field={{
+                value: filters.isActive,
+                onChange: (value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    search: e.target.value,
-                  }))
-                }
-                placeholder="Ex.: João"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="clientFilterCpf">CPF</Label>
-              <Input
-                id="clientFilterCpf"
-                value={filters.cpf}
-                onChange={(e) =>
+                    isActive: value ? String(value) : "",
+                  })),
+              }}
+              label="Status"
+              data={statusOptions}
+              placeholder="Todos"
+            />
+            <Field orientation="horizontal">
+              <Checkbox
+                id="birthdaysThisMonth"
+                checked={filters.birthdaysThisMonth === "true"}
+                onCheckedChange={(value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    cpf: e.target.value,
+                    birthdaysThisMonth: value ? "true" : "",
                   }))
                 }
-                placeholder="Ex.: 000.000.000-00"
-                autoComplete="off"
               />
-            </div>
-
-            <div className="grid gap-2">
-              <SearchSelect<IOption>
-                field={{
-                  value: filters.isActive,
-                  onChange: (value) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      isActive: value ? String(value) : "",
-                    })),
-                }}
-                label="Status"
-                data={statusOptions}
-                placeholder="Todos"
-              />
-            </div>
+              <FieldLabel htmlFor="birthdaysThisMonth">
+                Aniversariantes do mês
+              </FieldLabel>
+            </Field>
           </ListFiltersSheet>
         </>
       }
@@ -294,9 +239,7 @@ function Clients() {
       pagination={pagination}
       onPageChange={handlePageChange}
       onPerPageChange={setPerPage}
-      onCreate={handleCreate}
-      onExport={handleExport}
-      onDeleteMultiple={handleDeleteMultiple}
+      onCreate={() => navigate("/clients/create")}
     />
   );
 }

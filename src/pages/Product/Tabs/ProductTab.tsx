@@ -8,7 +8,7 @@ import { useCategories } from "@/hooks/use-categories";
 import { useSearchOptions } from "@/hooks/use-search-options";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import type { ProductSchema } from "@/schemas/product.schema";
-import type { ISupplier } from "@/interfaces/supplier.interface";
+import type { SupplierOption } from "@/interfaces/supplier.interface";
 import type { ICategory } from "@/interfaces/category.interface";
 import type { TUnitType } from "@/types/enums";
 import { PromotionDiscountBadge } from "@/components/app/forecast-badges";
@@ -37,7 +37,7 @@ export function ProductTab({ mode }: ProductTabProps) {
     options: supplierOptions,
     handleSearch: handleSearchSuppliers,
     setOptions: setSupplierOptions,
-  } = useSearchOptions<ISupplier>({
+  } = useSearchOptions<SupplierOption>({
     searchFn: searchSuppliersForOptions,
     mapFn: (s) => ({ value: s.id ?? "", label: s.name }),
     selectFn: getSupplierById,

@@ -1,399 +1,193 @@
 import { useEffect, useRef } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MapPin, Hash, Building2, Navigation, Mail } from "lucide-react";
+import { Building2, Hash, MapPin, Navigation } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormInputField } from "@/components/app/form-input-field";
 import { SearchSelect } from "@/components/app/search-select";
-import type { IOption } from "@/interfaces/api.interface";
-import { handleError } from "@/utils/toast.helpers";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { ButtonLoader } from "@/components/ui/button-loader";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
+import { useApiForm } from "@/hooks/use-api-form";
+import type { IOption } from "@/interfaces/api.interface";
+import type { AddressResponseDto } from "@/interfaces/address.interface";
 import { addressSchema, type AddressFormData } from "@/schemas/address.schema";
-import type { IAddress } from "@/interfaces/address.interface";
 import { formatCep, formatOnlyNumbers } from "@/utils/format.helpers";
+import { handleError } from "@/utils/toast.helpers";
 
-const formatZipCode = (value: string) => {
-  const n = formatOnlyNumbers(value);
-  if (n.length <= 8) return formatCep(n);
-  return value;
+export type CepLookupResult = {
+  street?: string;
+  neighborhood?: string;
+  complement?: string;
+  cityId?: string;
 };
 
 interface AddressFormProps {
-  onSubmit: (data: AddressFormData) => void | Promise<void>;
-  isLoading?: boolean;
-  initialData?: IAddress | null;
-  disabled?: boolean;
+  initialData?: AddressResponseDto | null;
+  onSubmit: (data: AddressFormData) => Promise<void>;
   onCancelEdit?: () => void;
-  stateData: IOption[];
-  onSearchState: (
-    query: string
-  ) => Promise<IOption[] | void> | IOption[] | void;
-  cityData: IOption[];
-  onSearchCity: (query: string) => Promise<IOption[] | void> | IOption[] | void;
-  onStateChange?: (stateId: string) => void;
-  onCityChange?: (cityId: string) => void;
-  onAutoFillByCep?: (zipCode: string) => Promise<{
-    street?: string;
-    district?: string;
-    complement?: string;
-    stateId?: string;
-    cityId?: string;
-  }>;
+  cityOptions: IOption[];
+  onSearchCity: (query: string) => Promise<IOption[]>;
+  onLookupCep: (zipCode: string) => Promise<CepLookupResult>;
 }
 
-export function AddressForm({
-  onSubmit,
-  isLoading = false,
-  initialData,
-  disabled = false,
-  onCancelEdit,
-  stateData,
-  onSearchState,
-  cityData,
-  onSearchCity,
-  onStateChange,
-  onCityChange,
-  onAutoFillByCep,
-}: AddressFormProps) {
-  const isEdit = Boolean(initialData?.id);
+const maskCep = (value: string) =>
+  formatCep(formatOnlyNumbers(value).slice(0, 8));
 
+export function AddressForm({
+  initialData,
+  onSubmit,
+  onCancelEdit,
+  cityOptions,
+  onSearchCity,
+  onLookupCep,
+}: AddressFormProps) {
   const form = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
-      description: "",
-      street: "",
-      number: "",
-      district: "",
-      stateId: "",
-      cityId: "",
-      complement: "",
-      zipCode: "",
+      zipCode: initialData ? maskCep(initialData.zipCode) : "",
+      street: initialData?.street ?? "",
+      number: initialData?.number ?? "",
+      complement: initialData?.complement ?? "",
+      neighborhood: initialData?.neighborhood ?? "",
+      cityId: initialData?.cityId ?? "",
+      isMain: initialData?.isMain ?? false,
     },
   });
+  const { submit } = useApiForm(form);
+  const { isSubmitting } = form.formState;
 
-  const stateId = useWatch({ control: form.control, name: "stateId" });
   const zipCode = useWatch({ control: form.control, name: "zipCode" });
-
-  const lastAutoFilledZipCodeRef = useRef<string>("");
-  const isResolvingZipCodeRef = useRef(false);
-
-  useEffect(() => {
-    if (initialData) {
-      form.reset({
-        description: initialData.description,
-        street: initialData.street,
-        number: initialData.number,
-        district: initialData.district,
-        stateId: initialData.stateId,
-        cityId: initialData.cityId,
-        complement: initialData.complement ?? "",
-        zipCode: formatZipCode(initialData.zipCode),
-      });
-      onStateChange?.(initialData.stateId);
-      onCityChange?.(initialData.cityId);
-    } else {
-      form.reset({
-        description: "",
-        street: "",
-        number: "",
-        district: "",
-        stateId: "",
-        cityId: "",
-        complement: "",
-        zipCode: "",
-      });
-      onStateChange?.("");
-      onCityChange?.("");
-    }
-  }, [initialData, form, onStateChange, onCityChange]);
+  // Na edição o CEP já veio do banco: só consulta o ViaCEP se o usuário mudar.
+  const lastLookup = useRef(formatOnlyNumbers(initialData?.zipCode ?? ""));
 
   useEffect(() => {
-    if (!onAutoFillByCep) return;
-    if (isLoading || disabled) return;
+    const digits = formatOnlyNumbers(zipCode);
+    if (digits.length !== 8 || digits === lastLookup.current) return;
+    lastLookup.current = digits;
 
-    const zipCodeNumbers = formatOnlyNumbers(zipCode ?? "");
-    if (zipCodeNumbers.length !== 8) return;
-    if (lastAutoFilledZipCodeRef.current === zipCodeNumbers) return;
-
-    const timer = setTimeout(async () => {
-      if (isResolvingZipCodeRef.current) return;
-      isResolvingZipCodeRef.current = true;
-
-      try {
-        const result = await onAutoFillByCep(zipCodeNumbers);
-
-        if (result.street && !form.getValues("street").trim()) {
-          form.setValue("street", result.street, { shouldDirty: true });
-        }
-        if (result.district && !form.getValues("district").trim()) {
-          form.setValue("district", result.district, { shouldDirty: true });
-        }
-        if (result.complement && !form.getValues("complement").trim()) {
-          form.setValue("complement", result.complement, { shouldDirty: true });
-        }
-
-        if (result.stateId) {
-          form.setValue("stateId", result.stateId, { shouldValidate: true });
-          onStateChange?.(result.stateId);
-        }
-
-        if (result.cityId) {
-          form.setValue("cityId", result.cityId, { shouldValidate: true });
-          onCityChange?.(result.cityId);
-        }
-
-        lastAutoFilledZipCodeRef.current = zipCodeNumbers;
-      } catch (error) {
-        handleError(error, "Erro ao buscar CEP");
-      } finally {
-        isResolvingZipCodeRef.current = false;
-      }
-    }, 350);
-
-    return () => clearTimeout(timer);
-  }, [
-    zipCode,
-    onAutoFillByCep,
-    isLoading,
-    disabled,
-    form,
-    onStateChange,
-    onCityChange,
-  ]);
+    onLookupCep(digits)
+      .then((result) => {
+        const fillIfEmpty = (
+          field: "street" | "neighborhood" | "complement",
+          value?: string
+        ) => {
+          if (value && !form.getValues(field).trim())
+            form.setValue(field, value, { shouldDirty: true });
+        };
+        fillIfEmpty("street", result.street);
+        fillIfEmpty("neighborhood", result.neighborhood);
+        fillIfEmpty("complement", result.complement);
+        if (result.cityId)
+          form.setValue("cityId", result.cityId, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+      })
+      .catch((error) => handleError(error, "Erro ao consultar o CEP"));
+  }, [zipCode, form, onLookupCep]);
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(async (data) => {
+        await submit(() => onSubmit(data));
+      })}
+    >
+      <FieldGroup className="grid gap-5 md:grid-cols-2">
+        <FormInputField
           control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    {...field}
-                    placeholder="Ex.: Casa, Trabalho"
-                    className="pl-9"
-                    disabled={isLoading || disabled}
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+          name="zipCode"
+          label="CEP"
+          icon={MapPin}
+          placeholder="00000-000"
+          mask={maskCep}
+          description="Preenche rua, bairro e cidade pelo ViaCEP."
+          disabled={isSubmitting}
+        />
+        <FormInputField
+          control={form.control}
+          name="street"
+          label="Rua"
+          icon={Navigation}
+          disabled={isSubmitting}
+        />
+        <FormInputField
+          control={form.control}
+          name="number"
+          label="Número"
+          icon={Hash}
+          disabled={isSubmitting}
+        />
+        <FormInputField
+          control={form.control}
+          name="complement"
+          label="Complemento"
+          disabled={isSubmitting}
+        />
+        <FormInputField
+          control={form.control}
+          name="neighborhood"
+          label="Bairro"
+          icon={Building2}
+          disabled={isSubmitting}
+        />
+        <Controller
+          control={form.control}
+          name="cityId"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <SearchSelect<IOption>
+                field={{
+                  value: field.value,
+                  onChange: (value) =>
+                    field.onChange(value ? String(value) : ""),
+                }}
+                label="Cidade/UF"
+                data={cityOptions}
+                onSearch={onSearchCity}
+                placeholder="Digite para buscar"
+                disabled={isSubmitting}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
         />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="zipCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CEP</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      placeholder="00000-000"
-                      className="pl-9"
-                      maxLength={9}
-                      disabled={isLoading || disabled}
-                      onChange={(e) =>
-                        field.onChange(formatZipCode(e.target.value))
-                      }
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="street"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Rua</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Navigation className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      placeholder="Nome da rua"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField
-            control={form.control}
-            name="number"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Número</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      placeholder="Nº"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="district"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Bairro</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      placeholder="Bairro"
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="complement"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Complemento</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      {...field}
-                      placeholder="Apto, bloco..."
-                      className="pl-9"
-                      disabled={isLoading || disabled}
-                      value={field.value ?? ""}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="stateId"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <SearchSelect
-                    field={{
-                      value: field.value,
-                      onChange: (v) => {
-                        field.onChange(v);
-                        form.setValue("cityId", "");
-                        onStateChange?.(String(v ?? ""));
-                        onCityChange?.("");
-                      },
-                    }}
-                    label="Estado"
-                    data={stateData as unknown as Record<string, unknown>[]}
-                    onSearch={async (q) =>
-                      (await onSearchState(q)) as unknown as Record<
-                        string,
-                        unknown
-                      >[]
-                    }
-                    placeholder="Selecione o estado"
-                    disabled={isLoading || disabled}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="cityId"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <SearchSelect
-                    field={field}
-                    value={field.value}
-                    onChange={field.onChange}
-                    label="Cidade"
-                    data={cityData as unknown as Record<string, unknown>[]}
-                    onSearch={async (q) =>
-                      (await onSearchCity(q)) as unknown as Record<
-                        string,
-                        unknown
-                      >[]
-                    }
-                    placeholder="Selecione a cidade"
-                    disabled={isLoading || disabled || !stateId}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4">
-          {isEdit && onCancelEdit && !disabled && (
+        <Controller
+          control={form.control}
+          name="isMain"
+          render={({ field }) => (
+            <Field orientation="horizontal">
+              <Checkbox
+                id="addressIsMain"
+                checked={field.value}
+                onCheckedChange={(value) => field.onChange(!!value)}
+                disabled={isSubmitting}
+              />
+              <FieldLabel htmlFor="addressIsMain">
+                Endereço principal
+              </FieldLabel>
+            </Field>
+          )}
+        />
+        <div className="flex justify-end gap-2 md:col-span-2">
+          {onCancelEdit && (
             <Button type="button" variant="secondary" onClick={onCancelEdit}>
               Cancelar
             </Button>
           )}
-          {!disabled && (
-            <Button type="submit" disabled={isLoading}>
-              <ButtonLoader
-                isLoading={isLoading}
-                loadingText={isEdit ? "Salvando..." : "Adicionando..."}
-              >
-                {isEdit ? "Salvar" : "Adicionar endereço"}
-              </ButtonLoader>
-            </Button>
-          )}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Spinner data-icon="inline-start" />}
+            {initialData ? "Salvar endereço" : "Adicionar endereço"}
+          </Button>
         </div>
-      </form>
-    </Form>
+      </FieldGroup>
+    </form>
   );
 }

@@ -9,18 +9,6 @@ import { PublicRoutes } from "./PublicRoutes";
 import { Home } from "@/pages/Home";
 import Profile from "@/pages/Profile";
 import ViewUserPageWrapper from "@/pages/User/View";
-import StatesPageWrapper from "@/pages/States";
-import CitiesPageWrapper from "@/pages/Cities";
-import CountriesPageWrapper from "@/pages/Countries";
-import CreateCountryPageWrapper from "@/pages/Country/Create";
-import EditCountryPageWrapper from "@/pages/Country/Edit";
-import ViewCountryPageWrapper from "@/pages/Country/View";
-import EditCityPageWrapper from "@/pages/City/Edit";
-import CreateCityPageWrapper from "@/pages/City/Create";
-import ViewCityPageWrapper from "@/pages/City/View";
-import ViewStatePageWrapper from "@/pages/State/View";
-import EditStatePageWrapper from "@/pages/State/Edit";
-import CreateStatePageWrapper from "@/pages/State/Create";
 import ClientsPageWrapper from "@/pages/Clients";
 import CreateClientPageWrapper from "@/pages/Client/Create";
 import EditClientPageWrapper from "@/pages/Client/Edit";
@@ -110,21 +98,6 @@ function AppRoutes() {
           path="categories/:id/view"
           element={<ViewCategoryPageWrapper />}
         />
-
-        <Route path="states" element={<StatesPageWrapper />} />
-        <Route path="states/create" element={<CreateStatePageWrapper />} />
-        <Route path="states/:id/edit" element={<EditStatePageWrapper />} />
-        <Route path="states/:id/view" element={<ViewStatePageWrapper />} />
-
-        <Route path="cities" element={<CitiesPageWrapper />} />
-        <Route path="cities/create" element={<CreateCityPageWrapper />} />
-        <Route path="cities/:id/edit" element={<EditCityPageWrapper />} />
-        <Route path="cities/:id/view" element={<ViewCityPageWrapper />} />
-
-        <Route path="countries" element={<CountriesPageWrapper />} />
-        <Route path="countries/create" element={<CreateCountryPageWrapper />} />
-        <Route path="countries/:id/edit" element={<EditCountryPageWrapper />} />
-        <Route path="countries/:id/view" element={<ViewCountryPageWrapper />} />
 
         <Route path="products" element={<ProductsPageWrapper />} />
         <Route path="products/create" element={<CreateProductPageWrapper />} />
