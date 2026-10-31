@@ -5,6 +5,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/sidebar";
+import { StoreSelector } from "@/components/app/store-selector";
 import { Separator } from "@/components/ui/separator";
 import {
   Breadcrumb,
@@ -26,9 +27,13 @@ export default function PrivateLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className="min-w-0">
-        <header className="flex p-4 items-center">
+        {/* flex-wrap: em tela pequena o seletor de loja desce para a linha de baixo em vez de cobrir o breadcrumb. */}
+        <header className="flex shrink-0 flex-wrap items-center gap-y-2 p-4">
           <SidebarTrigger />
-          <Separator orientation="vertical" className="mx-4 h-6" />
+          <Separator
+            orientation="vertical"
+            className="mx-4 data-[orientation=vertical]:h-6"
+          />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -59,7 +64,8 @@ export default function PrivateLayout() {
               )}
             </BreadcrumbList>
           </Breadcrumb>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <StoreSelector />
             <ToggleTheme />
           </div>
         </header>

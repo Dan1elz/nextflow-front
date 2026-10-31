@@ -10,6 +10,7 @@ import {
   Activity,
   ShoppingCart,
   ShoppingBag,
+  Store,
   Sparkles,
   BadgePercent,
 } from "lucide-react";
@@ -85,6 +86,10 @@ const items: SidebarMenuGroup[] = [
       },
       { name: "Usuários", url: "/users", icon: Users },
     ],
+  },
+  {
+    title: "CONFIGURAÇÕES",
+    items: [{ name: "Lojas e locais", url: "/settings/stores", icon: Store }],
   },
 ];
 

@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import "./index.css";
 import App from "./App.tsx";
 import { AuthProvider } from "./providers/auth.provider";
+import { CurrentStoreProvider } from "./providers/current-store.provider";
 import { ThemeProvider } from "./providers/theme.provider";
 
 createRoot(document.getElementById("root")!).render(
@@ -12,7 +13,9 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <App />
+          <CurrentStoreProvider>
+            <App />
+          </CurrentStoreProvider>
           <Toaster richColors />
         </AuthProvider>
       </ThemeProvider>

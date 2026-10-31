@@ -14,6 +14,8 @@ export type AuthContextType = {
   loading: boolean;
   login: (dto: LoginRequestDto) => Promise<void>;
   logout: () => void;
+  /** Relê `/auth/me`: as lojas do usuário mudam quando a tela de lojas altera algo. */
+  refreshUser: () => Promise<void>;
   updateProfile: (dto: UpdateProfileRequestDto) => Promise<void>;
   changePassword: (dto: ChangePasswordRequestDto) => Promise<void>;
 };

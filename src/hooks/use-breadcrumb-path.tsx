@@ -5,6 +5,8 @@ import type { IBreadcrumb } from "@/types/general";
 const routeNameMap: Record<string, string> = {
   users: "Usuários",
   profile: "Meu perfil",
+  settings: "Configurações",
+  stores: "Lojas e locais",
   create: "Criar",
   edit: "Editar",
   view: "Visualizar",

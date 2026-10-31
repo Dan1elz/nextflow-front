@@ -10,6 +10,8 @@ export interface LoginRequestDto {
 export interface CurrentUserStoreDto {
   id: string;
   name: string;
+  /** Locais ativos da loja, para o seletor do topo (RN-CE12). */
+  locationCount: number;
 }
 
 export interface CurrentUserDto {

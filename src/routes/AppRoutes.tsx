@@ -8,6 +8,7 @@ import { PrivateRoutes } from "./PrivateRoutes";
 import { PublicRoutes } from "./PublicRoutes";
 import { Home } from "@/pages/Home";
 import Profile from "@/pages/Profile";
+import StoresSettingsPage from "@/pages/Settings/Stores";
 import ViewUserPageWrapper from "@/pages/User/View";
 import ClientsPageWrapper from "@/pages/Clients";
 import CreateClientPageWrapper from "@/pages/Client/Create";
@@ -61,6 +62,11 @@ function AppRoutes() {
       >
         <Route path="/" element={<Home />} />
         <Route path="profile" element={<Profile />} />
+        <Route
+          path="settings"
+          element={<Navigate to="/settings/stores" replace />}
+        />
+        <Route path="settings/stores" element={<StoresSettingsPage />} />
         <Route path="users" element={<UsersPageWrapper />} />
         <Route path="users/create" element={<CreateUserPageWrapper />} />
         <Route path="users/:id/edit" element={<EditUserPageWrapper />} />

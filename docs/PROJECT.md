@@ -277,6 +277,7 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Módulo          | List               | Create               | Edit                   | View                   |
 | --------------- | ------------------ | -------------------- | ---------------------- | ---------------------- |
 | Home            | `/`                | —                    | —                      | —                      |
+| Lojas e locais  | `/settings/stores` | —                    | —                      | —                      |
 | Meu perfil      | `/profile`         | —                    | —                      | —                      |
 | Users           | `/users`           | `/users/create`      | `/users/:id/edit`      | `/users/:id/view`      |
 | Clients         | `/clients`         | `/clients/create`    | `/clients/:id/edit`    | `/clients/:id/view`    |

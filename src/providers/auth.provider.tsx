@@ -62,6 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (token) setUser(await authService.me(token));
+  }, [token]);
+
   const updateProfile = useCallback(
     async (dto: UpdateProfileRequestDto) => {
       setUser(await authService.updateProfile(dto, token ?? undefined));
@@ -90,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     login,
     logout,
+    refreshUser,
     updateProfile,
     changePassword,
   };
