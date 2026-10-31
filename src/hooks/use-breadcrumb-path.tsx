@@ -16,6 +16,7 @@ const routeNameMap: Record<string, string> = {
   suppliers: "Fornecedores",
   products: "Produtos",
   categories: "Categorias",
+  collections: "Coleções",
   "purchase-orders": "Pedidos de Compra",
   "stock-movements": "Movimentações de Estoque",
   sales: "Vendas",

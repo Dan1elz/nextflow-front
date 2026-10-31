@@ -240,7 +240,8 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | `user-form.tsx`           | Usuários                                              |
 | `client-form.tsx`         | Clientes                                              |
 | `supplier-form.tsx`       | Fornecedores                                          |
-| `category-form.tsx`       | Categorias                                            |
+| `category-form.tsx`       | Categorias (dialog, combo de pai só com nível 1)      |
+| `collection-form.tsx`     | Coleções (dialog)                                     |
 | `product-form.tsx`        | Produtos (com upload de imagem)                       |
 | `order-form.tsx`          | Pedidos de venda (com carrinho; usa `effectivePrice`) |
 | `promotion-form.tsx`      | Promoção (desconto, período, prévia de preço)         |
@@ -282,7 +283,8 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Users           | `/users`           | `/users/create`      | `/users/:id/edit`      | `/users/:id/view`      |
 | Clients         | `/clients`         | `/clients/create`    | `/clients/:id/edit`    | `/clients/:id/view`    |
 | Suppliers       | `/suppliers`       | `/suppliers/create`  | `/suppliers/:id/edit`  | `/suppliers/:id/view`  |
-| Categories      | `/categories`      | `/categories/create` | `/categories/:id/edit` | `/categories/:id/view` |
+| Categories      | `/categories`      | dialog               | dialog                 | —                      |
+| Collections     | `/collections`     | dialog               | dialog                 | —                      |
 | Products        | `/products`        | `/products/create`   | `/products/:id/edit`   | `/products/:id/view`   |
 | Stock Movements | `/stock-movements` | —                    | —                      | —                      |
 | Orders          | `/orders`          | `/orders/create`     | `/orders/:id/edit`     | `/orders/:id/view`     |
@@ -304,7 +306,8 @@ Rota catch-all `*` → redireciona para `/login`.
 | `user.service.ts`           | `/users`           | CRUD + reativação (`BaseService`)                                             |
 | `client.service.ts`         | `/clients`         | CRUD + reativação                                                             |
 | `supplier.service.ts`       | `/suppliers`       | CRUD + reativação                                                             |
-| `category.service.ts`       | `/categories`      | CRUD                                                                          |
+| `category.service.ts`       | `/categories`      | Árvore, opções (`rootsOnly`), CRUD + reativação                               |
+| `collection.service.ts`     | `/collections`     | CRUD + reativação                                                             |
 | `product.service.ts`        | `/products`        | CRUD + upload imagem (FormData)                                               |
 | `stock-movement.service.ts` | `/stock-movements` | Create + getAll                                                               |
 | `order.service.ts`          | `/orders`          | CRUD + cancel + refund                                                        |

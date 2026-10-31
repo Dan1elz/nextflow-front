@@ -6,6 +6,7 @@ import {
   UserCircle,
   ChevronDown,
   Tag,
+  Layers,
   Package,
   Activity,
   ShoppingCart,
@@ -70,6 +71,7 @@ const items: SidebarMenuGroup[] = [
     items: [
       { name: "Produtos", url: "/products", icon: Package },
       { name: "Categorias", url: "/categories", icon: Tag },
+      { name: "Coleções", url: "/collections", icon: Layers },
       { name: "Movimentações", url: "/stock-movements", icon: Activity },
     ],
   },

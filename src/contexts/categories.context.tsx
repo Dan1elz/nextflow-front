@@ -1,21 +1,26 @@
 import { createContext } from "react";
 
-import type { ICategory } from "@/interfaces/category.interface";
-import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type { IIndexParams, IOption } from "@/interfaces/api.interface";
+import type {
+  CategoryNodeDto,
+  CategoryRequestDto,
+  ICategory,
+} from "@/interfaces/category.interface";
 
 export type CategoriesContextType = {
-  categories: ICategory[];
-  selectedCategory: ICategory | null;
-  pagination: IPaginationInfo | null;
-  searchCategories: (query?: IIndexParams) => Promise<void>;
+  tree: CategoryNodeDto[];
+  loading: boolean;
+  loadTree: () => Promise<void>;
+  searchParentOptions: (search?: string) => Promise<IOption[]>;
+  createCategory: (dto: CategoryRequestDto) => Promise<void>;
+  updateCategory: (id: string, dto: CategoryRequestDto) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  reactivateCategory: (id: string) => Promise<void>;
+  /** Legado: combos das telas antigas de produto e pedido de compra, até a F1.3. */
   searchCategoriesForOptions: (
     query?: IIndexParams
   ) => Promise<{ data: ICategory[]; totalItems: number }>;
-  selectCategory: (id: string) => Promise<void>;
   getCategoryById: (id: string) => Promise<ICategory>;
-  createCategory: (category: ICategory) => Promise<ICategory>;
-  updateCategory: (id: string, category: ICategory) => Promise<ICategory>;
-  deleteCategory: (id: string) => Promise<void>;
 };
 
 export const CategoriesContext = createContext<CategoriesContextType | null>(

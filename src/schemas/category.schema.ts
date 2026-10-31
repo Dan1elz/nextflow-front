@@ -1,12 +1,16 @@
 import { z } from "zod";
 
+/** A regra dos 2 níveis (RN-CE23) e o nome único entre irmãs (RN-CE38) são da API. */
 export const categorySchema = z.object({
-  id: z.string().uuid().optional(),
-
+  name: z
+    .string()
+    .trim()
+    .min(1, "Informe o nome.")
+    .max(100, "O nome deve ter no máximo 100 caracteres."),
   description: z
     .string()
-    .min(1, "A Descrição é obrigatória")
-    .max(100, "A Descrição deve ter no máximo 100 caracteres"),
+    .max(500, "A descrição deve ter no máximo 500 caracteres."),
+  parentId: z.string(),
 });
 
-export type CategorySchema = z.infer<typeof categorySchema>;
+export type CategoryFormData = z.infer<typeof categorySchema>;

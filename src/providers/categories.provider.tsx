@@ -1,101 +1,111 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
-import { useAuth } from "@/hooks/use-auth";
-import type { ICategory } from "@/interfaces/category.interface";
-import { categoryService } from "@/services/category.service";
 import { CategoriesContext } from "@/contexts/categories.context";
+import { useAuth } from "@/hooks/use-auth";
+import type { IIndexParams } from "@/interfaces/api.interface";
+import type {
+  CategoryNodeDto,
+  CategoryRequestDto,
+} from "@/interfaces/category.interface";
+import { categoryService } from "@/services/category.service";
 
+/** Toda alteração recarrega a árvore: a API devolve as contagens e a ordem prontas. */
 export function CategoriesProvider({ children }: { children: ReactNode }) {
-  const [categories, setCategories] = useState<ICategory[]>([]);
-  const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<ICategory | null>(
-    null
-  );
   const { token } = useAuth();
+  const auth = token ?? undefined;
+  const [tree, setTree] = useState<CategoryNodeDto[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const searchCategories = useCallback(
-    async (query?: IIndexParams) => {
-      const page = query?.page ?? 1;
-      const perPage = query?.perPage ?? 10;
+  const loadTree = useCallback(async () => {
+    try {
+      setTree(await categoryService.tree(auth));
+    } finally {
+      setLoading(false);
+    }
+  }, [auth]);
 
-      const response = await categoryService.getAll(query, token ?? undefined);
-      setCategories(response.items || []);
-
-      setPagination({
-        currentPage: page,
-        lastPage: Math.ceil(response.total / perPage) || 1,
-        total: response.total,
-        perPage,
-      });
+  const searchParentOptions = useCallback(
+    async (search?: string) => {
+      const options = await categoryService.categoryOptions(search, true, auth);
+      return options.map((option) => ({
+        value: option.id,
+        label: option.path,
+      }));
     },
-    [token]
-  );
-
-  const searchCategoriesForOptions = useCallback(
-    async (
-      query?: IIndexParams
-    ): Promise<{ data: ICategory[]; totalItems: number }> => {
-      const response = await categoryService.getAll(query, token ?? undefined);
-      return {
-        data: response.items || [],
-        totalItems: response.total,
-      };
-    },
-    [token]
-  );
-
-  const selectCategory = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await categoryService.getById(id, token ?? undefined);
-      setSelectedCategory(data);
-    },
-    [token]
-  );
-
-  const getCategoryById = useCallback(
-    async (id: string): Promise<ICategory> => {
-      return await categoryService.getById(id, token ?? undefined);
-    },
-    [token]
+    [auth]
   );
 
   const createCategory = useCallback(
-    async (city: ICategory): Promise<ICategory> => {
-      const data = await categoryService.create(city, token ?? undefined);
-      return data;
+    async (dto: CategoryRequestDto) => {
+      await categoryService.create(dto, auth);
+      await loadTree();
     },
-    [token]
+    [auth, loadTree]
   );
 
   const updateCategory = useCallback(
-    async (id: string, city: ICategory): Promise<ICategory> => {
-      const data = await categoryService.update(id, city, token ?? undefined);
-      return data;
+    async (id: string, dto: CategoryRequestDto) => {
+      await categoryService.update(id, dto, auth);
+      await loadTree();
     },
-    [token]
+    [auth, loadTree]
   );
 
   const deleteCategory = useCallback(
-    async (id: string): Promise<void> => {
-      await categoryService.delete(id, token ?? undefined);
+    async (id: string) => {
+      await categoryService.delete(id, auth);
+      await loadTree();
     },
-    [token]
+    [auth, loadTree]
+  );
+
+  const reactivateCategory = useCallback(
+    async (id: string) => {
+      await categoryService.reactivate(id, auth);
+      await loadTree();
+    },
+    [auth, loadTree]
+  );
+
+  const searchCategoriesForOptions = useCallback(
+    async (query?: IIndexParams) => {
+      const options = await categoryService.categoryOptions(
+        query?.filters?.search,
+        false,
+        auth
+      );
+      return {
+        data: options.map((option) => ({
+          id: option.id,
+          description: option.path,
+        })),
+        totalItems: options.length,
+      };
+    },
+    [auth]
+  );
+
+  const getCategoryById = useCallback(
+    async (id: string) => {
+      const category = await categoryService.getById(id, auth);
+      return { id: category.id, description: category.name };
+    },
+    [auth]
   );
 
   return (
     <CategoriesContext.Provider
       value={{
-        categories,
-        pagination,
-        selectedCategory,
-        searchCategories,
-        searchCategoriesForOptions,
-        selectCategory,
-        getCategoryById,
+        tree,
+        loading,
+        loadTree,
+        searchParentOptions,
         createCategory,
         updateCategory,
         deleteCategory,
+        reactivateCategory,
+        searchCategoriesForOptions,
+        getCategoryById,
       }}
     >
       {children}

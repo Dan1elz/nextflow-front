@@ -15,9 +15,7 @@ import CreateClientPageWrapper from "@/pages/Client/Create";
 import EditClientPageWrapper from "@/pages/Client/Edit";
 import ViewClientPageWrapper from "@/pages/Client/View";
 import CategoriesPageWrapper from "@/pages/Categories";
-import CreateCategoryPageWrapper from "@/pages/Category/Create";
-import EditCategoryPageWrapper from "@/pages/Category/Edit";
-import ViewCategoryPageWrapper from "@/pages/Category/View";
+import CollectionsPageWrapper from "@/pages/Collections";
 import ProductsPageWrapper from "@/pages/Products";
 import CreateProductPageWrapper from "@/pages/Product/Create";
 import EditProductPageWrapper from "@/pages/Product/Edit";
@@ -92,18 +90,7 @@ function AppRoutes() {
         />
 
         <Route path="categories" element={<CategoriesPageWrapper />} />
-        <Route
-          path="categories/create"
-          element={<CreateCategoryPageWrapper />}
-        />
-        <Route
-          path="categories/:id/edit"
-          element={<EditCategoryPageWrapper />}
-        />
-        <Route
-          path="categories/:id/view"
-          element={<ViewCategoryPageWrapper />}
-        />
+        <Route path="collections" element={<CollectionsPageWrapper />} />
 
         <Route path="products" element={<ProductsPageWrapper />} />
         <Route path="products/create" element={<CreateProductPageWrapper />} />
