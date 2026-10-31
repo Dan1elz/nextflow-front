@@ -8,7 +8,10 @@ export const paymentSchema = z.object({
   paymentMethod: z.coerce
     .number()
     .refine(
-      (val) => Object.values(TLegacyPaymentMethod).includes(val as TLegacyPaymentMethod),
+      (val) =>
+        Object.values(TLegacyPaymentMethod).includes(
+          val as TLegacyPaymentMethod
+        ),
       { message: "Método de pagamento inválido" }
     ),
 });

@@ -24,7 +24,10 @@ import { ButtonLoader } from "@/components/ui/button-loader";
 import { Separator } from "@/components/ui/separator";
 
 import { formatCurrency } from "@/utils";
-import { TLegacyPaymentMethod, LEGACY_PAYMENT_METHOD_LABELS } from "@/types/enums";
+import {
+  TLegacyPaymentMethod,
+  LEGACY_PAYMENT_METHOD_LABELS,
+} from "@/types/enums";
 import type { IOrder } from "@/interfaces/order.interface";
 import type { IPayment } from "@/interfaces/sale.interface";
 import { createSaleSchema, type CreateSaleSchema } from "@/schemas/sale.schema";
@@ -222,7 +225,11 @@ export function SaleCheckoutForm({
                 >
                   <div className="flex flex-col">
                     <span className="font-medium text-sm">
-                      {LEGACY_PAYMENT_METHOD_LABELS[p.paymentMethod as TLegacyPaymentMethod]}
+                      {
+                        LEGACY_PAYMENT_METHOD_LABELS[
+                          p.paymentMethod as TLegacyPaymentMethod
+                        ]
+                      }
                     </span>
                     <span className="text-xs text-muted-foreground">
                       Adicionado

@@ -120,7 +120,8 @@ export function PriorityBadge({
   priority: TLegacyRecommendationPriority;
   className?: string;
 }) {
-  const label = LEGACY_RECOMMENDATION_PRIORITY_LABELS[priority] ?? String(priority);
+  const label =
+    LEGACY_RECOMMENDATION_PRIORITY_LABELS[priority] ?? String(priority);
   if (priority === TLegacyRecommendationPriority.High)
     return (
       <Pill
@@ -164,7 +165,8 @@ export function ConfidenceBadge({
   className?: string;
   withPrefix?: boolean;
 }) {
-  const label = LEGACY_FORECAST_CONFIDENCE_LABELS[confidence] ?? String(confidence);
+  const label =
+    LEGACY_FORECAST_CONFIDENCE_LABELS[confidence] ?? String(confidence);
   const tone: Tone =
     confidence === TLegacyForecastConfidence.High
       ? "emerald"

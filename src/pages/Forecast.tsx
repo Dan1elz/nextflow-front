@@ -518,8 +518,9 @@ function ForecastContent() {
   const actionCounts = useMemo(
     () => ({
       all: statusFiltered.length,
-      buy: statusFiltered.filter((r) => r.action === TLegacyRecommendationAction.Buy)
-        .length,
+      buy: statusFiltered.filter(
+        (r) => r.action === TLegacyRecommendationAction.Buy
+      ).length,
       promote: statusFiltered.filter(
         (r) => r.action === TLegacyRecommendationAction.Promote
       ).length,

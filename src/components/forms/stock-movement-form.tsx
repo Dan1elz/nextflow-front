@@ -27,7 +27,10 @@ import {
   stockMovementSchema,
   type StockMovementSchema,
 } from "@/schemas/stock-movement.schema";
-import { TLegacyMovementType, LEGACY_MOVEMENT_TYPE_LABELS } from "@/types/enums";
+import {
+  TLegacyMovementType,
+  LEGACY_MOVEMENT_TYPE_LABELS,
+} from "@/types/enums";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
 
 interface StockMovementFormProps {
@@ -145,15 +148,22 @@ export function StockMovementForm({
                     )
                       .filter(
                         (key) =>
-                          TLegacyMovementType[key] === TLegacyMovementType.Entry ||
-                          TLegacyMovementType[key] === TLegacyMovementType.Exit ||
-                          TLegacyMovementType[key] === TLegacyMovementType.Adjustment
+                          TLegacyMovementType[key] ===
+                            TLegacyMovementType.Entry ||
+                          TLegacyMovementType[key] ===
+                            TLegacyMovementType.Exit ||
+                          TLegacyMovementType[key] ===
+                            TLegacyMovementType.Adjustment
                       )
                       .map((key) => {
                         const type = TLegacyMovementType[key];
                         return (
                           <SelectItem key={type} value={String(type)}>
-                            {LEGACY_MOVEMENT_TYPE_LABELS[type as TLegacyMovementType]}
+                            {
+                              LEGACY_MOVEMENT_TYPE_LABELS[
+                                type as TLegacyMovementType
+                              ]
+                            }
                           </SelectItem>
                         );
                       })}

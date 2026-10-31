@@ -275,16 +275,17 @@ function AiRecommendationsCardContent() {
                         Comprar
                       </Button>
                     )}
-                    {rec.action === TLegacyRecommendationAction.Promote && admin && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setPromotionRec(rec)}
-                      >
-                        <BadgePercent className="h-4 w-4" />
-                        Aplicar desconto
-                      </Button>
-                    )}
+                    {rec.action === TLegacyRecommendationAction.Promote &&
+                      admin && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setPromotionRec(rec)}
+                        >
+                          <BadgePercent className="h-4 w-4" />
+                          Aplicar desconto
+                        </Button>
+                      )}
                     <Button
                       size="sm"
                       variant="ghost"

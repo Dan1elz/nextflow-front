@@ -16,7 +16,7 @@ const STATUS_FALLBACK_MESSAGES: Record<number, string> = {
 
 /**
  * Falha vinda da API no formato `ResultDto`.
- * - 422 com `fieldErrors`: o formulário marca cada campo (`applyApiFieldErrors`).
+ * - 422 com `fieldErrors`: o formulário marca cada campo (`useApiForm`).
  * - 422 com `fieldErrors.confirm`: o formulário pede confirmação e reenvia com `confirmWarnings: true`.
  * - 409: conflito de versão; o formulário oferece recarregar.
  */

@@ -279,11 +279,15 @@ function Promotions() {
         >
           <TabsList className="flex h-auto w-full justify-start overflow-x-auto p-1 md:w-auto">
             <TabsTrigger value={ALL}>Todas</TabsTrigger>
-            <TabsTrigger value={TLegacyPromotionStatus.Active}>Vigentes</TabsTrigger>
+            <TabsTrigger value={TLegacyPromotionStatus.Active}>
+              Vigentes
+            </TabsTrigger>
             <TabsTrigger value={TLegacyPromotionStatus.Scheduled}>
               Agendadas
             </TabsTrigger>
-            <TabsTrigger value={TLegacyPromotionStatus.Ended}>Encerradas</TabsTrigger>
+            <TabsTrigger value={TLegacyPromotionStatus.Ended}>
+              Encerradas
+            </TabsTrigger>
             <TabsTrigger value={TLegacyPromotionStatus.Canceled}>
               Canceladas
             </TabsTrigger>
@@ -326,7 +330,9 @@ function Promotions() {
                 <SelectItem value={String(TLegacyPromotionSource.Manual)}>
                   Manual
                 </SelectItem>
-                <SelectItem value={String(TLegacyPromotionSource.AiRecommendation)}>
+                <SelectItem
+                  value={String(TLegacyPromotionSource.AiRecommendation)}
+                >
                   Recomendação da IA
                 </SelectItem>
               </SelectContent>

@@ -1,4 +1,7 @@
-import type { TLegacyPromotionSource, TLegacyPromotionStatus } from "@/types/enums";
+import type {
+  TLegacyPromotionSource,
+  TLegacyPromotionStatus,
+} from "@/types/enums";
 import type { IProduct } from "./product.interface";
 
 /** Resumo da promoção vigente embutido no produto (`ProductResponseDto.activePromotion`). */

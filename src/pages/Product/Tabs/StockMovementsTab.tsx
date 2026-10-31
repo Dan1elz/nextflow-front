@@ -11,7 +11,10 @@ import { useStockMovements } from "@/hooks/use-stock-movements";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { formatDateTime, formatNumber, formatCurrency } from "@/utils";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
-import { LEGACY_MOVEMENT_TYPE_LABELS, TLegacyMovementType as TypesObj } from "@/types/enums";
+import {
+  LEGACY_MOVEMENT_TYPE_LABELS,
+  TLegacyMovementType as TypesObj,
+} from "@/types/enums";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

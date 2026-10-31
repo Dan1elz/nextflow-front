@@ -379,5 +379,79 @@ export const RECOMMENDATION_STATUS_LABELS: Record<
   Expired: "Expirada",
 };
 
+/** Ações permitidas no pedido: a API decide, o front só mostra. */
+export const TOrderAction = {
+  Edit: "Edit",
+  Pay: "Pay",
+  Cancel: "Cancel",
+  Refund: "Refund",
+  Duplicate: "Duplicate",
+  Renew: "Renew",
+} as const;
+export type TOrderAction = (typeof TOrderAction)[keyof typeof TOrderAction];
+export const ORDER_ACTION_LABELS: Record<TOrderAction, string> = {
+  Edit: "Editar",
+  Pay: "Pagar",
+  Cancel: "Cancelar",
+  Refund: "Reembolsar",
+  Duplicate: "Duplicar",
+  Renew: "Renovar",
+};
+
+export const TAiBatchStatus = {
+  Pending: "Pending",
+  Sent: "Sent",
+  Completed: "Completed",
+  Failed: "Failed",
+} as const;
+export type TAiBatchStatus =
+  (typeof TAiBatchStatus)[keyof typeof TAiBatchStatus];
+export const AI_BATCH_STATUS_LABELS: Record<TAiBatchStatus, string> = {
+  Pending: "Pendente",
+  Sent: "Enviado",
+  Completed: "Concluído",
+  Failed: "Falhou",
+};
+
+export const TAbcClass = {
+  A: "A",
+  B: "B",
+  C: "C",
+} as const;
+export type TAbcClass = (typeof TAbcClass)[keyof typeof TAbcClass];
+export const ABC_CLASS_LABELS: Record<TAbcClass, string> = {
+  A: "Classe A",
+  B: "Classe B",
+  C: "Classe C",
+};
+
+export const TDismissReason = {
+  BoughtElsewhere: "BoughtElsewhere",
+  DisagreeQuantity: "DisagreeQuantity",
+  WillDiscontinue: "WillDiscontinue",
+  Other: "Other",
+} as const;
+export type TDismissReason =
+  (typeof TDismissReason)[keyof typeof TDismissReason];
+export const DISMISS_REASON_LABELS: Record<TDismissReason, string> = {
+  BoughtElsewhere: "Comprei em outro lugar",
+  DisagreeQuantity: "Discordo da quantidade",
+  WillDiscontinue: "Vou descontinuar",
+  Other: "Outro",
+};
+
+export const TNotificationType = {
+  NewRecommendations: "NewRecommendations",
+  LotExpiring: "LotExpiring",
+  LowStock: "LowStock",
+} as const;
+export type TNotificationType =
+  (typeof TNotificationType)[keyof typeof TNotificationType];
+export const NOTIFICATION_TYPE_LABELS: Record<TNotificationType, string> = {
+  NewRecommendations: "Novas recomendações",
+  LotExpiring: "Lote vencendo",
+  LowStock: "Estoque baixo",
+};
+
 // Enums da API antiga, só para as telas ainda não migradas (sai junto com elas).
 export * from "./legacy-enums";
