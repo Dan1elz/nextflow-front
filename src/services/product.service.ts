@@ -2,9 +2,11 @@ import { BaseService } from "./base.service";
 import type {
   ProductFormDto,
   ProductImageResponseDto,
+  PriceHistoryResponseDto,
   ProductListItemDto,
   ProductRequestDto,
   ProductResponseDto,
+  ProductSupplierResponseDto,
   ProductVariantResponseDto,
 } from "@/interfaces/product.interface";
 import type { TLifecycle } from "@/types/enums";
@@ -26,6 +28,22 @@ class ProductService extends BaseService<
   variants(id: string, token?: string): Promise<ProductVariantResponseDto[]> {
     return this.apiService.get<ProductVariantResponseDto[]>(
       `${this.endpoint}/${id}/variants`,
+      undefined,
+      token
+    );
+  }
+
+  suppliers(id: string, token?: string): Promise<ProductSupplierResponseDto[]> {
+    return this.apiService.get<ProductSupplierResponseDto[]>(
+      `${this.endpoint}/${id}/suppliers`,
+      undefined,
+      token
+    );
+  }
+
+  priceHistory(id: string, token?: string): Promise<PriceHistoryResponseDto[]> {
+    return this.apiService.get<PriceHistoryResponseDto[]>(
+      `${this.endpoint}/${id}/price-history`,
       undefined,
       token
     );

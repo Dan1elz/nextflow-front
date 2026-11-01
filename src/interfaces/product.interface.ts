@@ -25,6 +25,17 @@ export interface ProductVariantRequestDto {
   isActive: boolean;
 }
 
+/** Linha da tabela Fornecedores do T2. O vínculo é reconhecido por `supplierId`, único no produto (RN-CE27). */
+export interface ProductSupplierRequestDto {
+  supplierId: string;
+  isPreferred: boolean;
+  supplierSku?: string | null;
+  /** Vazio usa o prazo do fornecedor. */
+  leadTimeDays?: number | null;
+  minOrderQty?: number | null;
+  orderMultiple?: number | null;
+}
+
 export interface ProductRequestDto {
   name: string;
   brand?: string | null;
@@ -40,11 +51,23 @@ export interface ProductRequestDto {
   launchedOn?: string | null;
   attributes: ProductAttributeRequestDto[];
   variants: ProductVariantRequestDto[];
+  eventIds: string[];
+  suppliers: ProductSupplierRequestDto[];
+}
+
+/** Fornecedor no formulário: `leadTimeDays` é o padrão do campo vazio; `isActive` marca o inativo já vinculado. */
+export interface SupplierOptionDto {
+  id: string;
+  name: string;
+  leadTimeDays: number;
+  isActive: boolean;
 }
 
 export interface ProductFormOptionsDto {
   categories: CategoryOptionDto[];
   collections: Option[];
+  events: Option[];
+  suppliers: SupplierOptionDto[];
 }
 
 /** `GET /products/form` (criação) e `GET /products/{id}/form` (edição). */
@@ -101,6 +124,7 @@ export interface ProductResponseDto {
   activePromotionPercent?: number | null;
   availableQuantity: number;
   variantCount: number;
+  events: Option[];
 }
 
 /** `label` é "P / Azul" e vem vazio na variação padrão oculta. */
@@ -120,4 +144,30 @@ export interface ProductVariantResponseDto {
 
 export interface ProductImageResponseDto {
   imageUrl?: string | null;
+}
+
+/** Aba Fornecedores do T3. `leadTimeDays` é o efetivo; `lastCost` e `lastPurchaseOn` ficam nulos até a F2.8. */
+export interface ProductSupplierResponseDto {
+  supplierId: string;
+  supplierName: string;
+  supplierIsActive: boolean;
+  isPreferred: boolean;
+  supplierSku?: string | null;
+  leadTimeDays: number;
+  minOrderQty?: number | null;
+  orderMultiple?: number | null;
+  lastCost?: number | null;
+  lastPurchaseOn?: string | null;
+}
+
+/** Aba Preços do T3. `variantLabel` vem vazio na variação oculta; `variantRemoved` marca a que saiu do formulário. */
+export interface PriceHistoryResponseDto {
+  id: string;
+  variantLabel: string;
+  sku: string;
+  variantRemoved: boolean;
+  price: number;
+  validFrom: string;
+  validTo?: string | null;
+  changedByName: string;
 }

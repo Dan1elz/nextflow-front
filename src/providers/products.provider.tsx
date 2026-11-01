@@ -42,6 +42,16 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const getSuppliers = useCallback(
+    (id: string) => productService.suppliers(id, auth),
+    [auth]
+  );
+
+  const getPriceHistory = useCallback(
+    (id: string) => productService.priceHistory(id, auth),
+    [auth]
+  );
+
   const getForm = useCallback(
     (id?: string) => productService.form(id, auth),
     [auth]
@@ -94,6 +104,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         searchProducts,
         getProduct,
         getVariants,
+        getSuppliers,
+        getPriceHistory,
         getForm,
         createProduct,
         updateProduct,

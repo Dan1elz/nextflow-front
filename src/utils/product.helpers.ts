@@ -48,6 +48,8 @@ export const emptyProductForm = (): ProductFormData => ({
   hasGrid: false,
   attributes: [],
   variants: [emptyVariant()],
+  eventIds: [],
+  suppliers: [],
 });
 
 export const toFormValues = (dto: ProductFormDto): ProductFormData => ({
@@ -80,6 +82,18 @@ export const toFormValues = (dto: ProductFormDto): ProductFormData => ({
     barcode: variant.barcode ?? "",
     price: variant.price.toFixed(2).replace(".", ","),
     isActive: variant.isActive,
+  })),
+  eventIds: dto.eventIds,
+  suppliers: dto.suppliers.map((supplier) => ({
+    supplierId: supplier.supplierId,
+    isPreferred: supplier.isPreferred,
+    supplierSku: supplier.supplierSku ?? "",
+    leadTimeDays:
+      supplier.leadTimeDays == null ? "" : String(supplier.leadTimeDays),
+    minOrderQty:
+      supplier.minOrderQty == null ? "" : String(supplier.minOrderQty),
+    orderMultiple:
+      supplier.orderMultiple == null ? "" : String(supplier.orderMultiple),
   })),
 });
 
@@ -114,6 +128,21 @@ export const toRequestDto = (data: ProductFormData): ProductRequestDto => ({
     barcode: variant.barcode.trim() || null,
     price: parsePrice(variant.price),
     isActive: data.hasGrid ? variant.isActive : true,
+  })),
+  eventIds: data.eventIds,
+  suppliers: data.suppliers.map((supplier) => ({
+    supplierId: supplier.supplierId,
+    isPreferred: supplier.isPreferred,
+    supplierSku: supplier.supplierSku.trim() || null,
+    leadTimeDays: supplier.leadTimeDays.trim()
+      ? Number(supplier.leadTimeDays)
+      : null,
+    minOrderQty: supplier.minOrderQty.trim()
+      ? Number(supplier.minOrderQty)
+      : null,
+    orderMultiple: supplier.orderMultiple.trim()
+      ? Number(supplier.orderMultiple)
+      : null,
   })),
 });
 

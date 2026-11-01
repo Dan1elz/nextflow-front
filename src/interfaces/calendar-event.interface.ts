@@ -16,7 +16,7 @@ export interface CalendarEventRequestDto {
   leadDays: number;
 }
 
-/** `nextDate` vem calculado da API (RN-CE46); `productCount` fica zero até a F1.4. */
+/** `nextDate` vem calculado da API (RN-CE46); `productCount` conta os produtos ativos vinculados. */
 export interface CalendarEventResponseDto {
   id: string;
   name: string;

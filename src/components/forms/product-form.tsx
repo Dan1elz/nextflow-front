@@ -9,6 +9,7 @@ import { FormInputField } from "@/components/app/form-input-field";
 import { ImagePicker } from "@/components/app/image-picker";
 import { SearchSelect } from "@/components/app/search-select";
 import { ProductGridSection } from "@/components/forms/product-grid-section";
+import { ProductSuppliersSection } from "@/components/forms/product-suppliers-section";
 import { ProductVariantsSection } from "@/components/forms/product-variants-section";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,6 +149,10 @@ export function ProductForm({
     else changeUnit(TSaleUnit.Unit);
   };
 
+  const eventOptions: IOption[] = options.events.map((event) => ({
+    value: event.value,
+    label: event.label,
+  }));
   const categoryOptions: IOption[] = options.categories.map((category) => ({
     value: category.id,
     label: category.path,
@@ -488,6 +493,45 @@ export function ProductForm({
                 )}
               />
             </div>
+            <Controller
+              control={form.control}
+              name="eventIds"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid} className="mt-4">
+                  <FieldLabel>Eventos que puxam a venda</FieldLabel>
+                  <SearchSelect<IOption>
+                    multiple
+                    placeholder="Nenhum evento"
+                    data={eventOptions}
+                    disabled={isSubmitting}
+                    field={{
+                      value: field.value as unknown as string,
+                      onChange: (value) =>
+                        field.onChange((value as unknown as string[]) ?? []),
+                    }}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Fornecedores</CardTitle>
+            <CardDescription>
+              Prazo vazio usa o do fornecedor. Pedido mínimo e múltiplo são em
+              unidades de venda, sem conversão de caixa.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProductSuppliersSection
+              options={options.suppliers}
+              disabled={isSubmitting}
+            />
           </CardContent>
         </Card>
 

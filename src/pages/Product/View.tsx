@@ -6,6 +6,7 @@ import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -17,7 +18,9 @@ import {
 } from "@/components/ui/table";
 import { useProducts } from "@/hooks/use-products";
 import type {
+  PriceHistoryResponseDto,
   ProductResponseDto,
+  ProductSupplierResponseDto,
   ProductVariantResponseDto,
 } from "@/interfaces/product.interface";
 import { ProductsProvider } from "@/providers/products.provider";
@@ -77,23 +80,136 @@ function VariantsTab({ variants }: { variants: ProductVariantResponseDto[] }) {
   );
 }
 
-/** T3: só o que já tem dado. Estoque, lotes, fornecedores, preços, previsão e promoções entram nas fatias deles. */
+function SuppliersTab({
+  suppliers,
+}: {
+  suppliers: ProductSupplierResponseDto[];
+}) {
+  if (suppliers.length === 0) {
+    return (
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyDescription>Nenhum fornecedor vinculado.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Fornecedor</TableHead>
+            <TableHead>Preferido</TableHead>
+            <TableHead>Prazo</TableHead>
+            <TableHead>Pedido mínimo</TableHead>
+            <TableHead>Múltiplo</TableHead>
+            <TableHead>Último custo</TableHead>
+            <TableHead>Última compra</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {suppliers.map((supplier) => (
+            <TableRow key={supplier.supplierId}>
+              <TableCell className="font-medium">
+                {supplier.supplierName}
+                {!supplier.supplierIsActive && (
+                  <Badge variant="secondary" className="ml-2">
+                    Inativo
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>
+                {supplier.isPreferred ? <Badge>Preferido</Badge> : "-"}
+              </TableCell>
+              <TableCell>{supplier.leadTimeDays} dias</TableCell>
+              <TableCell>{supplier.minOrderQty ?? "-"}</TableCell>
+              <TableCell>{supplier.orderMultiple ?? "-"}</TableCell>
+              <TableCell>
+                {supplier.lastCost == null
+                  ? "-"
+                  : formatCurrency(supplier.lastCost)}
+              </TableCell>
+              <TableCell>
+                {supplier.lastPurchaseOn
+                  ? formatDateOnly(supplier.lastPurchaseOn)
+                  : "-"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function PricesTab({ history }: { history: PriceHistoryResponseDto[] }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Variação</TableHead>
+            <TableHead>Preço</TableHead>
+            <TableHead>De</TableHead>
+            <TableHead>Até</TableHead>
+            <TableHead>Quem alterou</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {history.map((entry) => (
+            <TableRow key={entry.id}>
+              <TableCell className="font-medium">
+                {entry.variantLabel || entry.sku || "Padrão"}
+                {entry.variantRemoved && (
+                  <Badge variant="secondary" className="ml-2">
+                    Removida
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell>{formatCurrency(entry.price)}</TableCell>
+              <TableCell>{formatDateOnly(entry.validFrom)}</TableCell>
+              <TableCell>
+                {entry.validTo ? formatDateOnly(entry.validTo) : "Vigente"}
+              </TableCell>
+              <TableCell>{entry.changedByName}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+/** T3: só o que já tem dado. Estoque, lotes, previsão e promoções entram nas fatias deles. */
 function ViewProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getProduct, getVariants } = useProducts();
+  const { getProduct, getVariants, getSuppliers, getPriceHistory } =
+    useProducts();
   const [product, setProduct] = useState<ProductResponseDto | null>(null);
   const [variants, setVariants] = useState<ProductVariantResponseDto[]>([]);
+  const [suppliers, setSuppliers] = useState<ProductSupplierResponseDto[]>([]);
+  const [history, setHistory] = useState<PriceHistoryResponseDto[]>([]);
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([getProduct(id), getVariants(id)])
-      .then(([loadedProduct, loadedVariants]) => {
-        setProduct(loadedProduct);
-        setVariants(loadedVariants);
-      })
+    Promise.all([
+      getProduct(id),
+      getVariants(id),
+      getSuppliers(id),
+      getPriceHistory(id),
+    ])
+      .then(
+        ([loadedProduct, loadedVariants, loadedSuppliers, loadedHistory]) => {
+          setProduct(loadedProduct);
+          setVariants(loadedVariants);
+          setSuppliers(loadedSuppliers);
+          setHistory(loadedHistory);
+        }
+      )
       .catch((error) => handleError(error, "Erro ao abrir o produto"));
-  }, [getProduct, getVariants, id]);
+  }, [getProduct, getVariants, getSuppliers, getPriceHistory, id]);
 
   if (!product) return <Skeleton className="h-96 w-full" />;
 
@@ -151,6 +267,10 @@ function ViewProduct() {
             />
             <Detail label="Coleção" value={product.collection?.label ?? "-"} />
             <Detail
+              label="Eventos"
+              value={product.events.map((e) => e.label).join(", ") || "-"}
+            />
+            <Detail
               label="Unidade"
               value={SALE_UNIT_LABELS[product.saleUnit]}
             />
@@ -197,6 +317,16 @@ function ViewProduct() {
             value: "variants",
             label: "Variações",
             content: <VariantsTab variants={variants} />,
+          },
+          {
+            value: "suppliers",
+            label: "Fornecedores",
+            content: <SuppliersTab suppliers={suppliers} />,
+          },
+          {
+            value: "prices",
+            label: "Preços",
+            content: <PricesTab history={history} />,
           },
         ]}
       />

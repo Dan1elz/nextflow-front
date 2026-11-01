@@ -57,6 +57,20 @@ const variantSchema = z.object({
   isActive: z.boolean(),
 });
 
+const supplierSchema = z.object({
+  supplierId: z.string(),
+  isPreferred: z.boolean(),
+  supplierSku: z.string(),
+  leadTimeDays: z.string(),
+  minOrderQty: z.string(),
+  orderMultiple: z.string(),
+});
+
+const isPositiveInteger = (value: string) => {
+  const number = Number(value.trim());
+  return Number.isInteger(number) && number > 0;
+};
+
 /** Espelha o `ProductRequestDtoValidator` da API (contrato T2, RN-CE48, RN-CE49, RN-CE54, RN-CE56). */
 export const productSchema = z
   .object({
@@ -81,6 +95,8 @@ export const productSchema = z
     hasGrid: z.boolean(),
     attributes: z.array(attributeSchema),
     variants: z.array(variantSchema),
+    eventIds: z.array(z.string()),
+    suppliers: z.array(supplierSchema),
   })
   .superRefine((data, context) => {
     const fail = (path: (string | number)[], message: string) =>
@@ -138,6 +154,58 @@ export const productSchema = z
         fail(["attributes", index, "name"], "Há atributos com o mesmo nome.")
       );
     }
+
+    // Fornecedores (RN-CE27, RN-CE30): um por produto, no máximo um preferido, quantidades inteiras e positivas.
+    if (data.suppliers.filter((supplier) => supplier.isPreferred).length > 1) {
+      fail(["suppliers"], "Só um fornecedor pode ser o preferido.");
+    }
+    data.suppliers.forEach((supplier, index) => {
+      if (!supplier.supplierId) {
+        fail(["suppliers", index, "supplierId"], "Escolha o fornecedor.");
+      } else if (
+        data.suppliers.findIndex(
+          (s) => s.supplierId === supplier.supplierId
+        ) !== index
+      ) {
+        fail(
+          ["suppliers", index, "supplierId"],
+          "Este fornecedor já está na lista."
+        );
+      }
+      if (supplier.supplierSku.trim().length > 50) {
+        fail(
+          ["suppliers", index, "supplierSku"],
+          "O código no fornecedor deve ter no máximo 50 caracteres."
+        );
+      }
+      if (supplier.leadTimeDays.trim() !== "") {
+        const days = Number(supplier.leadTimeDays);
+        if (!Number.isInteger(days) || days < 1 || days > 180) {
+          fail(
+            ["suppliers", index, "leadTimeDays"],
+            "O prazo de entrega deve ser de 1 a 180 dias."
+          );
+        }
+      }
+      if (
+        supplier.minOrderQty.trim() !== "" &&
+        !isPositiveInteger(supplier.minOrderQty)
+      ) {
+        fail(
+          ["suppliers", index, "minOrderQty"],
+          "O pedido mínimo deve ser um número inteiro maior que zero."
+        );
+      }
+      if (
+        supplier.orderMultiple.trim() !== "" &&
+        !isPositiveInteger(supplier.orderMultiple)
+      ) {
+        fail(
+          ["suppliers", index, "orderMultiple"],
+          "O múltiplo de compra deve ser um número inteiro maior que zero."
+        );
+      }
+    });
 
     if (data.variants.length === 0) {
       fail(

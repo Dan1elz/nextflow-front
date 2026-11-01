@@ -79,6 +79,8 @@ function Products() {
   const [options, setOptions] = useState<ProductFormOptionsDto>({
     categories: [],
     collections: [],
+    events: [],
+    suppliers: [],
   });
   const [sort, setSort] = useState("name");
   const sortRef = useRef("name");
