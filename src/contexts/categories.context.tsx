@@ -14,9 +14,9 @@ export type CategoriesContextType = {
   searchParentOptions: (search?: string) => Promise<IOption[]>;
   createCategory: (dto: CategoryRequestDto) => Promise<void>;
   updateCategory: (id: string, dto: CategoryRequestDto) => Promise<void>;
-  deleteCategory: (id: string) => Promise<void>;
+  deleteCategory: (id: string, confirmWarnings?: boolean) => Promise<void>;
   reactivateCategory: (id: string) => Promise<void>;
-  /** Legado: combos das telas antigas de produto e pedido de compra, até a F1.3. */
+  /** Legado: combo do pedido de compra antigo, até a fatia dele. */
   searchCategoriesForOptions: (
     query?: IIndexParams
   ) => Promise<{ data: ICategory[]; totalItems: number }>;

@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { PurchaseOrderForm } from "@/components/forms/purchase-order-form";
-import { ProductsProvider } from "@/providers/products.provider";
+import { LegacyProductsProvider } from "@/providers/legacy-products.provider";
 import { PurchaseOrdersProvider } from "@/providers/purchase-orders.provider";
 import { SuppliersProvider } from "@/providers/suppliers.provider";
 import { CategoriesProvider } from "@/providers/categories.provider";
@@ -18,13 +18,13 @@ function ViewPurchaseOrder() {
 export default function ViewPurchaseOrderPageWrapper() {
   return (
     <SuppliersProvider>
-      <ProductsProvider>
+      <LegacyProductsProvider>
         <CategoriesProvider>
           <PurchaseOrdersProvider>
             <ViewPurchaseOrder />
           </PurchaseOrdersProvider>
         </CategoriesProvider>
-      </ProductsProvider>
+      </LegacyProductsProvider>
     </SuppliersProvider>
   );
 }

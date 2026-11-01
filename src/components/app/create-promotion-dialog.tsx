@@ -13,9 +13,9 @@ import {
   type PromotionPricePreview,
 } from "@/components/forms/promotion-form";
 import { usePromotions } from "@/hooks/use-promotions";
-import { useProducts } from "@/hooks/use-products";
+import { useLegacyProducts } from "@/hooks/use-legacy-products";
 import { useSearchOptions } from "@/hooks/use-search-options";
-import type { IProduct } from "@/interfaces/product.interface";
+import type { IProduct } from "@/interfaces/legacy-product.interface";
 import type { IPromotion } from "@/interfaces/promotion.interface";
 import type { PromotionSchema } from "@/schemas/promotion.schema";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
@@ -37,7 +37,7 @@ function CreatePromotionContent({
   onSuccess?: (promotion: IPromotion) => void;
 }) {
   const { createPromotion } = usePromotions();
-  const { searchProductsForOptions, getProductById } = useProducts();
+  const { searchProductsForOptions, getProductById } = useLegacyProducts();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
   const [defaultValues] = useState<Partial<PromotionSchema>>(() => {
@@ -149,7 +149,7 @@ function CreatePromotionContent({
   );
 }
 
-/** Criação manual de promoção (Admin) → POST /api/promotions. Requer PromotionsProvider e ProductsProvider. */
+/** Criação manual de promoção (Admin) → POST /api/promotions. Requer PromotionsProvider e LegacyProductsProvider. */
 export function CreatePromotionDialog({
   open,
   onOpenChange,

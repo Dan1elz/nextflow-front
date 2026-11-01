@@ -234,25 +234,26 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 
 ## 7. Formulários (`components/forms/`) — 14
 
-| Formulário                | Entidade                                                 |
-| ------------------------- | -------------------------------------------------------- |
-| `login-form.tsx`          | Autenticação                                             |
-| `user-form.tsx`           | Usuários                                                 |
-| `client-form.tsx`         | Clientes                                                 |
-| `supplier-form.tsx`       | Fornecedores                                             |
-| `category-form.tsx`       | Categorias (dialog, combo de pai só com nível 1)         |
-| `collection-form.tsx`     | Coleções (dialog)                                        |
-| `calendar-event-form.tsx` | Calendário de eventos (dialog; nacional só antecedência) |
-| `product-form.tsx`        | Produtos (com upload de imagem)                          |
-| `order-form.tsx`          | Pedidos de venda (com carrinho; usa `effectivePrice`)    |
-| `promotion-form.tsx`      | Promoção (desconto, período, prévia de preço)            |
-| `sale-checkout-form.tsx`  | Checkout de venda (pagamentos)                           |
-| `stock-movement-form.tsx` | Movimentação de estoque                                  |
-| `address-form.tsx`        | Endereços (com auto-fill ViaCEP)                         |
-| `contact-form.tsx`        | Contatos                                                 |
-| `country-form.tsx`        | Países                                                   |
-| `state-form.tsx`          | Estados                                                  |
-| `city-form.tsx`           | Cidades                                                  |
+| Formulário                                                                     | Entidade                                                     |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `login-form.tsx`                                                               | Autenticação                                                 |
+| `user-form.tsx`                                                                | Usuários                                                     |
+| `client-form.tsx`                                                              | Clientes                                                     |
+| `supplier-form.tsx`                                                            | Fornecedores                                                 |
+| `category-form.tsx`                                                            | Categorias (dialog, combo de pai só com nível 1)             |
+| `collection-form.tsx`                                                          | Coleções (dialog)                                            |
+| `calendar-event-form.tsx`                                                      | Calendário de eventos (dialog; nacional só antecedência)     |
+| `product-form.tsx`, `product-grid-section.tsx`, `product-variants-section.tsx` | Produto (T2): campos pelo tipo, grade com `tempKey`, imagem  |
+| `legacy-product-form.tsx`                                                      | Cadastro rápido do pedido de compra antigo, até a fatia dele |
+| `order-form.tsx`                                                               | Pedidos de venda (com carrinho; usa `effectivePrice`)        |
+| `promotion-form.tsx`                                                           | Promoção (desconto, período, prévia de preço)                |
+| `sale-checkout-form.tsx`                                                       | Checkout de venda (pagamentos)                               |
+| `stock-movement-form.tsx`                                                      | Movimentação de estoque                                      |
+| `address-form.tsx`                                                             | Endereços (com auto-fill ViaCEP)                             |
+| `contact-form.tsx`                                                             | Contatos                                                     |
+| `country-form.tsx`                                                             | Países                                                       |
+| `state-form.tsx`                                                               | Estados                                                      |
+| `city-form.tsx`                                                                | Cidades                                                      |
 
 ---
 
@@ -311,7 +312,8 @@ Rota catch-all `*` → redireciona para `/login`.
 | `category.service.ts`       | `/categories`      | Árvore, opções (`rootsOnly`), CRUD + reativação                               |
 | `collection.service.ts`     | `/collections`     | CRUD + reativação                                                             |
 | `calendar-event.service.ts` | `/calendar-events` | CRUD + reativação; `nextDate` vem da API                                      |
-| `product.service.ts`        | `/products`        | CRUD + upload imagem (FormData)                                               |
+| `product.service.ts`        | `/products`        | CRUD, `form`, `variants`, `changeLifecycle`, imagem (multipart)               |
+| `legacy-product.service.ts` | `/products` antigo | Telas ainda não migradas (pedido, compra, promoção, movimentação)             |
 | `stock-movement.service.ts` | `/stock-movements` | Create + getAll                                                               |
 | `order.service.ts`          | `/orders`          | CRUD + cancel + refund                                                        |
 | `sale.service.ts`           | `/sales`           | Create (checkout)                                                             |
@@ -329,7 +331,7 @@ Rota catch-all `*` → redireciona para `/login`.
 
 - **Estado:** `forecast.context` → `ForecastProvider` → `useForecast` (última análise, geração, ações sobre recomendações; após ação, mescla as recomendações retornadas no run em memória). `useProductForecast(productId)` carrega histórico/projeção/sazonalidade. Promoções: `promotions.context` → `PromotionsProvider` → `usePromotions`.
 - **Telas:** card no `Home.tsx` (top 5 pendentes Comprar/Promover); `/forecast` (geração com horizonte 1–3 meses, resumo, filtros, tabela com seleção múltipla "Comprar selecionados", detalhes com gráfico); `/promotions`; aba "Previsão" em `Product/View` (`Tabs/ForecastTab.tsx`).
-- **Produto:** campos `brand`, `costPrice`, `minStock` (create multipart `Brand/CostPrice/MinStock`; update JSON); `effectivePrice` e `activePromotion` vêm da API (o front nunca recalcula o preço efetivo).
+- **Produto (legado, só nas telas não migradas; o produto novo está no contrato T1 a T3 e usa `use-products`, com o antigo em `use-legacy-products`):** campos `brand`, `costPrice`, `minStock` (create multipart `Brand/CostPrice/MinStock`; update JSON); `effectivePrice` e `activePromotion` vêm da API (o front nunca recalcula o preço efetivo).
 - **Fornecedor:** `leadTimeDays` (1–180, padrão 7).
 - **Regras alinhadas com a API (validação ponta a ponta, etapa 4):** `counts.pending` recalculado localmente conta só Comprar/Promover pendentes (igual ao backend); período de promoção é inclusivo (máx. 90 dias contando início e término) e o dialog "Aplicar desconto" usa `término = hoje + (dias sugeridos − 1)`; o `ForecastChart` preenche o mês corrente (o histórico vem só com meses completos e a projeção começa no próximo mês) e passa `xAxisId/yAxisId` explícitos ao `ReferenceLine` do estoque (com React 19 os `defaultProps` do Recharts 2 não chegam ao elemento e o eixo não era estendido); a aba "Previsão" usa `latestRecommendation.product.quantity` como estoque atual quando aberta direto (`?step=3`).
 

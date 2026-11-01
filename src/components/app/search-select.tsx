@@ -337,13 +337,6 @@ export function SearchSelect<T extends Record<string, unknown>>({
     }
   }, [initialData, onSearch, searchTerm, debouncedSearchTerm]);
 
-  // Atualiza os dados quando filteredOptions muda (busca local)
-  React.useEffect(() => {
-    if (!onSearch) {
-      setData(filteredOptions);
-    }
-  }, [filteredOptions, onSearch]);
-
   // Carrega o valor inicial quando o componente monta ou quando o valor muda
   React.useEffect(() => {
     if (!onSearch || !currentValue || isInitialMountRef.current === false) {
@@ -507,11 +500,19 @@ export function SearchSelect<T extends Record<string, unknown>>({
         return <span className="text-muted-foreground">{placeholder}</span>;
       }
       if (selectedObject.length === 1) {
-        return <span>{getLabel(selectedObject[0])}</span>;
+        return (
+          <span className="block max-w-full truncate">
+            {getLabel(selectedObject[0])}
+          </span>
+        );
       }
       return <span>{selectedObject.length} itens selecionados</span>;
     } else if (!multiple && !Array.isArray(selectedObject)) {
-      return <span>{getLabel(selectedObject)}</span>;
+      return (
+        <span className="block max-w-full truncate">
+          {getLabel(selectedObject)}
+        </span>
+      );
     }
 
     return <span className="text-muted-foreground">{placeholder}</span>;
@@ -543,13 +544,18 @@ export function SearchSelect<T extends Record<string, unknown>>({
                       <Badge
                         key={getValue(item)}
                         variant="secondary"
-                        className="mr-1"
+                        className="mr-1 max-w-full min-w-0"
                       >
-                        {getLabel(item)}
-                        <button
+                        <span className="truncate">{getLabel(item)}</span>
+                        {/* O gatilho já é um botão: botão dentro de botão é HTML inválido. */}
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Remover ${getLabel(item)}`}
                           className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
                               handleRemove(
                                 item,
                                 e as unknown as React.MouseEvent<HTMLButtonElement>
@@ -563,7 +569,7 @@ export function SearchSelect<T extends Record<string, unknown>>({
                           onClick={(e) => handleRemove(item, e)}
                         >
                           <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                        </button>
+                        </span>
                       </Badge>
                     ))
                   : renderTriggerContent()}
@@ -589,7 +595,8 @@ export function SearchSelect<T extends Record<string, unknown>>({
           className="w-[var(--radix-popover-trigger-width)] p-0"
           align="start"
         >
-          <Command shouldFilter={!onSearch}>
+          {/* A filtragem é a de filteredOptions: o cmdk compararia o termo com o value, que é o id. */}
+          <Command shouldFilter={false}>
             <CommandInput
               placeholder="Buscar..."
               value={searchTerm}

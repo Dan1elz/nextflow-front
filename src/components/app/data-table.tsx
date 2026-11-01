@@ -145,7 +145,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Cards (mobile) */}
-      <div className="grid gap-3 md:hidden">
+      <div className="grid grid-cols-1 gap-3 md:hidden">
         {table.getRowModel().rows?.length ? (
           table.getRowModel().rows.map((row) => {
             // A coluna de seleção é opcional e não aparece no card.
@@ -163,7 +163,7 @@ export function DataTable<TData, TValue>({
                 data-state={row.getIsSelected() ? "selected" : undefined}
               >
                 <CardHeader className="flex flex-row items-center justify-between px-2 pb-0">
-                  <div className="font-medium text-lg text-left min-w-0 break-all">
+                  <div className="font-medium text-lg text-left min-w-0 flex-1 break-all">
                     {flexRender(
                       firstCell.column.columnDef.cell,
                       firstCell.getContext()

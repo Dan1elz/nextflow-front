@@ -1,22 +1,32 @@
 import { createContext } from "react";
-import type { IProduct } from "@/interfaces/product.interface";
+
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type {
+  ProductFormDto,
+  ProductListItemDto,
+  ProductRequestDto,
+  ProductResponseDto,
+  ProductVariantResponseDto,
+} from "@/interfaces/product.interface";
+import type { TLifecycle } from "@/types/enums";
 
 export type ProductsContextType = {
-  products: IProduct[];
-  selectedProduct: IProduct | null;
+  products: ProductListItemDto[];
   pagination: IPaginationInfo | null;
   searchProducts: (query?: IIndexParams) => Promise<void>;
-  searchProductsForOptions: (
-    query?: IIndexParams
-  ) => Promise<{ data: IProduct[]; totalItems: number }>;
-  selectProduct: (id: string) => Promise<void>;
-  getProductById: (id: string) => Promise<IProduct>;
-  createProduct: (product: Partial<IProduct>) => Promise<IProduct>;
-  updateProduct: (id: string, product: Partial<IProduct>) => Promise<IProduct>;
-  updateProductImage: (id: string, image: File) => Promise<IProduct>;
-  removeProductImage: (id: string) => Promise<IProduct>;
+  getProduct: (id: string) => Promise<ProductResponseDto>;
+  getVariants: (id: string) => Promise<ProductVariantResponseDto[]>;
+  getForm: (id?: string) => Promise<ProductFormDto>;
+  createProduct: (dto: ProductRequestDto) => Promise<ProductResponseDto>;
+  updateProduct: (
+    id: string,
+    dto: ProductRequestDto
+  ) => Promise<ProductResponseDto>;
   deleteProduct: (id: string) => Promise<void>;
+  reactivateProduct: (id: string) => Promise<void>;
+  changeLifecycle: (id: string, lifecycle: TLifecycle) => Promise<void>;
+  uploadImage: (id: string, image: File) => Promise<void>;
+  removeImage: (id: string) => Promise<void>;
 };
 
 export const ProductsContext = createContext<ProductsContextType | null>(null);

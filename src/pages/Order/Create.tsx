@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { OrderForm } from "@/components/forms/order-form";
 import { ClientsProvider } from "@/providers/clients.provider";
-import { ProductsProvider } from "@/providers/products.provider";
+import { LegacyProductsProvider } from "@/providers/legacy-products.provider";
 import { OrdersProvider } from "@/providers/orders.provider";
 import { SalesProvider } from "@/providers/sales.provider";
 import { useSales } from "@/hooks/use-sales";
@@ -30,13 +30,13 @@ function CreateOrder() {
 export default function CreateOrderPageWrapper() {
   return (
     <ClientsProvider>
-      <ProductsProvider>
+      <LegacyProductsProvider>
         <OrdersProvider>
           <SalesProvider>
             <CreateOrder />
           </SalesProvider>
         </OrdersProvider>
-      </ProductsProvider>
+      </LegacyProductsProvider>
     </ClientsProvider>
   );
 }

@@ -1,7 +1,9 @@
 import { useRef, useEffect, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ACCEPTED_IMAGE_TYPES, MAX_FILE_SIZE } from "@/schemas/product.schema";
+import { handleError } from "@/utils/toast.helpers";
 
 const ACCEPT_STRING = ACCEPTED_IMAGE_TYPES.join(",");
 
@@ -51,12 +53,10 @@ export function ImagePicker({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      onChange(null);
-      return;
-    }
+    e.target.value = "";
+    if (!file) return;
     if (file.size > MAX_FILE_SIZE) {
-      e.target.value = "";
+      handleError(new Error("O tamanho máximo da imagem é 5 MB."));
       return;
     }
     if (
@@ -64,23 +64,14 @@ export function ImagePicker({
         file.type as (typeof ACCEPTED_IMAGE_TYPES)[number]
       )
     ) {
-      e.target.value = "";
+      handleError(new Error("Formatos aceitos: JPG, PNG e WebP."));
       return;
     }
     onChange(file);
-    e.target.value = "";
-  };
-
-  const handleClear = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onChange(null);
-    if (inputRef.current) inputRef.current.value = "";
   };
 
   const handleClick = () => {
-    if (disabled) return;
-    if (hasImage) return;
+    if (disabled || hasImage) return;
     inputRef.current?.click();
   };
 
@@ -96,48 +87,49 @@ export function ImagePicker({
         aria-label="Selecionar imagem"
         tabIndex={-1}
       />
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={disabled}
-        className={cn(
-          "relative flex flex-shrink-0 items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed bg-muted/50 transition-colors",
-          hasImage
-            ? "border-solid border-input cursor-default"
-            : "border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/80",
-          disabled && "cursor-not-allowed opacity-60"
-        )}
-        style={{ width: size, height: size }}
-      >
-        {previewUrl ? (
-          <>
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <button
+          type="button"
+          onClick={handleClick}
+          disabled={disabled}
+          className={cn(
+            "relative flex size-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed bg-muted/50 transition-colors",
+            hasImage
+              ? "cursor-default border-solid border-input"
+              : "border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/80",
+            disabled && "cursor-not-allowed opacity-60"
+          )}
+        >
+          {previewUrl ? (
             <img
               src={previewUrl}
-              alt="Preview"
-              className="absolute inset-0 h-full w-full object-cover"
+              alt="Pré-visualização do produto"
+              className="absolute inset-0 size-full object-cover"
             />
-            {!disabled && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
-                aria-label="Remover imagem"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
-            <ImagePlus className="h-8 w-8" />
-            <span className="text-center text-xs font-medium px-2">
-              {placeholder}
-            </span>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
+              <ImagePlus className="size-8" />
+              <span className="px-2 text-center text-xs font-medium">
+                {placeholder}
+              </span>
+            </div>
+          )}
+        </button>
+        {previewUrl && !disabled && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="absolute top-1.5 right-1.5 rounded-full"
+            onClick={() => onChange(null)}
+            aria-label="Remover imagem"
+          >
+            <X />
+          </Button>
         )}
-      </button>
-      <p className="text-xs text-muted-foreground mt-0.5">
-        Máx. 5MB • JPG, PNG ou WebP
+      </div>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Máx. 5 MB • JPG, PNG ou WebP
       </p>
     </div>
   );

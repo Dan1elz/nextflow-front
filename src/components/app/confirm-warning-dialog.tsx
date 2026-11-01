@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { ConfirmWarningState } from "@/hooks/use-api-form";
+import type { ConfirmWarningState } from "@/hooks/use-confirm-warning";
 
 /** Aviso que a API pede para confirmar (`fieldErrors.confirm`, RN-VD13). Estado vem do `useApiForm`. */
 export function ConfirmWarningDialog({

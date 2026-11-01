@@ -1,6 +1,6 @@
 import type { TLegacyOrderStatus, TOrderType } from "@/types/enums";
 import type { ClientResponseDto } from "./client.interface";
-import type { IProduct } from "./product.interface";
+import type { IProduct } from "./legacy-product.interface";
 import type { UserResponseDto } from "./user.interface";
 
 export interface IOrderItem {

@@ -1,44 +1,59 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
-import { ProductTab } from "@/pages/Product/Tabs/ProductTab";
-import { StockMovementsTab } from "@/pages/Product/Tabs/StockMovementsTab";
-import { ProductsProvider } from "@/providers/products.provider";
-import { SuppliersProvider } from "@/providers/suppliers.provider";
-import { CategoriesProvider } from "@/providers/categories.provider";
+import {
+  ProductForm,
+  type ProductImageChange,
+} from "@/components/forms/product-form";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useProducts } from "@/hooks/use-products";
+import type { ProductFormDto } from "@/interfaces/product.interface";
+import { ProductsProvider } from "@/providers/products.provider";
+import type { ProductFormData } from "@/schemas/product.schema";
+import { toFormValues, toRequestDto } from "@/utils/product.helpers";
+import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
 function EditProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { selectedProduct } = useProducts();
+  const { getForm, updateProduct, uploadImage, removeImage } = useProducts();
+  const [form, setForm] = useState<ProductFormDto | null>(null);
 
-  const handleBack = () => navigate("/products");
+  useEffect(() => {
+    if (!id) return;
+    getForm(id)
+      .then(setForm)
+      .catch((error) => handleError(error, "Erro ao abrir o produto"));
+  }, [getForm, id]);
 
-  const tabs = [
-    {
-      value: "product",
-      label: "Produto",
-      content: <ProductTab mode="edit" />,
-    },
-    {
-      value: "stock-movements",
-      label: "Movimentações",
-      content: (
-        <StockMovementsTab
-          productId={id ?? null}
-          productName={selectedProduct?.name}
-        />
-      ),
-    },
-  ];
+  const handleSubmit = async (
+    data: ProductFormData,
+    image: ProductImageChange
+  ) => {
+    if (!id) return;
+    await updateProduct(id, toRequestDto(data));
+    handleSuccess("Produto atualizado com sucesso");
+
+    try {
+      if (image.file) await uploadImage(id, image.file);
+      else if (image.touched) await removeImage(id);
+    } catch (error) {
+      handleError(error, "Produto salvo, mas a imagem não foi atualizada");
+      return;
+    }
+    navigate(`/products/${id}/view`);
+  };
+
+  if (!form) return <Skeleton className="h-96 w-full" />;
 
   return (
-    <EntityTabsLayout
-      title="Editar Produto"
-      tabs={tabs}
-      defaultTab="product"
-      onBack={handleBack}
+    <ProductForm
+      initialData={toFormValues(form)}
+      initialImageUrl={form.imageUrl}
+      options={form.options}
+      isEdit
+      onSubmit={handleSubmit}
+      onCancel={() => navigate("/products")}
     />
   );
 }
@@ -46,11 +61,7 @@ function EditProduct() {
 export default function EditProductPageWrapper() {
   return (
     <ProductsProvider>
-      <SuppliersProvider>
-        <CategoriesProvider>
-          <EditProduct />
-        </CategoriesProvider>
-      </SuppliersProvider>
+      <EditProduct />
     </ProductsProvider>
   );
 }

@@ -1,4 +1,4 @@
-import type { IProduct } from "./product.interface";
+import type { IProduct } from "./legacy-product.interface";
 import type { SupplierOption } from "./supplier.interface";
 import type { TLegacyPurchaseStatus } from "@/types/enums";
 

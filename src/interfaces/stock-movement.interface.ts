@@ -1,4 +1,4 @@
-import type { IProduct } from "./product.interface";
+import type { IProduct } from "./legacy-product.interface";
 import type { UserResponseDto } from "./user.interface";
 import type { TLegacyMovementType } from "@/types/enums";
 

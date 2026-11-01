@@ -57,7 +57,7 @@ export const PRODUCT_TYPE_LABELS: Record<TProductType, string> = {
   Standard: "Padrão",
   Apparel: "Vestuário",
   Perishable: "Perecível",
-  Bulk: "A granel",
+  Bulk: "Granel",
 };
 
 export const TLifecycle = {

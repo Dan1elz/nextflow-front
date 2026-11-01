@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { CornerDownRight, Plus, Tag } from "lucide-react";
 
+import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { CategoryForm } from "@/components/forms/category-form";
 import { Badge } from "@/components/ui/badge";
@@ -36,9 +37,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCategories } from "@/hooks/use-categories";
+import { useConfirmWarning } from "@/hooks/use-confirm-warning";
 import type { CategoryNodeDto } from "@/interfaces/category.interface";
 import { CategoriesProvider } from "@/providers/categories.provider";
 import type { CategoryFormData } from "@/schemas/category.schema";
+import { ApiError } from "@/services/api.service";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
 type CategoryDialog = {
@@ -57,6 +60,7 @@ function Categories() {
     reactivateCategory,
   } = useCategories();
   const [dialog, setDialog] = useState<CategoryDialog>(null);
+  const { askConfirmation, confirmWarning } = useConfirmWarning();
 
   useEffect(() => {
     loadTree().catch((error) =>
@@ -70,6 +74,25 @@ function Categories() {
       handleSuccess(success);
     } catch (error) {
       handleError(error);
+    }
+  };
+
+  // RN-CE53: com produtos ativos a API pede confirmação; só então reenvia confirmando.
+  const handleInactivate = async (category: CategoryNodeDto) => {
+    try {
+      await deleteCategory(category.id);
+      handleSuccess("Categoria inativada com sucesso");
+    } catch (error) {
+      if (!(error instanceof ApiError) || !error.isConfirmation) {
+        handleError(error);
+        return;
+      }
+      if (await askConfirmation(error.confirmMessage ?? "")) {
+        await run(
+          () => deleteCategory(category.id, true),
+          "Categoria inativada com sucesso"
+        );
+      }
     }
   };
 
@@ -120,12 +143,7 @@ function Categories() {
         <NavActionColumn
           object={category}
           onEdit={() => setDialog({ category, parent })}
-          onDelete={() =>
-            run(
-              () => deleteCategory(category.id),
-              "Categoria inativada com sucesso"
-            )
-          }
+          onDelete={handleInactivate}
           onReactivate={() =>
             run(
               () => reactivateCategory(category.id),
@@ -244,6 +262,7 @@ function Categories() {
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmWarningDialog state={confirmWarning} />
     </div>
   );
 }

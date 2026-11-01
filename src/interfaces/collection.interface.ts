@@ -4,7 +4,7 @@ export interface CollectionRequestDto {
   endsOn?: string | null;
 }
 
-/** `productCount` fica zero até a F1.3. */
+/** `productCount` conta os produtos ativos da coleção (RN-CE53). */
 export interface CollectionResponseDto {
   id: string;
   name: string;

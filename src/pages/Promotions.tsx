@@ -22,15 +22,15 @@ import {
 import { CreatePromotionDialog } from "@/components/app/create-promotion-dialog";
 
 import { usePromotions } from "@/hooks/use-promotions";
-import { useProducts } from "@/hooks/use-products";
+import { useLegacyProducts } from "@/hooks/use-legacy-products";
 import { useAuth } from "@/hooks/use-auth";
 import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSearchOptions } from "@/hooks/use-search-options";
 import { PromotionsProvider } from "@/providers/promotions.provider";
-import { ProductsProvider } from "@/providers/products.provider";
+import { LegacyProductsProvider } from "@/providers/legacy-products.provider";
 
 import type { IIndexParams, IOption } from "@/interfaces/api.interface";
-import type { IProduct } from "@/interfaces/product.interface";
+import type { IProduct } from "@/interfaces/legacy-product.interface";
 import type { IPromotion } from "@/interfaces/promotion.interface";
 import { TLegacyPromotionSource, TLegacyPromotionStatus } from "@/types/enums";
 import { isAdmin } from "@/utils/auth.helpers";
@@ -56,7 +56,7 @@ function Promotions() {
   const admin = isAdmin(user);
   const { promotions, pagination, searchPromotions, cancelPromotion } =
     usePromotions();
-  const { searchProductsForOptions, getProductById } = useProducts();
+  const { searchProductsForOptions, getProductById } = useLegacyProducts();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   // Remove os valores "all" antes de enviar os filtros (productId, status, source) à API.
@@ -360,10 +360,10 @@ function Promotions() {
 
 export default function PromotionsPageWrapper() {
   return (
-    <ProductsProvider>
+    <LegacyProductsProvider>
       <PromotionsProvider>
         <Promotions />
       </PromotionsProvider>
-    </ProductsProvider>
+    </LegacyProductsProvider>
   );
 }

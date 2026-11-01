@@ -1,14 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
+import { useConfirmWarning } from "@/hooks/use-confirm-warning";
 import { ApiError } from "@/services/api.service";
 import { handleError } from "@/utils/toast.helpers";
-
-export interface ConfirmWarningState {
-  open: boolean;
-  message: string;
-  confirm: () => void;
-  cancel: () => void;
-}
 
 /**
  * Liga um formulário (React Hook Form) ao contrato de erro da API (`contracts/README.md`):
@@ -23,29 +17,7 @@ export interface ConfirmWarningState {
 export function useApiForm<TValues extends FieldValues>(
   form: UseFormReturn<TValues>
 ) {
-  const [confirmState, setConfirmState] = useState<{
-    open: boolean;
-    message: string;
-  }>({
-    open: false,
-    message: "",
-  });
-  const resolver = useRef<((confirmed: boolean) => void) | undefined>(
-    undefined
-  );
-
-  const askConfirmation = useCallback((message: string) => {
-    setConfirmState({ open: true, message });
-    return new Promise<boolean>((resolve) => {
-      resolver.current = resolve;
-    });
-  }, []);
-
-  const closeConfirmation = useCallback((confirmed: boolean) => {
-    setConfirmState((state) => ({ ...state, open: false }));
-    resolver.current?.(confirmed);
-    resolver.current = undefined;
-  }, []);
+  const { askConfirmation, confirmWarning } = useConfirmWarning();
 
   const applyFieldErrors = useCallback(
     (error: ApiError): boolean => {
@@ -98,13 +70,6 @@ export function useApiForm<TValues extends FieldValues>(
     },
     [applyFieldErrors, askConfirmation]
   );
-
-  const confirmWarning: ConfirmWarningState = {
-    open: confirmState.open,
-    message: confirmState.message,
-    confirm: () => closeConfirmation(true),
-    cancel: () => closeConfirmation(false),
-  };
 
   return { submit, confirmWarning };
 }

@@ -29,17 +29,17 @@ import { useStockMovements } from "@/hooks/use-stock-movements";
 import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSearchOptions } from "@/hooks/use-search-options";
 import type { IStockMovement } from "@/interfaces/stock-movement.interface";
-import type { IProduct } from "@/interfaces/product.interface";
+import type { IProduct } from "@/interfaces/legacy-product.interface";
 import type { UserOption } from "@/interfaces/user.interface";
 import { StockMovementsProvider } from "@/providers/stock-movements.provider";
-import { ProductsProvider } from "@/providers/products.provider";
+import { LegacyProductsProvider } from "@/providers/legacy-products.provider";
 import { UsersProvider } from "@/providers/users.provider";
 import {
   LEGACY_MOVEMENT_TYPE_LABELS,
   type TLegacyMovementType,
   TLegacyMovementType as TypesObj,
 } from "@/types/enums";
-import { useProducts } from "@/hooks/use-products";
+import { useLegacyProducts } from "@/hooks/use-legacy-products";
 import { useUsers } from "@/hooks/use-users";
 import { Badge } from "@/components/ui/badge";
 import type { IOption } from "@/interfaces/api.interface";
@@ -59,7 +59,7 @@ function StockMovements() {
     searchStockMovements,
     deleteStockMovement,
   } = useStockMovements();
-  const { searchProductsForOptions, getProductById } = useProducts();
+  const { searchProductsForOptions, getProductById } = useLegacyProducts();
   const { searchUsersForOptions, getUserOption } = useUsers();
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -451,12 +451,12 @@ function StockMovements() {
 
 export default function StockMovementsPageWrapper() {
   return (
-    <ProductsProvider>
+    <LegacyProductsProvider>
       <UsersProvider>
         <StockMovementsProvider>
           <StockMovements />
         </StockMovementsProvider>
       </UsersProvider>
-    </ProductsProvider>
+    </LegacyProductsProvider>
   );
 }

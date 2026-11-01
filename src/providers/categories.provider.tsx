@@ -52,8 +52,8 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteCategory = useCallback(
-    async (id: string) => {
-      await categoryService.delete(id, auth);
+    async (id: string, confirmWarnings = false) => {
+      await categoryService.inactivate(id, confirmWarnings, auth);
       await loadTree();
     },
     [auth, loadTree]

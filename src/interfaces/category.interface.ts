@@ -1,4 +1,4 @@
-/** Legado: telas antigas de produto e pedido de compra, até a F1.3. */
+/** Legado: pedido de compra antigo, até a fatia dele. */
 export interface ICategory {
   id?: string;
   description: string;
@@ -19,7 +19,7 @@ export interface CategoryResponseDto {
   isActive: boolean;
 }
 
-/** `productCount` fica zero até a F1.3. */
+/** `productCount` conta os produtos ativos vinculados direto à categoria (RN-CE53). */
 export interface CategoryNodeDto extends CategoryResponseDto {
   productCount: number;
   children: CategoryNodeDto[];

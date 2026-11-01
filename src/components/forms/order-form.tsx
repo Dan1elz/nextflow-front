@@ -49,11 +49,11 @@ import { formatCurrency, generateUUID } from "@/utils";
 
 import { useOrders } from "@/hooks/use-orders";
 import { useClients } from "@/hooks/use-clients";
-import { useProducts } from "@/hooks/use-products";
+import { useLegacyProducts } from "@/hooks/use-legacy-products";
 import { useSearchOptions } from "@/hooks/use-search-options";
 
 import type { ClientOption } from "@/interfaces/client.interface";
-import type { IProduct } from "@/interfaces/product.interface";
+import type { IProduct } from "@/interfaces/legacy-product.interface";
 import type { IOrder, IOrderItem } from "@/interfaces/order.interface";
 import type { ISale, IPayment } from "@/interfaces/sale.interface";
 import {
@@ -113,7 +113,7 @@ export function OrderForm({
   const { createOrder, updateOrder, getOrderById, cancelOrder, refundOrder } =
     useOrders();
   const { searchClientsForOptions, getClientOption } = useClients();
-  const { searchProductsForOptions, getProductById } = useProducts();
+  const { searchProductsForOptions, getProductById } = useLegacyProducts();
 
   const isView = mode === "view";
   const isEdit = mode === "edit";

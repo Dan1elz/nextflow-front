@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { OrderForm } from "@/components/forms/order-form";
 import { ClientsProvider } from "@/providers/clients.provider";
-import { ProductsProvider } from "@/providers/products.provider";
+import { LegacyProductsProvider } from "@/providers/legacy-products.provider";
 import { OrdersProvider } from "@/providers/orders.provider";
 import { SalesProvider } from "@/providers/sales.provider";
 import { useSales } from "@/hooks/use-sales";
@@ -36,13 +36,13 @@ function ViewOrder() {
 export default function ViewOrderPageWrapper() {
   return (
     <ClientsProvider>
-      <ProductsProvider>
+      <LegacyProductsProvider>
         <OrdersProvider>
           <SalesProvider>
             <ViewOrder />
           </SalesProvider>
         </OrdersProvider>
-      </ProductsProvider>
+      </LegacyProductsProvider>
     </ClientsProvider>
   );
 }

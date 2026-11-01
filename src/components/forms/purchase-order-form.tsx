@@ -53,15 +53,15 @@ import { formatCurrency, generateUUID } from "@/utils";
 
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 import { useSuppliers } from "@/hooks/use-suppliers";
-import { useProducts } from "@/hooks/use-products";
+import { useLegacyProducts } from "@/hooks/use-legacy-products";
 import { useCategories } from "@/hooks/use-categories";
 import { useSearchOptions } from "@/hooks/use-search-options";
-import { ProductForm } from "@/components/forms/product-form";
-import type { ProductSchema } from "@/schemas/product.schema";
+import { ProductForm } from "@/components/forms/legacy-product-form";
+import type { ProductSchema } from "@/schemas/legacy-product.schema";
 import type { ICategory } from "@/interfaces/category.interface";
 
 import type { SupplierOption } from "@/interfaces/supplier.interface";
-import type { IProduct } from "@/interfaces/product.interface";
+import type { IProduct } from "@/interfaces/legacy-product.interface";
 import type {
   IPurchaseOrder,
   ICreatePurchaseOrder,
@@ -110,7 +110,7 @@ export function PurchaseOrderForm({
   } = usePurchaseOrders();
   const { searchSuppliersForOptions, getSupplierById } = useSuppliers();
   const { searchProductsForOptions, getProductById, createProduct } =
-    useProducts();
+    useLegacyProducts();
   const { searchCategoriesForOptions, getCategoryById } = useCategories();
 
   const isView = mode === "view";

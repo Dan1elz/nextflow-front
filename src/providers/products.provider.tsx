@@ -1,22 +1,26 @@
-import { useState, useCallback, type ReactNode } from "react";
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
-import { useAuth } from "@/hooks/use-auth";
-import type { IProduct } from "@/interfaces/product.interface";
+import { useCallback, useState, type ReactNode } from "react";
+
 import { ProductsContext } from "@/contexts/products.context";
+import { useAuth } from "@/hooks/use-auth";
+import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type {
+  ProductListItemDto,
+  ProductRequestDto,
+} from "@/interfaces/product.interface";
 import { productService } from "@/services/product.service";
+import type { TLifecycle } from "@/types/enums";
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
-  const [products, setProducts] = useState<IProduct[]>([]);
+  const [products, setProducts] = useState<ProductListItemDto[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
   const { token } = useAuth();
+  const auth = token ?? undefined;
 
   const searchProducts = useCallback(
     async (query?: IIndexParams) => {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
-
-      const response = await productService.getAll(query, token ?? undefined);
+      const response = await productService.getAll(query, auth);
       setProducts(response.items || []);
       setPagination({
         currentPage: page,
@@ -25,83 +29,61 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         perPage,
       });
     },
-    [token]
+    [auth]
   );
 
-  const searchProductsForOptions = useCallback(
-    async (
-      query?: IIndexParams
-    ): Promise<{ data: IProduct[]; totalItems: number }> => {
-      const response = await productService.getAll(query, token ?? undefined);
-      return {
-        data: response.items || [],
-        totalItems: response.total,
-      };
-    },
-    [token]
+  const getProduct = useCallback(
+    (id: string) => productService.getById(id, auth),
+    [auth]
   );
 
-  const selectProduct = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await productService.getById(id, token ?? undefined);
-      setSelectedProduct(data);
-    },
-    [token]
+  const getVariants = useCallback(
+    (id: string) => productService.variants(id, auth),
+    [auth]
   );
 
-  const getProductById = useCallback(
-    async (id: string): Promise<IProduct> => {
-      return productService.getById(id, token ?? undefined);
-    },
-    [token]
+  const getForm = useCallback(
+    (id?: string) => productService.form(id, auth),
+    [auth]
   );
 
   const createProduct = useCallback(
-    async (product: Partial<IProduct>): Promise<IProduct> => {
-      const data = await productService.create(product, token ?? undefined);
-      return data;
-    },
-    [token]
+    (dto: ProductRequestDto) => productService.create(dto, auth),
+    [auth]
   );
 
   const updateProduct = useCallback(
-    async (id: string, product: Partial<IProduct>): Promise<IProduct> => {
-      const data = await productService.update(id, product, token ?? undefined);
-      return data;
-    },
-    [token]
-  );
-
-  const updateProductImage = useCallback(
-    async (id: string, image: File): Promise<IProduct> => {
-      const data = await productService.updateProductImage(
-        id,
-        image,
-        token ?? undefined
-      );
-      setSelectedProduct((prev) => (prev?.id === id ? data : prev));
-      return data;
-    },
-    [token]
-  );
-
-  const removeProductImage = useCallback(
-    async (id: string): Promise<IProduct> => {
-      const data = await productService.removeProductImage(
-        id,
-        token ?? undefined
-      );
-      setSelectedProduct((prev) => (prev?.id === id ? data : prev));
-      return data;
-    },
-    [token]
+    (id: string, dto: ProductRequestDto) =>
+      productService.update(id, dto, auth),
+    [auth]
   );
 
   const deleteProduct = useCallback(
-    async (id: string): Promise<void> => {
-      await productService.delete(id, token ?? undefined);
+    (id: string) => productService.delete(id, auth),
+    [auth]
+  );
+
+  const reactivateProduct = useCallback(
+    (id: string) => productService.reactivate(id, auth),
+    [auth]
+  );
+
+  const changeLifecycle = useCallback(
+    (id: string, lifecycle: TLifecycle) =>
+      productService.changeLifecycle(id, lifecycle, auth),
+    [auth]
+  );
+
+  const uploadImage = useCallback(
+    async (id: string, image: File) => {
+      await productService.uploadImage(id, image, auth);
     },
-    [token]
+    [auth]
+  );
+
+  const removeImage = useCallback(
+    (id: string) => productService.removeImage(id, auth),
+    [auth]
   );
 
   return (
@@ -109,16 +91,17 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
       value={{
         products,
         pagination,
-        selectedProduct,
         searchProducts,
-        searchProductsForOptions,
-        selectProduct,
-        getProductById,
+        getProduct,
+        getVariants,
+        getForm,
         createProduct,
         updateProduct,
-        updateProductImage,
-        removeProductImage,
         deleteProduct,
+        reactivateProduct,
+        changeLifecycle,
+        uploadImage,
+        removeImage,
       }}
     >
       {children}

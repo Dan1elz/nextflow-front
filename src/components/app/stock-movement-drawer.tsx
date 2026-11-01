@@ -13,8 +13,8 @@ import type { IStockMovement } from "@/interfaces/stock-movement.interface";
 import type { StockMovementSchema } from "@/schemas/stock-movement.schema";
 import { type TLegacyMovementType } from "@/types/enums";
 import { useSearchOptions } from "@/hooks/use-search-options";
-import type { IProduct } from "@/interfaces/product.interface";
-import { useProducts } from "@/hooks/use-products";
+import type { IProduct } from "@/interfaces/legacy-product.interface";
+import { useLegacyProducts } from "@/hooks/use-legacy-products";
 
 interface StockMovementDrawerProps {
   open: boolean;
@@ -38,7 +38,7 @@ export function StockMovementDrawer({
   hideProduct = false,
 }: StockMovementDrawerProps) {
   const { createStockMovement } = useStockMovements();
-  const { searchProductsForOptions, getProductById } = useProducts();
+  const { searchProductsForOptions, getProductById } = useLegacyProducts();
   const [isLoading, setIsLoading] = useState(false);
 
   const { options: productOptions, handleSearch: handleSearchProducts } =
