@@ -16,6 +16,7 @@ import EditClientPageWrapper from "@/pages/Client/Edit";
 import ViewClientPageWrapper from "@/pages/Client/View";
 import CategoriesPageWrapper from "@/pages/Categories";
 import CollectionsPageWrapper from "@/pages/Collections";
+import CalendarEventsPageWrapper from "@/pages/CalendarEvents";
 import ProductsPageWrapper from "@/pages/Products";
 import CreateProductPageWrapper from "@/pages/Product/Create";
 import EditProductPageWrapper from "@/pages/Product/Edit";
@@ -91,6 +92,7 @@ function AppRoutes() {
 
         <Route path="categories" element={<CategoriesPageWrapper />} />
         <Route path="collections" element={<CollectionsPageWrapper />} />
+        <Route path="calendar-events" element={<CalendarEventsPageWrapper />} />
 
         <Route path="products" element={<ProductsPageWrapper />} />
         <Route path="products/create" element={<CreateProductPageWrapper />} />

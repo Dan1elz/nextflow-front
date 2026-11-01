@@ -17,6 +17,7 @@ const routeNameMap: Record<string, string> = {
   products: "Produtos",
   categories: "Categorias",
   collections: "Coleções",
+  "calendar-events": "Calendário de eventos",
   "purchase-orders": "Pedidos de Compra",
   "stock-movements": "Movimentações de Estoque",
   sales: "Vendas",

@@ -234,24 +234,25 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 
 ## 7. Formulários (`components/forms/`) — 14
 
-| Formulário                | Entidade                                              |
-| ------------------------- | ----------------------------------------------------- |
-| `login-form.tsx`          | Autenticação                                          |
-| `user-form.tsx`           | Usuários                                              |
-| `client-form.tsx`         | Clientes                                              |
-| `supplier-form.tsx`       | Fornecedores                                          |
-| `category-form.tsx`       | Categorias (dialog, combo de pai só com nível 1)      |
-| `collection-form.tsx`     | Coleções (dialog)                                     |
-| `product-form.tsx`        | Produtos (com upload de imagem)                       |
-| `order-form.tsx`          | Pedidos de venda (com carrinho; usa `effectivePrice`) |
-| `promotion-form.tsx`      | Promoção (desconto, período, prévia de preço)         |
-| `sale-checkout-form.tsx`  | Checkout de venda (pagamentos)                        |
-| `stock-movement-form.tsx` | Movimentação de estoque                               |
-| `address-form.tsx`        | Endereços (com auto-fill ViaCEP)                      |
-| `contact-form.tsx`        | Contatos                                              |
-| `country-form.tsx`        | Países                                                |
-| `state-form.tsx`          | Estados                                               |
-| `city-form.tsx`           | Cidades                                               |
+| Formulário                | Entidade                                                 |
+| ------------------------- | -------------------------------------------------------- |
+| `login-form.tsx`          | Autenticação                                             |
+| `user-form.tsx`           | Usuários                                                 |
+| `client-form.tsx`         | Clientes                                                 |
+| `supplier-form.tsx`       | Fornecedores                                             |
+| `category-form.tsx`       | Categorias (dialog, combo de pai só com nível 1)         |
+| `collection-form.tsx`     | Coleções (dialog)                                        |
+| `calendar-event-form.tsx` | Calendário de eventos (dialog; nacional só antecedência) |
+| `product-form.tsx`        | Produtos (com upload de imagem)                          |
+| `order-form.tsx`          | Pedidos de venda (com carrinho; usa `effectivePrice`)    |
+| `promotion-form.tsx`      | Promoção (desconto, período, prévia de preço)            |
+| `sale-checkout-form.tsx`  | Checkout de venda (pagamentos)                           |
+| `stock-movement-form.tsx` | Movimentação de estoque                                  |
+| `address-form.tsx`        | Endereços (com auto-fill ViaCEP)                         |
+| `contact-form.tsx`        | Contatos                                                 |
+| `country-form.tsx`        | Países                                                   |
+| `state-form.tsx`          | Estados                                                  |
+| `city-form.tsx`           | Cidades                                                  |
 
 ---
 
@@ -275,22 +276,23 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 
 ### Privadas (dentro de `PrivateLayout`)
 
-| Módulo          | List               | Create               | Edit                   | View                   |
-| --------------- | ------------------ | -------------------- | ---------------------- | ---------------------- |
-| Home            | `/`                | —                    | —                      | —                      |
-| Lojas e locais  | `/settings/stores` | —                    | —                      | —                      |
-| Meu perfil      | `/profile`         | —                    | —                      | —                      |
-| Users           | `/users`           | `/users/create`      | `/users/:id/edit`      | `/users/:id/view`      |
-| Clients         | `/clients`         | `/clients/create`    | `/clients/:id/edit`    | `/clients/:id/view`    |
-| Suppliers       | `/suppliers`       | `/suppliers/create`  | `/suppliers/:id/edit`  | `/suppliers/:id/view`  |
-| Categories      | `/categories`      | dialog               | dialog                 | —                      |
-| Collections     | `/collections`     | dialog               | dialog                 | —                      |
-| Products        | `/products`        | `/products/create`   | `/products/:id/edit`   | `/products/:id/view`   |
-| Stock Movements | `/stock-movements` | —                    | —                      | —                      |
-| Orders          | `/orders`          | `/orders/create`     | `/orders/:id/edit`     | `/orders/:id/view`     |
-| Purchase Orders | `/purchase-orders` | —                    | —                      | —                      |
-| Forecast (IA)   | `/forecast`        | —                    | —                      | —                      |
-| Promotions      | `/promotions`      | —                    | —                      | —                      |
+| Módulo          | List               | Create              | Edit                  | View                  |
+| --------------- | ------------------ | ------------------- | --------------------- | --------------------- |
+| Home            | `/`                | —                   | —                     | —                     |
+| Lojas e locais  | `/settings/stores` | —                   | —                     | —                     |
+| Meu perfil      | `/profile`         | —                   | —                     | —                     |
+| Users           | `/users`           | `/users/create`     | `/users/:id/edit`     | `/users/:id/view`     |
+| Clients         | `/clients`         | `/clients/create`   | `/clients/:id/edit`   | `/clients/:id/view`   |
+| Suppliers       | `/suppliers`       | `/suppliers/create` | `/suppliers/:id/edit` | `/suppliers/:id/view` |
+| Categories      | `/categories`      | dialog              | dialog                | —                     |
+| Collections     | `/collections`     | dialog              | dialog                | —                     |
+| Calendar Events | `/calendar-events` | dialog              | dialog                | —                     |
+| Products        | `/products`        | `/products/create`  | `/products/:id/edit`  | `/products/:id/view`  |
+| Stock Movements | `/stock-movements` | —                   | —                     | —                     |
+| Orders          | `/orders`          | `/orders/create`    | `/orders/:id/edit`    | `/orders/:id/view`    |
+| Purchase Orders | `/purchase-orders` | —                   | —                     | —                     |
+| Forecast (IA)   | `/forecast`        | —                   | —                     | —                     |
+| Promotions      | `/promotions`      | —                   | —                     | —                     |
 
 Rota catch-all `*` → redireciona para `/login`.
 
@@ -308,6 +310,7 @@ Rota catch-all `*` → redireciona para `/login`.
 | `supplier.service.ts`       | `/suppliers`       | CRUD + reativação                                                             |
 | `category.service.ts`       | `/categories`      | Árvore, opções (`rootsOnly`), CRUD + reativação                               |
 | `collection.service.ts`     | `/collections`     | CRUD + reativação                                                             |
+| `calendar-event.service.ts` | `/calendar-events` | CRUD + reativação; `nextDate` vem da API                                      |
 | `product.service.ts`        | `/products`        | CRUD + upload imagem (FormData)                                               |
 | `stock-movement.service.ts` | `/stock-movements` | Create + getAll                                                               |
 | `order.service.ts`          | `/orders`          | CRUD + cancel + refund                                                        |
