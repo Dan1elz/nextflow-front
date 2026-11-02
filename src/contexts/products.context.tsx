@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type { ManualMovementDto } from "@/interfaces/manual-movement.interface";
 import type {
   ProductFormDto,
   PriceHistoryResponseDto,
@@ -33,6 +34,8 @@ export type ProductsContextType = {
   changeLifecycle: (id: string, lifecycle: TLifecycle) => Promise<void>;
   uploadImage: (id: string, image: File) => Promise<void>;
   removeImage: (id: string) => Promise<void>;
+  /** T9 (F1.6): ajuste, perda ou saldo de abertura. */
+  createManualMovement: (dto: ManualMovementDto) => Promise<void>;
 };
 
 export const ProductsContext = createContext<ProductsContextType | null>(null);

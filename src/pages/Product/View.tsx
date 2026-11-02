@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ImageOff, Pencil } from "lucide-react";
+import { ImageOff, PackagePlus, Pencil } from "lucide-react";
 
+import { ManualMovementDrawer } from "@/components/app/manual-movement-drawer";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,9 +122,11 @@ function VariantsTab({
 function StockTab({
   matrix,
   decimalPlaces,
+  onAdjust,
 }: {
   matrix: StockMatrixDto | null;
   decimalPlaces: number;
+  onAdjust: () => void;
 }) {
   if (!matrix) return <Skeleton className="h-32 w-full" />;
   if (matrix.locations.length === 0 || matrix.rows.length === 0) {
@@ -139,6 +142,12 @@ function StockTab({
     new Set(matrix.locations.map((location) => location.storeName)).size > 1;
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={onAdjust}>
+          <PackagePlus data-icon="inline-start" />
+          Ajuste ou perda
+        </Button>
+      </div>
       <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
@@ -303,14 +312,21 @@ function PricesTab({ history }: { history: PriceHistoryResponseDto[] }) {
 function ViewProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getProduct, getVariants, getStock, getSuppliers, getPriceHistory } =
-    useProducts();
+  const {
+    getProduct,
+    getVariants,
+    getStock,
+    getSuppliers,
+    getPriceHistory,
+    createManualMovement,
+  } = useProducts();
   const { storeId } = useCurrentStore();
   const [stock, setStock] = useState<StockMatrixDto | null>(null);
   const [product, setProduct] = useState<ProductResponseDto | null>(null);
   const [variants, setVariants] = useState<ProductVariantResponseDto[]>([]);
   const [suppliers, setSuppliers] = useState<ProductSupplierResponseDto[]>([]);
   const [history, setHistory] = useState<PriceHistoryResponseDto[]>([]);
+  const [isAdjusting, setIsAdjusting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -332,12 +348,28 @@ function ViewProduct() {
   }, [getProduct, getVariants, getSuppliers, getPriceHistory, id]);
 
   // A matriz segue a loja do topo; "Todas as lojas" mostra todos os locais ativos.
-  useEffect(() => {
+  const loadStock = useCallback(() => {
     if (!id) return;
     getStock(id, storeId)
       .then(setStock)
       .catch((error) => handleError(error, "Erro ao carregar o estoque"));
   }, [getStock, id, storeId]);
+
+  useEffect(() => {
+    loadStock();
+  }, [loadStock]);
+
+  // Depois do lançamento: saldo na matriz; disponível e custo médio no cabeçalho e nas variações.
+  const reloadAfterMovement = useCallback(() => {
+    if (!id) return;
+    loadStock();
+    Promise.all([getProduct(id), getVariants(id)])
+      .then(([loadedProduct, loadedVariants]) => {
+        setProduct(loadedProduct);
+        setVariants(loadedVariants);
+      })
+      .catch((error) => handleError(error, "Erro ao atualizar o produto"));
+  }, [getProduct, getVariants, id, loadStock]);
 
   if (!product) return <Skeleton className="h-96 w-full" />;
 
@@ -469,7 +501,11 @@ function ViewProduct() {
             value: "stock",
             label: "Estoque",
             content: (
-              <StockTab matrix={stock} decimalPlaces={product.decimalPlaces} />
+              <StockTab
+                matrix={stock}
+                decimalPlaces={product.decimalPlaces}
+                onAdjust={() => setIsAdjusting(true)}
+              />
             ),
           },
           {
@@ -484,6 +520,16 @@ function ViewProduct() {
           },
         ]}
       />
+      {stock && (
+        <ManualMovementDrawer
+          open={isAdjusting}
+          onOpenChange={setIsAdjusting}
+          matrix={stock}
+          decimalPlaces={product.decimalPlaces}
+          onSubmit={createManualMovement}
+          onSuccess={reloadAfterMovement}
+        />
+      )}
     </div>
   );
 }

@@ -3,10 +3,12 @@ import { useCallback, useState, type ReactNode } from "react";
 import { ProductsContext } from "@/contexts/products.context";
 import { useAuth } from "@/hooks/use-auth";
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type { ManualMovementDto } from "@/interfaces/manual-movement.interface";
 import type {
   ProductListItemDto,
   ProductRequestDto,
 } from "@/interfaces/product.interface";
+import { manualMovementService } from "@/services/manual-movement.service";
 import { productService } from "@/services/product.service";
 import type { TLifecycle } from "@/types/enums";
 
@@ -102,6 +104,11 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const createManualMovement = useCallback(
+    (dto: ManualMovementDto) => manualMovementService.create(dto, auth),
+    [auth]
+  );
+
   return (
     <ProductsContext.Provider
       value={{
@@ -121,6 +128,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         changeLifecycle,
         uploadImage,
         removeImage,
+        createManualMovement,
       }}
     >
       {children}
