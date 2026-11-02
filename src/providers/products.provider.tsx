@@ -42,6 +42,12 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const getStock = useCallback(
+    (id: string, storeId?: string | null) =>
+      productService.stock(id, storeId, auth),
+    [auth]
+  );
+
   const getSuppliers = useCallback(
     (id: string) => productService.suppliers(id, auth),
     [auth]
@@ -104,6 +110,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         searchProducts,
         getProduct,
         getVariants,
+        getStock,
         getSuppliers,
         getPriceHistory,
         getForm,

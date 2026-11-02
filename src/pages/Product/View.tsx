@@ -16,12 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { useProducts } from "@/hooks/use-products";
 import type {
   PriceHistoryResponseDto,
   ProductResponseDto,
   ProductSupplierResponseDto,
   ProductVariantResponseDto,
+  StockMatrixDto,
 } from "@/interfaces/product.interface";
 import { ProductsProvider } from "@/providers/products.provider";
 import {
@@ -30,7 +32,12 @@ import {
   SALE_UNIT_LABELS,
   TLifecycle,
 } from "@/types/enums";
-import { formatCurrency, formatDateOnly } from "@/utils/format.helpers";
+import {
+  formatCurrency,
+  formatDateOnly,
+  formatNumber,
+  formatPercentage,
+} from "@/utils/format.helpers";
 import { formatPriceRange } from "@/utils/product.helpers";
 import { handleError } from "@/utils/toast.helpers";
 
@@ -43,7 +50,23 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function VariantsTab({ variants }: { variants: ProductVariantResponseDto[] }) {
+const formatCost = (value?: number | null) =>
+  value == null ? "-" : formatCurrency(value);
+
+function formatCostRange(min?: number | null, max?: number | null) {
+  if (min == null || max == null) return "-";
+  return min === max
+    ? formatCurrency(min)
+    : `${formatCurrency(min)} a ${formatCurrency(max)}`;
+}
+
+function VariantsTab({
+  variants,
+  decimalPlaces,
+}: {
+  variants: ProductVariantResponseDto[];
+  decimalPlaces: number;
+}) {
   return (
     <div className="overflow-x-auto rounded-lg border">
       <Table>
@@ -54,6 +77,10 @@ function VariantsTab({ variants }: { variants: ProductVariantResponseDto[] }) {
             <TableHead>Código de barras</TableHead>
             <TableHead>Preço</TableHead>
             <TableHead>Preço efetivo</TableHead>
+            <TableHead>Custo médio</TableHead>
+            <TableHead>Último custo</TableHead>
+            <TableHead>Margem</TableHead>
+            <TableHead>Disponível</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -67,6 +94,16 @@ function VariantsTab({ variants }: { variants: ProductVariantResponseDto[] }) {
               <TableCell>{variant.barcode ?? "-"}</TableCell>
               <TableCell>{formatCurrency(variant.price)}</TableCell>
               <TableCell>{formatCurrency(variant.effectivePrice)}</TableCell>
+              <TableCell>{formatCost(variant.averageCost)}</TableCell>
+              <TableCell>{formatCost(variant.lastCost)}</TableCell>
+              <TableCell>
+                {variant.marginPercent == null
+                  ? "-"
+                  : formatPercentage(variant.marginPercent)}
+              </TableCell>
+              <TableCell>
+                {formatNumber(variant.availableQuantity, decimalPlaces)}
+              </TableCell>
               <TableCell>
                 <Badge variant={variant.isActive ? "default" : "secondary"}>
                   {variant.isActive ? "Ativa" : "Inativa"}
@@ -76,6 +113,87 @@ function VariantsTab({ variants }: { variants: ProductVariantResponseDto[] }) {
           ))}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+/** Matriz variação × local. Sem orçamentos ainda, reservado é 0 e disponível = físico (RN-CE08). */
+function StockTab({
+  matrix,
+  decimalPlaces,
+}: {
+  matrix: StockMatrixDto | null;
+  decimalPlaces: number;
+}) {
+  if (!matrix) return <Skeleton className="h-32 w-full" />;
+  if (matrix.locations.length === 0 || matrix.rows.length === 0) {
+    return (
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyDescription>Nenhum local ativo nesta loja.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+  const showStore =
+    new Set(matrix.locations.map((location) => location.storeName)).size > 1;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="overflow-x-auto rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Variação</TableHead>
+              {matrix.locations.map((location) => (
+                <TableHead key={location.id} className="text-right">
+                  {showStore
+                    ? `${location.storeName} · ${location.name}`
+                    : location.name}
+                </TableHead>
+              ))}
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {matrix.rows.map((row) => (
+              <TableRow key={row.variantId}>
+                <TableCell className="font-medium">
+                  {row.variantLabel || "Padrão"}
+                  <span className="block text-xs text-muted-foreground">
+                    {row.sku}
+                  </span>
+                </TableCell>
+                {row.cells.map((cell) => (
+                  <TableCell key={cell.locationId} className="text-right">
+                    <span
+                      className={
+                        cell.available < 0 ? "text-destructive" : undefined
+                      }
+                    >
+                      {formatNumber(cell.available, decimalPlaces)}
+                    </span>
+                    {cell.reserved !== 0 && (
+                      <span className="block text-xs text-muted-foreground">
+                        Físico {formatNumber(cell.physical, decimalPlaces)} ·
+                        Reservado {formatNumber(cell.reserved, decimalPlaces)}
+                      </span>
+                    )}
+                  </TableCell>
+                ))}
+                <TableCell className="text-right font-medium">
+                  {formatNumber(
+                    row.cells.reduce((sum, cell) => sum + cell.available, 0),
+                    decimalPlaces
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Disponível por local. Sem orçamentos em aberto, é igual ao físico.
+      </p>
     </div>
   );
 }
@@ -181,12 +299,14 @@ function PricesTab({ history }: { history: PriceHistoryResponseDto[] }) {
   );
 }
 
-/** T3: só o que já tem dado. Estoque, lotes, previsão e promoções entram nas fatias deles. */
+/** T3: só o que já tem dado. Lotes, movimentações, previsão e promoções entram nas fatias deles. */
 function ViewProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getProduct, getVariants, getSuppliers, getPriceHistory } =
+  const { getProduct, getVariants, getStock, getSuppliers, getPriceHistory } =
     useProducts();
+  const { storeId } = useCurrentStore();
+  const [stock, setStock] = useState<StockMatrixDto | null>(null);
   const [product, setProduct] = useState<ProductResponseDto | null>(null);
   const [variants, setVariants] = useState<ProductVariantResponseDto[]>([]);
   const [suppliers, setSuppliers] = useState<ProductSupplierResponseDto[]>([]);
@@ -210,6 +330,14 @@ function ViewProduct() {
       )
       .catch((error) => handleError(error, "Erro ao abrir o produto"));
   }, [getProduct, getVariants, getSuppliers, getPriceHistory, id]);
+
+  // A matriz segue a loja do topo; "Todas as lojas" mostra todos os locais ativos.
+  useEffect(() => {
+    if (!id) return;
+    getStock(id, storeId)
+      .then(setStock)
+      .catch((error) => handleError(error, "Erro ao carregar o estoque"));
+  }, [getStock, id, storeId]);
 
   if (!product) return <Skeleton className="h-96 w-full" />;
 
@@ -282,6 +410,20 @@ function ViewProduct() {
               )}
             />
             <Detail
+              label="Custo médio"
+              value={formatCostRange(
+                product.minAverageCost,
+                product.maxAverageCost
+              )}
+            />
+            <Detail
+              label="Disponível (todas as lojas)"
+              value={formatNumber(
+                product.availableQuantity,
+                product.decimalPlaces
+              )}
+            />
+            <Detail
               label="Lançamento"
               value={
                 product.launchedOn ? formatDateOnly(product.launchedOn) : "-"
@@ -316,7 +458,19 @@ function ViewProduct() {
           {
             value: "variants",
             label: "Variações",
-            content: <VariantsTab variants={variants} />,
+            content: (
+              <VariantsTab
+                variants={variants}
+                decimalPlaces={product.decimalPlaces}
+              />
+            ),
+          },
+          {
+            value: "stock",
+            label: "Estoque",
+            content: (
+              <StockTab matrix={stock} decimalPlaces={product.decimalPlaces} />
+            ),
           },
           {
             value: "suppliers",

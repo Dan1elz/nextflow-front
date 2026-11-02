@@ -8,6 +8,7 @@ import type {
   ProductResponseDto,
   ProductSupplierResponseDto,
   ProductVariantResponseDto,
+  StockMatrixDto,
 } from "@/interfaces/product.interface";
 import type { TLifecycle } from "@/types/enums";
 
@@ -29,6 +30,19 @@ class ProductService extends BaseService<
     return this.apiService.get<ProductVariantResponseDto[]>(
       `${this.endpoint}/${id}/variants`,
       undefined,
+      token
+    );
+  }
+
+  /** Sem `storeId`, todas as lojas ativas. */
+  stock(
+    id: string,
+    storeId?: string | null,
+    token?: string
+  ): Promise<StockMatrixDto> {
+    return this.apiService.get<StockMatrixDto>(
+      `${this.endpoint}/${id}/stock`,
+      storeId ? { storeId } : undefined,
       token
     );
   }

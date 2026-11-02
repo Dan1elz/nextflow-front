@@ -9,6 +9,7 @@ import type {
   ProductResponseDto,
   ProductSupplierResponseDto,
   ProductVariantResponseDto,
+  StockMatrixDto,
 } from "@/interfaces/product.interface";
 import type { TLifecycle } from "@/types/enums";
 
@@ -18,6 +19,7 @@ export type ProductsContextType = {
   searchProducts: (query?: IIndexParams) => Promise<void>;
   getProduct: (id: string) => Promise<ProductResponseDto>;
   getVariants: (id: string) => Promise<ProductVariantResponseDto[]>;
+  getStock: (id: string, storeId?: string | null) => Promise<StockMatrixDto>;
   getSuppliers: (id: string) => Promise<ProductSupplierResponseDto[]>;
   getPriceHistory: (id: string) => Promise<PriceHistoryResponseDto[]>;
   getForm: (id?: string) => Promise<ProductFormDto>;

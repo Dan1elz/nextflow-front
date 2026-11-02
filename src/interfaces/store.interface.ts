@@ -17,7 +17,7 @@ export interface LocationRequestDto extends UpdateLocationRequestDto {
   storeId: string;
 }
 
-/** `hasStock` é falso até a F1.5, quando o saldo passa a existir. */
+/** `hasStock`: o local tem saldo ≠ 0 e não pode ser inativado (RN-CE35). */
 export interface LocationResponseDto {
   id: string;
   storeId: string;

@@ -77,7 +77,10 @@ export interface ProductFormDto extends ProductRequestDto {
   options: ProductFormOptionsDto;
 }
 
-/** `availableQuantity`, `hasLowStock` e `activePromotionPercent` são provisórios até a F1.5 e a F2.3 (contrato T1). */
+/**
+ * `availableQuantity` é o físico na loja de `filters.storeId` (ou na empresa). `hasLowStock` fica falso até a F1.8 e
+ * `activePromotionPercent`, nulo até a F2.3 (contrato T1).
+ */
 export interface ProductListItemDto {
   id: string;
   name: string;
@@ -98,7 +101,7 @@ export interface ProductListItemDto {
   hasLowStock: boolean;
 }
 
-/** Custo, disponível e promoção são provisórios até a F1.5 e a F2.3 (contrato T3). */
+/** Disponível é o físico da empresa; custo médio é a faixa entre as variações com custo. Promoção entra na F2.3 (contrato T3). */
 export interface ProductResponseDto {
   id: string;
   name: string;
@@ -170,4 +173,32 @@ export interface PriceHistoryResponseDto {
   validFrom: string;
   validTo?: string | null;
   changedByName: string;
+}
+
+/** Aba Estoque do T3. Reservado é 0 e disponível = físico até haver orçamento (RN-CE08); mínimo entra na F1.8. */
+export interface StockMatrixCellDto {
+  locationId: string;
+  physical: number;
+  reserved: number;
+  available: number;
+  minQuantity?: number | null;
+  isBelowMin: boolean;
+}
+
+export interface StockMatrixRowDto {
+  variantId: string;
+  variantLabel: string;
+  sku: string;
+  cells: StockMatrixCellDto[];
+}
+
+export interface StockMatrixLocationDto {
+  id: string;
+  name: string;
+  storeName: string;
+}
+
+export interface StockMatrixDto {
+  locations: StockMatrixLocationDto[];
+  rows: StockMatrixRowDto[];
 }

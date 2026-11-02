@@ -13,6 +13,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { useIndexSearch } from "@/hooks/use-index-search";
 import { useProducts } from "@/hooks/use-products";
 import type { IIndexParams, IOption } from "@/interfaces/api.interface";
@@ -27,6 +28,7 @@ import {
   TLifecycle,
   TProductType,
 } from "@/types/enums";
+import { formatNumber } from "@/utils/format.helpers";
 import { formatPriceRange } from "@/utils/product.helpers";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
@@ -84,12 +86,18 @@ function Products() {
   });
   const [sort, setSort] = useState("name");
   const sortRef = useRef("name");
+  // Disponível é da loja selecionada no topo; "Todas as lojas" (null) soma a empresa (contrato T1).
+  const { storeId } = useCurrentStore();
+  const storeIdRef = useRef(storeId);
 
   const search = useCallback(
     (query?: IIndexParams) => {
       const [field, direction] = sortRef.current.split("-");
+      const filters = { ...query?.filters };
+      if (storeIdRef.current) filters.storeId = storeIdRef.current;
       return searchProducts({
         ...query,
+        filters,
         sort: field,
         order: direction === "desc" ? "desc" : "asc",
       });
@@ -116,6 +124,12 @@ function Products() {
     debounceMs: 400,
     onError: (error) => handleError(error, "Erro ao buscar produtos"),
   });
+
+  useEffect(() => {
+    if (storeIdRef.current === storeId) return;
+    storeIdRef.current = storeId;
+    handleSearch(1);
+  }, [storeId, handleSearch]);
 
   useEffect(() => {
     getForm()
@@ -191,6 +205,15 @@ function Products() {
           formatPriceRange(
             row.original.minEffectivePrice,
             row.original.maxEffectivePrice
+          ),
+      },
+      {
+        accessorKey: "availableQuantity",
+        header: "Disponível",
+        cell: ({ row }) =>
+          formatNumber(
+            row.original.availableQuantity,
+            row.original.decimalPlaces
           ),
       },
       {
