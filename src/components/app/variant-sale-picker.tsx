@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ImageIcon } from "lucide-react";
 
 import { StockShortageDialog } from "@/components/app/stock-shortage-dialog";
@@ -56,7 +56,11 @@ export function VariantSalePicker({
 }: VariantSalePickerProps) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const [pendingEnter, setPendingEnter] = useState<string | null>(null);
+  // Objeto novo a cada Enter: o mesmo código lido duas vezes gera dois pendentes distintos.
+  const [pendingEnter, setPendingEnter] = useState<{ term: string } | null>(
+    null
+  );
+  const handledEnter = useRef<{ term: string } | null>(null);
   const [shortage, setShortage] = useState<VariantSaleOptionDto | null>(null);
   const { storeId, options, term, isLoading } = useVariantSaleOptions(
     search,
@@ -74,12 +78,18 @@ export function VariantSalePicker({
     onSelect(option);
   };
 
-  // Enter do leitor antes de a busca responder: escolhe quando a lista do mesmo código chegar.
-  if (pendingEnter !== null && !isLoading && term === pendingEnter) {
-    const exact = options.find((option) => isExactCode(option, term));
+  // Enter do leitor antes de a busca responder: escolhe quando a lista do mesmo código chegar. Fica num efeito (nunca
+  // no render) e o ref garante que cada Enter resolve uma vez só, mesmo que o efeito rode de novo (StrictMode).
+  useEffect(() => {
+    if (!pendingEnter || isLoading || term !== pendingEnter.term) return;
+    if (handledEnter.current === pendingEnter) return;
+    handledEnter.current = pendingEnter;
     setPendingEnter(null);
+    const exact = options.find((option) => isExactCode(option, term));
     if (exact) choose(exact);
-  }
+    // choose é recriada a cada render; o efeito só reage à chegada da busca do código pendente.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingEnter, isLoading, term, options]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter") return;
@@ -87,7 +97,7 @@ export function VariantSalePicker({
     if (!typed) return;
     if (isLoading || term !== typed) {
       event.preventDefault();
-      setPendingEnter(typed);
+      setPendingEnter({ term: typed });
       return;
     }
     const exact = options.find((option) => isExactCode(option, typed));
