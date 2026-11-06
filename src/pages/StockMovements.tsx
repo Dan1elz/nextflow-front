@@ -1,87 +1,97 @@
-import { useMemo, useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Search } from "lucide-react";
 
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DatePicker } from "@/components/app/date-picker";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
-import { NavActionColumn } from "@/components/app/nav-action-column";
 import { SearchSelect } from "@/components/app/search-select";
-
-import { StockMovementDrawer } from "@/components/app/stock-movement-drawer";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import { formatDateTime, formatNumber, formatCurrency } from "@/utils";
-import { useStockMovements } from "@/hooks/use-stock-movements";
-import { useIndexSearch } from "@/hooks/use-index-search";
-import { useSearchOptions } from "@/hooks/use-search-options";
-import type { IStockMovement } from "@/interfaces/stock-movement.interface";
-import type { IProduct } from "@/interfaces/legacy-product.interface";
-import type { UserOption } from "@/interfaces/user.interface";
-import { StockMovementsProvider } from "@/providers/stock-movements.provider";
-import { LegacyProductsProvider } from "@/providers/legacy-products.provider";
-import { UsersProvider } from "@/providers/users.provider";
-import {
-  LEGACY_MOVEMENT_TYPE_LABELS,
-  type TLegacyMovementType,
-  TLegacyMovementType as TypesObj,
-} from "@/types/enums";
-import { useLegacyProducts } from "@/hooks/use-legacy-products";
-import { useUsers } from "@/hooks/use-users";
 import { Badge } from "@/components/ui/badge";
-import type { IOption } from "@/interfaces/api.interface";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { useIndexSearch } from "@/hooks/use-index-search";
+import { useStockMovements } from "@/hooks/use-stock-movements";
+import type { IIndexParams, IOption } from "@/interfaces/api.interface";
+import type { StockMovementListItemDto } from "@/interfaces/stock-movement.interface";
+import { StockMovementsProvider } from "@/providers/stock-movements.provider";
+import {
+  MOVEMENT_REASON_LABELS,
+  SOURCE_TYPE_LABELS,
+  TMovementReason,
+  TMovementType,
+  TSourceType,
+} from "@/types/enums";
+import {
+  formatCurrency,
+  formatDateTime,
+  formatNumber,
+} from "@/utils/format.helpers";
+import { handleError } from "@/utils/toast.helpers";
 
-type StockMovementFilters = {
-  search: string;
+type MovementFilters = {
+  locationId: string;
   productId: string;
-  userId: string;
-  movementType: string;
-  createAt: string;
+  variantId: string;
+  reason: string;
+  sourceType: string;
+  from: string;
+  to: string;
 };
 
+const reasonOptions: IOption[] = Object.values(TMovementReason).map(
+  (reason) => ({ value: reason, label: MOVEMENT_REASON_LABELS[reason] })
+);
+const sourceOptions: IOption[] = Object.values(TSourceType).map((source) => ({
+  value: source,
+  label: SOURCE_TYPE_LABELS[source],
+}));
+
+/** Quantidades do kardex: até 3 casas, sem zeros sobrando ("12", "2,5"). */
+const formatQuantity = (value: number) =>
+  formatNumber(value, Number.isInteger(value) ? 0 : 3).replace(/,?0+$/, "");
+
+const signed = (value: number) =>
+  value > 0 ? `+${formatQuantity(value)}` : formatQuantity(value);
+
+/** T8: kardex somente leitura, mais recente primeiro. Correção é um lançamento contrário (RN-CE14). */
 function StockMovements() {
   const {
     stockMovements,
     pagination,
     searchStockMovements,
-    deleteStockMovement,
+    getLocationOptions,
+    searchProductOptions,
+    getVariantOptions,
   } = useStockMovements();
-  const { searchProductsForOptions, getProductById } = useLegacyProducts();
-  const { searchUsersForOptions, getUserOption } = useUsers();
+  const [params] = useSearchParams();
+  // A aba Estoque do T3 abre o kardex já filtrado pelo produto (e variação, quando houver).
+  const initialFilters = useMemo<MovementFilters>(
+    () => ({
+      locationId: params.get("locationId") ?? "",
+      productId: params.get("productId") ?? "",
+      variantId: params.get("variantId") ?? "",
+      reason: "",
+      sourceType: "",
+      from: "",
+      to: "",
+    }),
+    // Só o primeiro valor da URL vale; depois o filtro é da tela.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+  const [locations, setLocations] = useState<IOption[]>([]);
+  const [products, setProducts] = useState<IOption[]>([]);
+  const [variants, setVariants] = useState<IOption[]>([]);
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedMovement, setSelectedMovement] =
-    useState<IStockMovement | null>(null);
-  const [isViewing, setIsViewing] = useState(false);
+  // Filtro padrão é a loja do topo; "Todas as lojas" (null) mostra a empresa inteira.
+  const { storeId } = useCurrentStore();
+  const storeIdRef = useRef(storeId);
 
-  // Função adaptada para customizar quais filtros enviamos para a API
-  const customSearch = useCallback(
-    async (params?: import("@/interfaces/api.interface").IIndexParams) => {
-      // Cria uma cópia dos filtros para remover/ajustar o que for necessário
-      const activeFilters = { ...params?.filters } as Record<string, string>;
-
-      // Se movementType for ALL, não enviamos como filtro
-      if (activeFilters.movementType === "ALL") {
-        delete activeFilters.movementType;
-      }
-
-      await searchStockMovements({
-        ...params,
-        filters: activeFilters,
-      });
+  const search = useCallback(
+    (query?: IIndexParams) => {
+      const filters = { ...query?.filters };
+      if (storeIdRef.current) filters.storeId = storeIdRef.current;
+      return searchStockMovements({ ...query, filters });
     },
     [searchStockMovements]
   );
@@ -97,366 +107,250 @@ function StockMovements() {
     handleFiltersOpenChange,
     handleSearch,
     handlePageChange,
-  } = useIndexSearch<StockMovementFilters, "search">({
-    search: customSearch,
-    initialFilters: {
-      search: "",
-      productId: "",
-      userId: "",
-      movementType: "ALL",
-      createAt: "",
-    },
-    quickSearchKey: "search",
-    perPageInitial: 10,
-    debounceMs: 400,
-    onError: (error) => {
-      handleError(error, "Erro ao buscar movimentações");
-    },
+  } = useIndexSearch<MovementFilters, "locationId">({
+    search,
+    initialFilters,
+    quickSearchKey: "locationId",
+    perPageInitial: 20,
+    debounceMs: 0,
+    onError: (error) => handleError(error, "Erro ao buscar movimentações"),
   });
 
-  const { options: productOptions, handleSearch: handleSearchProducts } =
-    useSearchOptions<IProduct>({
-      searchFn: async (params) => {
-        return await searchProductsForOptions(params);
-      },
-      mapFn: (product) => ({
-        value: product.id ?? "",
-        label: product.name,
-      }),
-      selectFn: async (id) => {
-        return await getProductById(id);
-      },
-      errorLabel: "produtos",
-      autoLoad: false,
-      perPage: 50,
-    });
+  useEffect(() => {
+    getLocationOptions(undefined, storeId)
+      .then((options) =>
+        setLocations(
+          options.map((location) => ({
+            value: location.id,
+            label: storeId
+              ? location.name
+              : `${location.storeName} › ${location.name}`,
+          }))
+        )
+      )
+      .catch((error) => handleError(error, "Erro ao carregar os locais"));
+    if (storeIdRef.current === storeId) return;
+    storeIdRef.current = storeId;
+    // O local escolhido pode ser de outra loja: volta para "todos" e busca de novo.
+    setFilters((prev) => ({ ...prev, locationId: "" }));
+    handleSearch(1);
+  }, [storeId, getLocationOptions, setFilters, handleSearch]);
 
-  const { options: userOptions, handleSearch: handleSearchUsers } =
-    useSearchOptions<UserOption>({
-      searchFn: async (params) => {
-        return await searchUsersForOptions(params);
-      },
-      mapFn: (user) => ({
-        value: user.id ?? "",
-        label: user.fullName,
-      }),
-      selectFn: async (id) => {
-        return await getUserOption(id);
-      },
-      errorLabel: "usuários",
-      autoLoad: false,
-      perPage: 50,
-    });
+  useEffect(() => {
+    searchProductOptions("")
+      .then(setProducts)
+      .catch((error) => handleError(error, "Erro ao carregar os produtos"));
+  }, [searchProductOptions]);
 
-  const handleCreate = () => {
-    setSelectedMovement(null);
-    setIsViewing(false);
-    setIsDrawerOpen(true);
-  };
+  useEffect(() => {
+    if (!filters.productId) {
+      setVariants([]);
+      return;
+    }
+    getVariantOptions(filters.productId)
+      .then(setVariants)
+      .catch((error) => handleError(error, "Erro ao carregar as variações"));
+  }, [filters.productId, getVariantOptions]);
 
-  const handleView = useCallback((sm: IStockMovement) => {
-    setSelectedMovement(sm);
-    setIsViewing(true);
-    setIsDrawerOpen(true);
-  }, []);
+  const setFilter = (key: keyof MovementFilters, value: string) =>
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+      // Trocar o produto limpa a variação, que é dele.
+      ...(key === "productId" ? { variantId: "" } : {}),
+    }));
 
-  const handleDelete = useCallback(
-    async (sm: IStockMovement) => {
-      if (!sm.id) return;
-      try {
-        await deleteStockMovement(sm.id);
-        handleSuccess("Movimentação de estoque excluída com sucesso");
-        await handleSearch(1);
-      } catch (error) {
-        handleError(error, "Erro ao excluir movimentação");
-      }
-    },
-    [deleteStockMovement, handleSearch]
-  );
-
-  const handleExport = useCallback(() => {
-    // Função vazia (mock)
-  }, []);
-
-  const handleDeleteMultiple = useCallback(() => {
-    // Função vazia (mock)
-  }, []);
-
-  const columns = useMemo<ColumnDef<IStockMovement>[]>(
+  const columns = useMemo<ColumnDef<StockMovementListItemDto>[]>(
     () => [
       {
-        id: "select",
-        header: ({ table }) => {
-          const isAllSelected = table.getIsAllPageRowsSelected();
-          const isSomeSelected = table.getIsSomePageRowsSelected();
-          return (
-            <Checkbox
-              checked={isAllSelected}
-              indeterminate={isSomeSelected && !isAllSelected}
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-              aria-label="Selecionar todos"
-            />
-          );
-        },
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Selecionar linha"
-          />
-        ),
-        enableSorting: false,
-        enableHiding: false,
+        accessorKey: "createdAt",
+        header: "Data",
+        cell: ({ row }) => formatDateTime(row.original.createdAt),
       },
       {
-        id: "product",
+        accessorKey: "productName",
         header: "Produto",
-        cell: ({ row }) => row.original.product?.name ?? "-",
-      },
-      {
-        id: "user",
-        header: "Usuário",
-        cell: ({ row }) =>
-          row.original.user
-            ? `${row.original.user.name} ${row.original.user.lastName}`
-            : "-",
-      },
-      {
-        accessorKey: "movementType",
-        header: "Tipo",
-        cell: ({ row }) => {
-          const mType = row.original.movementType as unknown as TypesObj;
-          const label = LEGACY_MOVEMENT_TYPE_LABELS[mType] ?? String(mType);
-
-          const variant: "default" | "destructive" | "outline" | "secondary" =
-            "default";
-          let extraClass = "";
-
-          if (mType === TypesObj.Entry) {
-            extraClass =
-              "bg-emerald-500 hover:bg-emerald-600 text-white border-none shadow-sm";
-          } else if (mType === TypesObj.Exit) {
-            extraClass =
-              "bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm";
-          } else if (mType === TypesObj.Sales) {
-            extraClass =
-              "bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-sm";
-          } else if (mType === TypesObj.Return) {
-            extraClass =
-              "bg-orange-500 hover:bg-orange-600 text-white border-none shadow-sm";
-          } else if (mType === TypesObj.Adjustment) {
-            extraClass =
-              "bg-amber-400 hover:bg-amber-500 text-black border-none shadow-sm";
-          }
-
-          return (
-            <Badge
-              variant={variant}
-              className={`w-20 justify-center text-center font-semibold ${extraClass}`}
+        cell: ({ row }) => (
+          <div className="flex min-w-0 flex-col">
+            <Link
+              to={`/products/${row.original.productId}/view`}
+              className="truncate font-medium underline-offset-4 hover:underline"
             >
-              {label}
-            </Badge>
-          );
-        },
+              {row.original.productName}
+            </Link>
+            {row.original.variantLabel && (
+              <span className="truncate text-xs text-muted-foreground">
+                {row.original.variantLabel}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      { accessorKey: "locationName", header: "Local" },
+      {
+        accessorKey: "reason",
+        header: "Motivo",
+        cell: ({ row }) => (
+          <Badge
+            variant={
+              row.original.type === TMovementType.In ? "default" : "secondary"
+            }
+          >
+            {MOVEMENT_REASON_LABELS[row.original.reason]}
+          </Badge>
+        ),
       },
       {
         accessorKey: "quantity",
-        header: "Quantidade",
-        cell: ({ row }) => formatNumber(Number(row.original.quantity)),
+        header: () => <span className="block text-right">Quantidade</span>,
+        cell: ({ row }) => (
+          <span
+            className={
+              row.original.quantity < 0
+                ? "block text-right text-destructive"
+                : "block text-right"
+            }
+          >
+            {signed(row.original.quantity)}
+          </span>
+        ),
       },
       {
-        accessorKey: "quote",
-        header: "Cotação",
+        accessorKey: "unitCost",
+        header: () => <span className="block text-right">Custo unit.</span>,
+        cell: ({ row }) => (
+          <span className="block text-right">
+            {row.original.unitCost == null
+              ? "-"
+              : formatCurrency(row.original.unitCost)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "balanceAfter",
+        header: () => <span className="block text-right">Saldo após</span>,
+        cell: ({ row }) => (
+          <span className="block text-right font-medium">
+            {formatQuantity(row.original.balanceAfter)}
+          </span>
+        ),
+      },
+      {
+        id: "source",
+        header: "Origem",
         cell: ({ row }) =>
-          row.original.quote ? formatCurrency(Number(row.original.quote)) : "-",
+          row.original.source
+            ? `${SOURCE_TYPE_LABELS[row.original.source.type]}${
+                row.original.source.number
+                  ? ` nº ${row.original.source.number}`
+                  : ""
+              }`
+            : "Manual",
       },
+      { accessorKey: "userName", header: "Usuário" },
       {
-        accessorKey: "createAt",
-        header: "Data / Hora",
-        cell: ({ row }) =>
-          row.original.createAt ? formatDateTime(row.original.createAt) : "-",
-      },
-      {
-        id: "actions",
-        header: "Ações",
-        cell: ({ row }) => {
-          const movementType = row.original.movementType as unknown as TypesObj;
-          const allowedToDelete = [
-            TypesObj.Entry,
-            TypesObj.Exit,
-            TypesObj.Adjustment,
-          ];
-          const canDelete = (allowedToDelete as number[]).includes(
-            movementType
-          );
-
-          return (
-            <NavActionColumn
-              object={row.original}
-              disableEdit={true}
-              onDelete={handleDelete}
-              onView={handleView}
-              disableDelete={!canDelete}
-            />
-          );
-        },
-        enableSorting: false,
-        enableHiding: false,
+        accessorKey: "note",
+        header: "Observação",
+        cell: ({ row }) => (
+          <span className="line-clamp-2 max-w-64 text-muted-foreground">
+            {row.original.note ?? "-"}
+          </span>
+        ),
       },
     ],
-    [handleDelete, handleView]
+    []
+  );
+
+  const select = (
+    key: keyof MovementFilters,
+    label: string | undefined,
+    data: IOption[],
+    placeholder = "Todos"
+  ) => (
+    <SearchSelect<IOption>
+      field={{
+        value: filters[key],
+        onChange: (value) => setFilter(key, value ? String(value) : ""),
+      }}
+      label={label}
+      data={data}
+      placeholder={placeholder}
+    />
   );
 
   return (
-    <>
-      <EntityIndexPage
-        title="Movimentações de Estoque"
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-        toolbar={
-          <>
-            <InputGroup className="w-full md:w-[280px]">
-              <InputGroupAddon>
-                <Search className="h-4 w-4" />
-              </InputGroupAddon>
-              <InputGroupInput
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters((prev) => ({ ...prev, search: e.target.value }))
-                }
-                placeholder="Pesquisar movimentação..."
-                aria-label="Pesquisar"
-              />
-            </InputGroup>
+    <EntityIndexPage
+      title="Movimentações"
+      selectedIds={selectedIds}
+      onSelectionChange={setSelectedIds}
+      toolbar={
+        <>
+          <div className="w-full md:w-[280px]">
+            {select("locationId", undefined, locations, "Todos os locais")}
+          </div>
 
-            <ListFiltersSheet
-              open={isFiltersOpen}
-              onOpenChange={handleFiltersOpenChange}
-              description="Filtre a listagem de movimentações."
-              onApply={() => {
-                handleSearch(1);
-                handleFiltersOpenChange(false);
+          <ListFiltersSheet
+            open={isFiltersOpen}
+            onOpenChange={handleFiltersOpenChange}
+            description="Filtre o kardex por período, produto, motivo e origem."
+            onApply={() => {
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+            onClear={() => {
+              resetFilters();
+              handleSearch(1);
+              handleFiltersOpenChange(false);
+            }}
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <Field>
+                <FieldLabel>De</FieldLabel>
+                <DatePicker
+                  value={filters.from}
+                  onChange={(value) => setFilter("from", value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Até</FieldLabel>
+                <DatePicker
+                  value={filters.to}
+                  onChange={(value) => setFilter("to", value)}
+                />
+              </Field>
+            </div>
+            <SearchSelect<IOption>
+              field={{
+                value: filters.productId,
+                onChange: (value) =>
+                  setFilter("productId", value ? String(value) : ""),
               }}
-              onClear={() => {
-                resetFilters();
-                handleSearch(1);
-                handleFiltersOpenChange(false);
-              }}
-            >
-              <div className="grid gap-4 py-2">
-                <div className="grid gap-2">
-                  <SearchSelect<IOption>
-                    field={{
-                      value: filters.productId,
-                      onChange: (value) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          productId: value ? String(value) : "",
-                        })),
-                    }}
-                    data={productOptions}
-                    onSearch={handleSearchProducts}
-                    placeholder="Selecione um produto..."
-                    label="Produto"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <SearchSelect<IOption>
-                    field={{
-                      value: filters.userId,
-                      onChange: (value) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          userId: value ? String(value) : "",
-                        })),
-                    }}
-                    data={userOptions}
-                    onSearch={handleSearchUsers}
-                    placeholder="Selecione um usuário..."
-                    label="Usuário"
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Tipo</Label>
-                  <Select
-                    value={filters.movementType}
-                    onValueChange={(val) =>
-                      setFilters((prev) => ({ ...prev, movementType: val }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">Todos</SelectItem>
-                      {(
-                        Object.keys(TypesObj) as Array<keyof typeof TypesObj>
-                      ).map((key) => {
-                        const type = TypesObj[key];
-                        return (
-                          <SelectItem key={type} value={String(type)}>
-                            {
-                              LEGACY_MOVEMENT_TYPE_LABELS[
-                                type as TLegacyMovementType
-                              ]
-                            }
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="dateFilter">Data</Label>
-                  <Input
-                    id="dateFilter"
-                    type="date"
-                    value={filters.createAt}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        createAt: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-            </ListFiltersSheet>
-          </>
-        }
-        columns={columns}
-        data={stockMovements}
-        pagination={pagination}
-        onPageChange={handlePageChange}
-        onPerPageChange={setPerPage}
-        onCreate={handleCreate}
-        onExport={handleExport}
-        onDeleteMultiple={handleDeleteMultiple}
-      />
-      <StockMovementDrawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        stockMovement={selectedMovement}
-        isViewing={isViewing}
-        onSuccess={() => handleSearch(1)}
-      />
-    </>
+              label="Produto"
+              data={products}
+              placeholder="Todos"
+              onSearch={searchProductOptions}
+            />
+            {filters.productId &&
+              variants.length > 1 &&
+              select("variantId", "Variação", variants, "Todas")}
+            {select("reason", "Motivo", reasonOptions)}
+            {select("sourceType", "Origem", sourceOptions, "Todas")}
+          </ListFiltersSheet>
+        </>
+      }
+      columns={columns}
+      data={stockMovements}
+      pagination={pagination}
+      onPageChange={handlePageChange}
+      onPerPageChange={setPerPage}
+    />
   );
 }
 
 export default function StockMovementsPageWrapper() {
   return (
-    <LegacyProductsProvider>
-      <UsersProvider>
-        <StockMovementsProvider>
-          <StockMovements />
-        </StockMovementsProvider>
-      </UsersProvider>
-    </LegacyProductsProvider>
+    <StockMovementsProvider>
+      <StockMovements />
+    </StockMovementsProvider>
   );
 }

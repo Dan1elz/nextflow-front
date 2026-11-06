@@ -1,5 +1,6 @@
 import type { Option } from "@/interfaces/api.interface";
 import type { CategoryOptionDto } from "@/interfaces/category.interface";
+import type { LocationOptionDto } from "@/interfaces/store.interface";
 import type { TLifecycle, TProductType, TSaleUnit } from "@/types/enums";
 
 export interface ProductAttributeValueRequestDto {
@@ -53,6 +54,18 @@ export interface ProductRequestDto {
   variants: ProductVariantRequestDto[];
   eventIds: string[];
   suppliers: ProductSupplierRequestDto[];
+  /** Mínimo em todo local sem mínimo próprio (RN-CE33). */
+  defaultMinQuantity: number;
+  /** Exceção à política da classe ABC (RN-CE29); vazio usa a da classe. */
+  targetCoverageDays?: number | null;
+  locationMinimums: ProductLocationMinimumDto[];
+}
+
+/** Mínimo de uma variação num local (RN-CE33). A variação é citada pela posição em `variants`, porque a nova não tem id. */
+export interface ProductLocationMinimumDto {
+  variantIndex: number;
+  locationId: string;
+  minQuantity: number;
 }
 
 /** Fornecedor no formulário: `leadTimeDays` é o padrão do campo vazio; `isActive` marca o inativo já vinculado. */
@@ -68,6 +81,8 @@ export interface ProductFormOptionsDto {
   collections: Option[];
   events: Option[];
   suppliers: SupplierOptionDto[];
+  /** Colunas da tabela de mínimos: locais ativos de lojas ativas e os que já têm mínimo. */
+  locations: LocationOptionDto[];
 }
 
 /** `GET /products/form` (criação) e `GET /products/{id}/form` (edição). */
@@ -78,8 +93,8 @@ export interface ProductFormDto extends ProductRequestDto {
 }
 
 /**
- * `availableQuantity` é o físico na loja de `filters.storeId` (ou na empresa). `hasLowStock` fica falso até a F1.8 e
- * `activePromotionPercent`, nulo até a F2.3 (contrato T1).
+ * `availableQuantity` é o físico na loja de `filters.storeId` (ou na empresa). `hasLowStock`: alguma variação abaixo do
+ * mínimo efetivo em algum local do mesmo recorte (RN-CE33). `activePromotionPercent` fica nulo até a F2.3 (contrato T1).
  */
 export interface ProductListItemDto {
   id: string;
@@ -175,13 +190,13 @@ export interface PriceHistoryResponseDto {
   changedByName: string;
 }
 
-/** Aba Estoque do T3. Reservado é 0 e disponível = físico até haver orçamento (RN-CE08); mínimo entra na F1.8. */
+/** Aba Estoque do T3. Reservado é 0 e disponível = físico até haver orçamento (RN-CE08); `minQuantity` é o mínimo efetivo (RN-CE33). */
 export interface StockMatrixCellDto {
   locationId: string;
   physical: number;
   reserved: number;
   available: number;
-  minQuantity?: number | null;
+  minQuantity: number;
   isBelowMin: boolean;
 }
 

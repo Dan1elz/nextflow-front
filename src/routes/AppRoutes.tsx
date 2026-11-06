@@ -9,6 +9,7 @@ import { PublicRoutes } from "./PublicRoutes";
 import { Home } from "@/pages/Home";
 import Profile from "@/pages/Profile";
 import StoresSettingsPage from "@/pages/Settings/Stores";
+import StockPolicySettingsPage from "@/pages/Settings/StockPolicy";
 import ViewUserPageWrapper from "@/pages/User/View";
 import ClientsPageWrapper from "@/pages/Clients";
 import CreateClientPageWrapper from "@/pages/Client/Create";
@@ -66,6 +67,10 @@ function AppRoutes() {
           element={<Navigate to="/settings/stores" replace />}
         />
         <Route path="settings/stores" element={<StoresSettingsPage />} />
+        <Route
+          path="settings/stock-policy"
+          element={<StockPolicySettingsPage />}
+        />
         <Route path="users" element={<UsersPageWrapper />} />
         <Route path="users/create" element={<CreateUserPageWrapper />} />
         <Route path="users/:id/edit" element={<EditUserPageWrapper />} />

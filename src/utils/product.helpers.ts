@@ -29,6 +29,7 @@ export const emptyVariant = (): FormVariant => ({
   barcode: "",
   price: "",
   isActive: true,
+  minimums: {},
 });
 
 /** Formulário em branco da criação: tipo Padrão, sem grade, com a variação oculta (RN-CE48). */
@@ -50,7 +51,12 @@ export const emptyProductForm = (): ProductFormData => ({
   variants: [emptyVariant()],
   eventIds: [],
   suppliers: [],
+  defaultMinQuantity: "0",
+  targetCoverageDays: "",
 });
+
+/** Quantidade para o campo de texto do formulário, com vírgula decimal ("2,5"). */
+const formatQuantityInput = (value: number) => String(value).replace(".", ",");
 
 export const toFormValues = (dto: ProductFormDto): ProductFormData => ({
   name: dto.name,
@@ -75,14 +81,25 @@ export const toFormValues = (dto: ProductFormDto): ProductFormData => ({
       value: value.value,
     })),
   })),
-  variants: dto.variants.map((variant) => ({
+  variants: dto.variants.map((variant, index) => ({
     id: variant.id ?? null,
     attributeValueIds: variant.attributeValueIds,
     sku: variant.sku,
     barcode: variant.barcode ?? "",
     price: variant.price.toFixed(2).replace(".", ","),
     isActive: variant.isActive,
+    minimums: Object.fromEntries(
+      dto.locationMinimums
+        .filter((minimum) => minimum.variantIndex === index)
+        .map((minimum) => [
+          minimum.locationId,
+          formatQuantityInput(minimum.minQuantity),
+        ])
+    ),
   })),
+  defaultMinQuantity: formatQuantityInput(dto.defaultMinQuantity),
+  targetCoverageDays:
+    dto.targetCoverageDays == null ? "" : String(dto.targetCoverageDays),
   eventIds: dto.eventIds,
   suppliers: dto.suppliers.map((supplier) => ({
     supplierId: supplier.supplierId,
@@ -130,6 +147,22 @@ export const toRequestDto = (data: ProductFormData): ProductRequestDto => ({
     isActive: data.hasGrid ? variant.isActive : true,
   })),
   eventIds: data.eventIds,
+  defaultMinQuantity: data.defaultMinQuantity.trim()
+    ? parsePrice(data.defaultMinQuantity)
+    : 0,
+  targetCoverageDays: data.targetCoverageDays.trim()
+    ? Number(data.targetCoverageDays)
+    : null,
+  // A variação é citada pela posição em `variants`; mínimo vazio não vai e o local usa o padrão (RN-CE33).
+  locationMinimums: data.variants.flatMap((variant, variantIndex) =>
+    Object.entries(variant.minimums)
+      .filter(([, value]) => value.trim() !== "")
+      .map(([locationId, value]) => ({
+        variantIndex,
+        locationId,
+        minQuantity: parsePrice(value),
+      }))
+  ),
   suppliers: data.suppliers.map((supplier) => ({
     supplierId: supplier.supplierId,
     isPreferred: supplier.isPreferred,

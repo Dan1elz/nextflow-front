@@ -12,6 +12,7 @@ import {
   Activity,
   ShoppingCart,
   ShoppingBag,
+  SlidersHorizontal,
   Store,
   Sparkles,
   BadgePercent,
@@ -93,7 +94,14 @@ const items: SidebarMenuGroup[] = [
   },
   {
     title: "CONFIGURAÇÕES",
-    items: [{ name: "Lojas e locais", url: "/settings/stores", icon: Store }],
+    items: [
+      { name: "Lojas e locais", url: "/settings/stores", icon: Store },
+      {
+        name: "Política de estoque",
+        url: "/settings/stock-policy",
+        icon: SlidersHorizontal,
+      },
+    ],
   },
 ];
 

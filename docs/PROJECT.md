@@ -215,7 +215,6 @@ Cada enum tem label map pt-BR (`*_LABELS`). `IUser.role?: TRoleEnum` + helper `i
 | `nav-user.tsx`                      | Dropdown do usuário logado                                                |
 | `sale-checkout-drawer.tsx`          | Drawer de finalização de venda                                            |
 | `search-select.tsx`                 | Select com busca assíncrona e debounce                                    |
-| `stock-movement-drawer.tsx`         | Drawer para movimentação de estoque                                       |
 | `ai-recommendations-card.tsx`       | Card "Recomendações da IA" do dashboard (provider próprio, falha isolada) |
 | `apply-purchase-dialog.tsx`         | Dialog "Comprar" (1 ou vários itens, qtd/custo editáveis)                 |
 | `apply-promotion-dialog.tsx`        | Dialog "Aplicar desconto" a partir de recomendação (Admin)                |
@@ -248,7 +247,6 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | `order-form.tsx`                                                               | Pedidos de venda (com carrinho; usa `effectivePrice`)        |
 | `promotion-form.tsx`                                                           | Promoção (desconto, período, prévia de preço)                |
 | `sale-checkout-form.tsx`                                                       | Checkout de venda (pagamentos)                               |
-| `stock-movement-form.tsx`                                                      | Movimentação de estoque                                      |
 | `address-form.tsx`                                                             | Endereços (com auto-fill ViaCEP)                             |
 | `contact-form.tsx`                                                             | Contatos                                                     |
 | `country-form.tsx`                                                             | Países                                                       |
@@ -281,6 +279,7 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | --------------- | ------------------ | ------------------- | --------------------- | --------------------- |
 | Home            | `/`                | —                   | —                     | —                     |
 | Lojas e locais  | `/settings/stores` | —                   | —                     | —                     |
+| Política de estoque (T13) | `/settings/stock-policy` | — | — | — |
 | Meu perfil      | `/profile`         | —                   | —                     | —                     |
 | Users           | `/users`           | `/users/create`     | `/users/:id/edit`     | `/users/:id/view`     |
 | Clients         | `/clients`         | `/clients/create`   | `/clients/:id/edit`   | `/clients/:id/view`   |
@@ -289,7 +288,7 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Collections     | `/collections`     | dialog              | dialog                | —                     |
 | Calendar Events | `/calendar-events` | dialog              | dialog                | —                     |
 | Products        | `/products`        | `/products/create`  | `/products/:id/edit`  | `/products/:id/view`  |
-| Stock Movements | `/stock-movements` | —                   | —                     | —                     |
+| Kardex (T8)     | `/stock-movements` | —                   | —                     | —                     |
 | Orders          | `/orders`          | `/orders/create`    | `/orders/:id/edit`    | `/orders/:id/view`    |
 | Purchase Orders | `/purchase-orders` | —                   | —                     | —                     |
 | Forecast (IA)   | `/forecast`        | —                   | —                     | —                     |
@@ -314,7 +313,8 @@ Rota catch-all `*` → redireciona para `/login`.
 | `calendar-event.service.ts` | `/calendar-events` | CRUD + reativação; `nextDate` vem da API                                      |
 | `product.service.ts`        | `/products`        | CRUD, `form`, `variants`, `changeLifecycle`, imagem (multipart)               |
 | `legacy-product.service.ts` | `/products` antigo | Telas ainda não migradas (pedido, compra, promoção, movimentação)             |
-| `stock-movement.service.ts` | `/stock-movements` | Create + getAll                                                               |
+| `stock-movement.service.ts` | `/stock-movements`, `/stock-locations/options` | Kardex (getAll paginado, só leitura) e opções de local |
+| `stock-policy.service.ts` | `/stock-policies` | getAll e update da política por classe ABC (T13) |
 | `order.service.ts`          | `/orders`          | CRUD + cancel + refund                                                        |
 | `sale.service.ts`           | `/sales`           | Create (checkout)                                                             |
 | `purchase-order.service.ts` | `/PurchaseOrders`  | CRUD                                                                          |

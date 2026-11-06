@@ -39,6 +39,7 @@ type ProductFilters = {
   collectionId: string;
   lifecycle: string;
   isActive: string;
+  lowStock: string;
 };
 
 const initialFilters: ProductFilters = {
@@ -48,6 +49,7 @@ const initialFilters: ProductFilters = {
   collectionId: "",
   lifecycle: "",
   isActive: "",
+  lowStock: "",
 };
 
 const typeOptions: IOption[] = Object.values(TProductType).map((type) => ({
@@ -61,10 +63,15 @@ const statusOptions: IOption[] = [
   { value: "true", label: "Ativo" },
   { value: "false", label: "Inativo" },
 ];
+const lowStockOptions: IOption[] = [
+  { value: "true", label: "Só estoque baixo" },
+];
 const sortOptions: IOption[] = [
   { value: "name", label: "Nome" },
   { value: "price-asc", label: "Menor preço" },
   { value: "price-desc", label: "Maior preço" },
+  { value: "available-asc", label: "Menor disponível" },
+  { value: "available-desc", label: "Maior disponível" },
 ];
 
 function Products() {
@@ -83,6 +90,7 @@ function Products() {
     collections: [],
     events: [],
     suppliers: [],
+    locations: [],
   });
   const [sort, setSort] = useState("name");
   const sortRef = useRef("name");
@@ -210,11 +218,20 @@ function Products() {
       {
         accessorKey: "availableQuantity",
         header: "Disponível",
-        cell: ({ row }) =>
-          formatNumber(
-            row.original.availableQuantity,
-            row.original.decimalPlaces
-          ),
+        // Abaixo do mínimo efetivo em algum local da loja do topo (RN-CE33); o cálculo é da API.
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <span>
+              {formatNumber(
+                row.original.availableQuantity,
+                row.original.decimalPlaces
+              )}
+            </span>
+            {row.original.hasLowStock && (
+              <Badge variant="destructive">Estoque baixo</Badge>
+            )}
+          </div>
+        ),
       },
       {
         accessorKey: "lifecycle",
@@ -376,6 +393,7 @@ function Products() {
             )}
             {filterSelect("lifecycle", "Ciclo de vida", lifecycleOptions)}
             {filterSelect("isActive", "Status", statusOptions)}
+            {filterSelect("lowStock", "Estoque", lowStockOptions)}
             <SearchSelect<IOption>
               field={{
                 value: sort,

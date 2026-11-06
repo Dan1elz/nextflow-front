@@ -55,6 +55,8 @@ const variantSchema = z.object({
   barcode: z.string(),
   price: z.string(),
   isActive: z.boolean(),
+  /** Mínimo por local (RN-CE33): `locationId` → quantidade digitada; vazio usa o mínimo padrão do produto. */
+  minimums: z.record(z.string(), z.string()),
 });
 
 const supplierSchema = z.object({
@@ -69,6 +71,17 @@ const supplierSchema = z.object({
 const isPositiveInteger = (value: string) => {
   const number = Number(value.trim());
   return Number.isInteger(number) && number > 0;
+};
+
+/** Quantidade de estoque: número ≥ 0 com até 3 casas (vírgula ou ponto). Vazio vale zero quando `emptyIsZero`. */
+const isQuantity = (value: string, emptyIsZero: boolean) => {
+  if (value.trim() === "") return emptyIsZero;
+  const number = parsePrice(value);
+  return (
+    Number.isFinite(number) &&
+    number >= 0 &&
+    Math.round(number * 1000) / 1000 === number
+  );
 };
 
 /** Espelha o `ProductRequestDtoValidator` da API (contrato T2, RN-CE48, RN-CE49, RN-CE54, RN-CE56). */
@@ -97,6 +110,8 @@ export const productSchema = z
     variants: z.array(variantSchema),
     eventIds: z.array(z.string()),
     suppliers: z.array(supplierSchema),
+    defaultMinQuantity: z.string(),
+    targetCoverageDays: z.string(),
   })
   .superRefine((data, context) => {
     const fail = (path: (string | number)[], message: string) =>
@@ -203,6 +218,35 @@ export const productSchema = z
         fail(
           ["suppliers", index, "orderMultiple"],
           "O múltiplo de compra deve ser um número inteiro maior que zero."
+        );
+      }
+    });
+
+    // Estoque (RN-CE33, RN-CE29): mínimos não negativos com até 3 casas; cobertura própria em dias inteiros de 1 a 365.
+    if (!isQuantity(data.defaultMinQuantity, true)) {
+      fail(
+        ["defaultMinQuantity"],
+        "Informe um mínimo maior ou igual a zero, com até 3 casas."
+      );
+    }
+    if (data.targetCoverageDays.trim() !== "") {
+      const days = Number(data.targetCoverageDays);
+      if (!Number.isInteger(days) || days < 1 || days > 365) {
+        fail(
+          ["targetCoverageDays"],
+          "A cobertura alvo deve ser de 1 a 365 dias; deixe vazio para usar a da classe ABC."
+        );
+      }
+    }
+    data.variants.forEach((variant, index) => {
+      if (
+        Object.values(variant.minimums).some(
+          (value) => value.trim() !== "" && !isQuantity(value, true)
+        )
+      ) {
+        fail(
+          ["variants", index, "minimums"],
+          "O mínimo por local deve ser maior ou igual a zero, com até 3 casas."
         );
       }
     });

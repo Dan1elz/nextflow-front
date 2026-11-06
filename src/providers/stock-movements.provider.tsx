@@ -1,84 +1,67 @@
-import { useState, useCallback, type ReactNode } from "react";
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
-import { useAuth } from "@/hooks/use-auth";
-import type { IStockMovement } from "@/interfaces/stock-movement.interface";
+import { useCallback, useState, type ReactNode } from "react";
+
 import { StockMovementsContext } from "@/contexts/stock-movements.context";
+import { useAuth } from "@/hooks/use-auth";
+import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type { StockMovementListItemDto } from "@/interfaces/stock-movement.interface";
+import { productService } from "@/services/product.service";
 import { stockMovementService } from "@/services/stock-movement.service";
 
 export function StockMovementsProvider({ children }: { children: ReactNode }) {
-  const [stockMovements, setStockMovements] = useState<IStockMovement[]>([]);
+  const [stockMovements, setStockMovements] = useState<
+    StockMovementListItemDto[]
+  >([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedStockMovement, setSelectedStockMovement] =
-    useState<IStockMovement | null>(null);
   const { token } = useAuth();
+  const auth = token ?? undefined;
 
   const searchStockMovements = useCallback(
     async (query?: IIndexParams) => {
       const page = query?.page ?? 1;
-      const perPage = query?.perPage ?? 10;
-
-      const response = await stockMovementService.getAll(
-        query,
-        token ?? undefined
-      );
+      const perPage = query?.perPage ?? 20;
+      const response = await stockMovementService.getAll(query, auth);
       setStockMovements(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
-        total: response.total || 0,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
-    [token]
+    [auth]
   );
 
-  const searchStockMovementsForOptions = useCallback(
-    async (
-      query?: IIndexParams
-    ): Promise<{ data: IStockMovement[]; totalItems: number }> => {
-      const response = await stockMovementService.getAll(
-        query,
-        token ?? undefined
+  const getLocationOptions = useCallback(
+    (search?: string, storeId?: string | null) =>
+      stockMovementService.locationOptions(search, storeId, auth),
+    [auth]
+  );
+
+  const searchProductOptions = useCallback(
+    async (search: string) => {
+      const page = await productService.getAll(
+        { page: 1, perPage: 20, filters: search ? { search } : {} },
+        auth
       );
-      return {
-        data: response.items || [],
-        totalItems: response.total || 0,
-      };
+      return page.items.map((product) => ({
+        value: product.id,
+        label: product.name,
+      }));
     },
-    [token]
+    [auth]
   );
 
-  const selectStockMovement = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await stockMovementService.getById(id, token ?? undefined);
-      setSelectedStockMovement(data);
+  const getVariantOptions = useCallback(
+    async (productId: string) => {
+      const variants = await productService.variants(productId, auth);
+      return variants.map((variant) => ({
+        value: variant.id,
+        label: variant.label
+          ? `${variant.label} (${variant.sku})`
+          : variant.sku,
+      }));
     },
-    [token]
-  );
-
-  const getStockMovementById = useCallback(
-    async (id: string): Promise<IStockMovement> => {
-      return stockMovementService.getById(id, token ?? undefined);
-    },
-    [token]
-  );
-
-  const createStockMovement = useCallback(
-    async (stockMovement: Partial<IStockMovement>): Promise<IStockMovement> => {
-      const data = await stockMovementService.create(
-        stockMovement,
-        token ?? undefined
-      );
-      return data;
-    },
-    [token]
-  );
-
-  const deleteStockMovement = useCallback(
-    async (id: string): Promise<void> => {
-      await stockMovementService.delete(id, token ?? undefined);
-    },
-    [token]
+    [auth]
   );
 
   return (
@@ -86,13 +69,10 @@ export function StockMovementsProvider({ children }: { children: ReactNode }) {
       value={{
         stockMovements,
         pagination,
-        selectedStockMovement,
         searchStockMovements,
-        searchStockMovementsForOptions,
-        selectStockMovement,
-        getStockMovementById,
-        createStockMovement,
-        deleteStockMovement,
+        getLocationOptions,
+        searchProductOptions,
+        getVariantOptions,
       }}
     >
       {children}

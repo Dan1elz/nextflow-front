@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ImageOff, PackagePlus, Pencil } from "lucide-react";
+import { History, ImageOff, PackagePlus, Pencil } from "lucide-react";
 
 import { ManualMovementDrawer } from "@/components/app/manual-movement-drawer";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
@@ -123,10 +123,12 @@ function StockTab({
   matrix,
   decimalPlaces,
   onAdjust,
+  onOpenKardex,
 }: {
   matrix: StockMatrixDto | null;
   decimalPlaces: number;
   onAdjust: () => void;
+  onOpenKardex: () => void;
 }) {
   if (!matrix) return <Skeleton className="h-32 w-full" />;
   if (matrix.locations.length === 0 || matrix.rows.length === 0) {
@@ -142,7 +144,11 @@ function StockTab({
     new Set(matrix.locations.map((location) => location.storeName)).size > 1;
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onOpenKardex}>
+          <History data-icon="inline-start" />
+          Movimentações
+        </Button>
         <Button variant="outline" size="sm" onClick={onAdjust}>
           <PackagePlus data-icon="inline-start" />
           Ajuste ou perda
@@ -187,6 +193,13 @@ function StockTab({
                         Reservado {formatNumber(cell.reserved, decimalPlaces)}
                       </span>
                     )}
+                    {/* Mínimo efetivo (do local ou o padrão do produto) e "abaixo" vêm prontos da API (RN-CE33). */}
+                    <span className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                      Mín. {formatNumber(cell.minQuantity, decimalPlaces)}
+                      {cell.isBelowMin && (
+                        <Badge variant="destructive">Abaixo</Badge>
+                      )}
+                    </span>
                   </TableCell>
                 ))}
                 <TableCell className="text-right font-medium">
@@ -505,6 +518,9 @@ function ViewProduct() {
                 matrix={stock}
                 decimalPlaces={product.decimalPlaces}
                 onAdjust={() => setIsAdjusting(true)}
+                onOpenKardex={() =>
+                  navigate(`/stock-movements?productId=${product.id}`)
+                }
               />
             ),
           },

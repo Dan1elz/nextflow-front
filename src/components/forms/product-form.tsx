@@ -9,6 +9,7 @@ import { FormInputField } from "@/components/app/form-input-field";
 import { ImagePicker } from "@/components/app/image-picker";
 import { SearchSelect } from "@/components/app/search-select";
 import { ProductGridSection } from "@/components/forms/product-grid-section";
+import { ProductStockSection } from "@/components/forms/product-stock-section";
 import { ProductSuppliersSection } from "@/components/forms/product-suppliers-section";
 import { ProductVariantsSection } from "@/components/forms/product-variants-section";
 import { Button } from "@/components/ui/button";
@@ -515,6 +516,21 @@ export function ProductForm({
                   )}
                 </Field>
               )}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Estoque</CardTitle>
+            <CardDescription>
+              Abaixo do mínimo, o produto aparece com estoque baixo na listagem.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProductStockSection
+              locations={options.locations}
+              disabled={isSubmitting}
             />
           </CardContent>
         </Card>
