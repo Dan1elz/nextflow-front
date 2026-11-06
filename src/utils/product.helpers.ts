@@ -269,3 +269,11 @@ export const formatPriceRange = (min: number, max: number) =>
   min === max
     ? formatCurrency(min)
     : `${formatCurrency(min)} a ${formatCurrency(max)}`;
+
+/** Abreviação da unidade de venda ao lado da quantidade (T-VD1). */
+export const SALE_UNIT_SHORT: Record<TSaleUnit, string> = {
+  Unit: "un",
+  Kilogram: "kg",
+  Liter: "l",
+  Meter: "m",
+};

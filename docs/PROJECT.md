@@ -75,6 +75,7 @@ src/
 │   ├── use-breadcrumb-path.tsx  # Breadcrumbs automáticos por rota
 │   ├── use-index-search.ts      # Lógica de busca/filtro para páginas de listagem
 │   ├── use-search-options.tsx   # Busca com debounce para SearchSelect (combos)
+│   ├── use-variant-sale-options.tsx # Seletor de venda (T-VD1) e aviso de falta (T-VD1a), sem provider
 │   └── use-[entity].tsx         # 14 hooks de acesso aos contexts
 │
 ├── interfaces/                  # TypeScript Interfaces (14)
