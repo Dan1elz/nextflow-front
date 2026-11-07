@@ -150,10 +150,14 @@ export function SearchSelect<T extends Record<string, unknown>>({
             ]?.toString();
         return itemValue === id || itemValue?.toString() === id?.toString();
       };
-      // A lista da busca muda (ou é limpa) depois da escolha; a opção escolhida continua com o rótulo.
-      return data.find(matches) ?? picked.find(matches);
+      // A lista da busca muda (ou é limpa) depois da escolha; a opção escolhida continua com o rótulo. O valor
+      // posto de fora (ex.: cidade do ViaCEP) chega pelas opções do pai, que a lista interna não copia enquanto
+      // sobra um termo digitado de uma busca anterior.
+      return (
+        data.find(matches) ?? picked.find(matches) ?? initialData.find(matches)
+      );
     },
-    [data, picked, getOptionValue, field, isFieldObject]
+    [data, picked, initialData, getOptionValue, field, isFieldObject]
   );
 
   // Obtém o objeto selecionado (converte ID para objeto se necessário)
@@ -452,6 +456,12 @@ export function SearchSelect<T extends Record<string, unknown>>({
     }
   }, [open]);
 
+  // Fechar descarta o termo: um termo que sobrava impedia a lista de acompanhar as opções do pai.
+  const handleOpenChange = React.useCallback((next: boolean) => {
+    setOpen(next);
+    if (!next) setSearchTerm("");
+  }, []);
+
   // Lida com a busca na API (apenas quando o usuário digita)
   React.useEffect(() => {
     if (!onSearch) return;
@@ -537,7 +547,7 @@ export function SearchSelect<T extends Record<string, unknown>>({
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {label && <FieldLabel>{label}</FieldLabel>}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <div className="relative">
           <PopoverTrigger asChild>
             <Button
