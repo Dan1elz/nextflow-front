@@ -4,6 +4,8 @@ SPA do ERP Nextflow (TCC). Padrão esperado: código de dev pleno em projeto rea
 Responda e documente em português; código em inglês, como já está. Textos de interface em pt-BR.
 
 ## Antes de mexer
+- **Padrão de código: `docs/engineering-guidelines.md`** (camadas, contrato com a API nova, regras do shadcn, checklist).
+  Ele prevalece sobre o resto deste arquivo quando houver diferença. UI: skill `.agents/skills/shadcn/`.
 - Mapa completo do projeto: `docs/PROJECT.md`. Diagramas: `docs/diagramas.md`.
 - Contrato da API de previsão de demanda (IA): `../nextflow/docs/AI_FORECAST_SPEC.md`.
 - A API fica em `../nextflow` (veja o `CLAUDE.md` de lá). Enums em `src/types/enums.ts` espelham o backend.
