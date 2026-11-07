@@ -132,7 +132,7 @@ export default function QuickSalePage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const form = useForm<QuickSaleForm>({ defaultValues: EMPTY_FORM });
-  const { submit, confirmWarning } = useApiForm(form);
+  const { submit, handleSubmit, confirmWarning } = useApiForm(form);
   const items = useFieldArray({ control: form.control, name: "items" });
   const payments = useFieldArray({ control: form.control, name: "payments" });
   const values = useWatch({ control: form.control }) as QuickSaleForm;
@@ -189,7 +189,7 @@ export default function QuickSalePage() {
     });
   };
 
-  const onSubmit = form.handleSubmit(async (formValues) => {
+  const onSubmit = handleSubmit(async (formValues) => {
     if (!storeId) return;
     await submit(async (confirmWarnings) => {
       const order = await quickSaleService.create(

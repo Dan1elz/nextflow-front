@@ -1,5 +1,10 @@
-import { useCallback } from "react";
-import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
+import { useCallback, type BaseSyntheticEvent } from "react";
+import type {
+  FieldValues,
+  Path,
+  SubmitHandler,
+  UseFormReturn,
+} from "react-hook-form";
 import { useConfirmWarning } from "@/hooks/use-confirm-warning";
 import { ApiError } from "@/services/api.service";
 import { handleError } from "@/utils/toast.helpers";
@@ -13,6 +18,8 @@ import { handleError } from "@/utils/toast.helpers";
  * - qualquer outra falha (400, 404, 409, 500): toast com a `message`.
  *
  * `submit(action)` devolve `true` quando a ação terminou sem erro.
+ * `handleSubmit(onValid)` limpa os erros do servidor antes de validar: o RHF guarda o erro de `setError` num campo sem
+ * regra (raiz de field array, como `payments`) e, enquanto ele existe, nunca mais chama o `onValid`.
  */
 export function useApiForm<TValues extends FieldValues>(
   form: UseFormReturn<TValues>
@@ -71,5 +78,13 @@ export function useApiForm<TValues extends FieldValues>(
     [applyFieldErrors, askConfirmation]
   );
 
-  return { submit, confirmWarning };
+  const handleSubmit = useCallback(
+    (onValid: SubmitHandler<TValues>) => (event?: BaseSyntheticEvent) => {
+      form.clearErrors();
+      return form.handleSubmit(onValid)(event);
+    },
+    [form]
+  );
+
+  return { submit, handleSubmit, confirmWarning };
 }
