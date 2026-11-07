@@ -407,6 +407,15 @@ export function PurchaseOrderForm({
                                 </Badge>
                               )}
                             </div>
+                            {/* 422 da API na variação (inativa, repetida): sem campo próprio, aparece na linha. */}
+                            {form.formState.errors.items?.[index]
+                              ?.variantId && (
+                              <FieldError
+                                errors={[
+                                  form.formState.errors.items[index].variantId,
+                                ]}
+                              />
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="min-w-32">
