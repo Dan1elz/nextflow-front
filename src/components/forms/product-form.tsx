@@ -434,8 +434,15 @@ export function ProductForm({
                   label="Vida útil (dias)"
                   inputMode="numeric"
                   className="md:max-w-xs"
+                  description="A data de validade é de cada lote, informada no recebimento da compra ou na entrada manual. A vida útil limita a compra sugerida ao que vende antes de vencer."
                   disabled={isSubmitting}
                 />
+              )}
+              {!tracksLots && productType === TProductType.Perishable && (
+                <p className="text-sm text-amber-600 dark:text-amber-500">
+                  Perecível sem controle de lote não registra validade nem avisa
+                  de vencimento.
+                </p>
               )}
             </FieldGroup>
           </CardContent>
