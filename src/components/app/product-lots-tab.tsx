@@ -29,7 +29,7 @@ function expiryText(lot: LotBalanceDto): string {
 
 /**
  * Aba Lotes do T3 (F1.7): saldo de cada lote por local, do que vence primeiro ao último (a ordem da baixa, FEFO). Vencido
- * e vencendo (janela de alerta da API) ganham selo; a quantidade e os dias vêm prontos da API.
+ * (vermelho) e vencendo (amarelo, janela de alerta da API) ganham selo; a quantidade e os dias vêm prontos da API.
  */
 export function ProductLotsTab({
   lots,
@@ -78,7 +78,12 @@ export function ProductLotsTab({
                 {lot.isExpired ? (
                   <Badge variant="destructive">{expiryText(lot)}</Badge>
                 ) : lot.isExpiringSoon ? (
-                  <Badge variant="secondary">{expiryText(lot)}</Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-amber-200/50 bg-amber-50 text-amber-700 dark:border-amber-800/30 dark:bg-amber-950/30 dark:text-amber-400"
+                  >
+                    {expiryText(lot)}
+                  </Badge>
                 ) : (
                   <span className="text-muted-foreground">
                     {expiryText(lot)}
