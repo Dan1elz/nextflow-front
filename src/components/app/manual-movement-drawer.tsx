@@ -6,7 +6,10 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import type { ManualMovementDto } from "@/interfaces/manual-movement.interface";
+import type {
+  LotOptionDto,
+  ManualMovementDto,
+} from "@/interfaces/manual-movement.interface";
 import type { StockMatrixDto } from "@/interfaces/product.interface";
 import { handleSuccess } from "@/utils/toast.helpers";
 
@@ -15,6 +18,11 @@ interface ManualMovementDrawerProps {
   onOpenChange: (open: boolean) => void;
   matrix: StockMatrixDto;
   decimalPlaces: number;
+  tracksLots: boolean;
+  loadLotOptions: (
+    variantId: string,
+    locationId: string
+  ) => Promise<LotOptionDto[]>;
   onSubmit: (dto: ManualMovementDto) => Promise<void>;
   onSuccess: () => void;
 }
@@ -25,6 +33,8 @@ export function ManualMovementDrawer({
   onOpenChange,
   matrix,
   decimalPlaces,
+  tracksLots,
+  loadLotOptions,
   onSubmit,
   onSuccess,
 }: ManualMovementDrawerProps) {
@@ -43,6 +53,8 @@ export function ManualMovementDrawer({
             <ManualMovementForm
               matrix={matrix}
               decimalPlaces={decimalPlaces}
+              tracksLots={tracksLots}
+              loadLotOptions={loadLotOptions}
               onCancel={() => onOpenChange(false)}
               onSubmit={async (dto) => {
                 await onSubmit(dto);

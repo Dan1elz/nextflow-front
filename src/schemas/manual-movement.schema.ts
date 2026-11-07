@@ -37,6 +37,12 @@ export const manualMovementSchema = z
     type: z.enum(movementTypes, { message: "Escolha entrada ou saída." }),
     quantity: z.string(),
     unitCost: z.string(),
+    /** F1.7: lote existente, "__new" para lote novo ou vazio (saída: baixa pelo que vence primeiro). */
+    lotId: z.string(),
+    newLotCode: z
+      .string()
+      .max(40, "O código do lote deve ter no máximo 40 caracteres."),
+    newLotExpiresOn: z.string(),
     note: z
       .string()
       .max(500, "A observação deve ter no máximo 500 caracteres."),
@@ -57,5 +63,8 @@ export const manualMovementSchema = z
     if (data.reason === TMovementReason.Adjustment && !data.note.trim())
       fail("note", "Informe a observação do ajuste.");
   });
+
+/** Valor do seletor de lote que abre o lote novo (código + validade). */
+export const NEW_LOT = "__new";
 
 export type ManualMovementFormData = z.infer<typeof manualMovementSchema>;
