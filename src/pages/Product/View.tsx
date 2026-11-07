@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { History, ImageOff, PackagePlus, Pencil } from "lucide-react";
 
 import { ManualMovementDrawer } from "@/components/app/manual-movement-drawer";
+import { ProductLotsTab } from "@/components/app/product-lots-tab";
 import { ProductPromotionsTab } from "@/components/app/product-promotions-tab";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ import type {
   ProductResponseDto,
   ProductSupplierResponseDto,
   ProductVariantResponseDto,
+  LotBalanceDto,
   StockMatrixDto,
 } from "@/interfaces/product.interface";
 import { ProductsProvider } from "@/providers/products.provider";
@@ -333,7 +335,7 @@ function PricesTab({ history }: { history: PriceHistoryResponseDto[] }) {
   );
 }
 
-/** T3: só o que já tem dado. Lotes, movimentações e previsão entram nas fatias deles. */
+/** T3: só o que já tem dado. Lotes só para o produto que controla lote (F1.7); movimentações e previsão entram nas fatias deles. */
 function ViewProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -341,12 +343,15 @@ function ViewProduct() {
     getProduct,
     getVariants,
     getStock,
+    getLots,
+    getLotOptions,
     getSuppliers,
     getPriceHistory,
     createManualMovement,
   } = useProducts();
   const { storeId } = useCurrentStore();
   const [stock, setStock] = useState<StockMatrixDto | null>(null);
+  const [lots, setLots] = useState<LotBalanceDto[] | null>(null);
   const [product, setProduct] = useState<ProductResponseDto | null>(null);
   const [variants, setVariants] = useState<ProductVariantResponseDto[]>([]);
   const [suppliers, setSuppliers] = useState<ProductSupplierResponseDto[]>([]);
@@ -380,6 +385,18 @@ function ViewProduct() {
       .catch((error) => handleError(error, "Erro ao carregar o estoque"));
   }, [getStock, id, storeId]);
 
+  // Aba Lotes (F1.7): segue a loja do topo, como a matriz; só para o produto que controla lote.
+  const loadLots = useCallback(() => {
+    if (!id || !product?.tracksLots) return;
+    getLots(id, storeId)
+      .then(setLots)
+      .catch((error) => handleError(error, "Erro ao carregar os lotes"));
+  }, [getLots, id, storeId, product?.tracksLots]);
+
+  useEffect(() => {
+    loadLots();
+  }, [loadLots]);
+
   useEffect(() => {
     loadStock();
   }, [loadStock]);
@@ -388,13 +405,14 @@ function ViewProduct() {
   const reloadAfterMovement = useCallback(() => {
     if (!id) return;
     loadStock();
+    loadLots();
     Promise.all([getProduct(id), getVariants(id)])
       .then(([loadedProduct, loadedVariants]) => {
         setProduct(loadedProduct);
         setVariants(loadedVariants);
       })
       .catch((error) => handleError(error, "Erro ao atualizar o produto"));
-  }, [getProduct, getVariants, id, loadStock]);
+  }, [getProduct, getVariants, id, loadStock, loadLots]);
 
   if (!product) return <Skeleton className="h-96 w-full" />;
 
@@ -536,6 +554,21 @@ function ViewProduct() {
               />
             ),
           },
+          ...(product.tracksLots
+            ? [
+                {
+                  value: "lots",
+                  label: "Lotes",
+                  content: (
+                    <ProductLotsTab
+                      lots={lots}
+                      decimalPlaces={product.decimalPlaces}
+                      hasVariants={product.hasVariants}
+                    />
+                  ),
+                },
+              ]
+            : []),
           {
             value: "suppliers",
             label: "Fornecedores",
@@ -564,6 +597,8 @@ function ViewProduct() {
           onOpenChange={setIsAdjusting}
           matrix={stock}
           decimalPlaces={product.decimalPlaces}
+          tracksLots={product.tracksLots}
+          loadLotOptions={getLotOptions}
           onSubmit={createManualMovement}
           onSuccess={reloadAfterMovement}
         />

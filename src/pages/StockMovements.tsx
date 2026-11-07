@@ -190,6 +190,11 @@ function StockMovements() {
       },
       { accessorKey: "locationName", header: "Local" },
       {
+        accessorKey: "lotCode",
+        header: "Lote",
+        cell: ({ row }) => row.original.lotCode ?? "-",
+      },
+      {
         accessorKey: "reason",
         header: "Motivo",
         cell: ({ row }) => (

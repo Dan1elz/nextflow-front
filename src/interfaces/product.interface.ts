@@ -219,3 +219,19 @@ export interface StockMatrixDto {
   locations: StockMatrixLocationDto[];
   rows: StockMatrixRowDto[];
 }
+
+/** Aba Lotes do T3 (F1.7): saldo de um lote num local; dias para vencer contam de hoje (negativo = vencido). */
+export interface LotBalanceDto {
+  lotId: string;
+  code: string;
+  expiresOn: string;
+  daysToExpire: number;
+  isExpired: boolean;
+  isExpiringSoon: boolean;
+  variantId: string;
+  variantLabel: string;
+  locationId: string;
+  locationName: string;
+  storeName: string;
+  quantity: number;
+}

@@ -50,6 +50,18 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const getLots = useCallback(
+    (id: string, storeId?: string | null) =>
+      productService.lots(id, storeId, auth),
+    [auth]
+  );
+
+  const getLotOptions = useCallback(
+    (variantId: string, locationId: string) =>
+      manualMovementService.lotOptions(variantId, locationId, auth),
+    [auth]
+  );
+
   const getSuppliers = useCallback(
     (id: string) => productService.suppliers(id, auth),
     [auth]
@@ -118,6 +130,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         getProduct,
         getVariants,
         getStock,
+        getLots,
+        getLotOptions,
         getSuppliers,
         getPriceHistory,
         getForm,

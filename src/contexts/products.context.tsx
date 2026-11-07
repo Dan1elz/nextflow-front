@@ -1,7 +1,10 @@
 import { createContext } from "react";
 
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
-import type { ManualMovementDto } from "@/interfaces/manual-movement.interface";
+import type {
+  LotOptionDto,
+  ManualMovementDto,
+} from "@/interfaces/manual-movement.interface";
 import type {
   ProductFormDto,
   PriceHistoryResponseDto,
@@ -10,6 +13,7 @@ import type {
   ProductResponseDto,
   ProductSupplierResponseDto,
   ProductVariantResponseDto,
+  LotBalanceDto,
   StockMatrixDto,
 } from "@/interfaces/product.interface";
 import type { TLifecycle } from "@/types/enums";
@@ -21,6 +25,13 @@ export type ProductsContextType = {
   getProduct: (id: string) => Promise<ProductResponseDto>;
   getVariants: (id: string) => Promise<ProductVariantResponseDto[]>;
   getStock: (id: string, storeId?: string | null) => Promise<StockMatrixDto>;
+  /** Aba Lotes (F1.7). */
+  getLots: (id: string, storeId?: string | null) => Promise<LotBalanceDto[]>;
+  /** Lotes da variação com o saldo no local, para o ajuste (F1.7). */
+  getLotOptions: (
+    variantId: string,
+    locationId: string
+  ) => Promise<LotOptionDto[]>;
   getSuppliers: (id: string) => Promise<ProductSupplierResponseDto[]>;
   getPriceHistory: (id: string) => Promise<PriceHistoryResponseDto[]>;
   getForm: (id?: string) => Promise<ProductFormDto>;

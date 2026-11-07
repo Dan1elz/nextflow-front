@@ -8,6 +8,7 @@ import type {
   ProductResponseDto,
   ProductSupplierResponseDto,
   ProductVariantResponseDto,
+  LotBalanceDto,
   StockMatrixDto,
 } from "@/interfaces/product.interface";
 import type { TLifecycle } from "@/types/enums";
@@ -42,6 +43,19 @@ class ProductService extends BaseService<
   ): Promise<StockMatrixDto> {
     return this.apiService.get<StockMatrixDto>(
       `${this.endpoint}/${id}/stock`,
+      storeId ? { storeId } : undefined,
+      token
+    );
+  }
+
+  /** Aba Lotes (F1.7): sem `storeId`, todas as lojas ativas. */
+  lots(
+    id: string,
+    storeId?: string | null,
+    token?: string
+  ): Promise<LotBalanceDto[]> {
+    return this.apiService.get<LotBalanceDto[]>(
+      `${this.endpoint}/${id}/lots`,
       storeId ? { storeId } : undefined,
       token
     );
