@@ -27,10 +27,7 @@ import CreateSupplierPageWrapper from "@/pages/Supplier/Create";
 import EditSupplierPageWrapper from "@/pages/Supplier/Edit";
 import ViewSupplierPageWrapper from "@/pages/Supplier/View";
 import StockMovementsPageWrapper from "@/pages/StockMovements";
-import OrdersPageWrapper from "@/pages/Orders";
-import CreateOrderPageWrapper from "@/pages/Order/Create";
-import EditOrderPageWrapper from "@/pages/Order/Edit";
-import ViewOrderPageWrapper from "@/pages/Order/View";
+import OrdersPendingPage from "@/pages/Order/Pending";
 import PurchaseOrdersPageWrapper from "@/pages/PurchaseOrders";
 import CreatePurchaseOrderPageWrapper from "@/pages/PurchaseOrder/Create";
 import EditPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/Edit";
@@ -108,10 +105,8 @@ function AppRoutes() {
         <Route path="stock-movements" element={<StockMovementsPageWrapper />} />
 
         <Route path="sales/quick" element={<QuickSalePage />} />
-        <Route path="orders" element={<OrdersPageWrapper />} />
-        <Route path="orders/create" element={<CreateOrderPageWrapper />} />
-        <Route path="orders/:id/edit" element={<EditOrderPageWrapper />} />
-        <Route path="orders/:id/view" element={<ViewOrderPageWrapper />} />
+        {/* Pedidos e orçamentos (F2.5) ainda sem endpoint na API v2: todas as rotas mostram o aviso. */}
+        <Route path="orders/*" element={<OrdersPendingPage />} />
 
         <Route path="purchase-orders" element={<PurchaseOrdersPageWrapper />} />
         <Route

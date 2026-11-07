@@ -290,7 +290,7 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Calendar Events | `/calendar-events` | dialog              | dialog                | —                     |
 | Products        | `/products`        | `/products/create`  | `/products/:id/edit`  | `/products/:id/view`  |
 | Kardex (T8)     | `/stock-movements` | —                   | —                     | —                     |
-| Orders          | `/orders`          | `/orders/create`    | `/orders/:id/edit`    | `/orders/:id/view`    |
+| Orders          | `/orders/*` mostra "em breve" (`pages/Order/Pending.tsx`) até a F2.5; telas legadas fora das rotas e do menu | — | — | — |
 | Purchase Orders | `/purchase-orders` | —                   | —                     | —                     |
 | Forecast (IA)   | `/forecast`        | —                   | —                     | —                     |
 | Promotions      | `/promotions`      | —                   | —                     | —                     |
