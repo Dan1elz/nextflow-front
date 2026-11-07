@@ -136,26 +136,38 @@ export default function QuickSalePage() {
   const items = useFieldArray({ control: form.control, name: "items" });
   const payments = useFieldArray({ control: form.control, name: "payments" });
   const values = useWatch({ control: form.control }) as QuickSaleForm;
-  const previewKey = useDebounce(JSON.stringify(values), 300);
   const hasCash = values.payments?.some(
     (payment) => payment.method === TPaymentMethod.Cash
   );
 
+  // Uma prévia por mudança consolidada: a chave é o corpo que a API recebe (nomes e rótulos não contam), só sai com o
+  // carrinho em estado válido (quantidade digitada pela metade não vira 422) e a anterior é cancelada se outra chegar.
+  const previewBody = useMemo(() => {
+    if (!storeId || !values.items?.length) return "";
+    const dto = toDto(values, storeId);
+    const valid = dto.items.every(
+      (item) => item.quantity > 0 && item.discount >= 0
+    );
+    if (!valid) return "";
+    dto.payments = dto.payments.filter((payment) => payment.amount > 0);
+    return JSON.stringify(dto);
+  }, [values, storeId]);
+  const previewKey = useDebounce(previewBody, 400);
+
   useEffect(() => {
-    if (!storeId || !token) return;
-    const current = JSON.parse(previewKey) as QuickSaleForm;
-    // Carrinho vazio: o rodapé usa `preview` só quando há itens (ver `preview` abaixo).
-    if (!current.items?.length) return;
-    let active = true;
+    if (!previewKey || !token) return;
+    const controller = new AbortController();
     quickSaleService
-      .preview(toDto(current, storeId), token)
-      .then((result) => active && setPreview(result))
-      // Linha inválida no meio da digitação: o rodapé some e o erro aparece ao concluir.
-      .catch(() => active && setPreview(null));
-    return () => {
-      active = false;
-    };
-  }, [previewKey, storeId, token]);
+      .preview(JSON.parse(previewKey) as QuickSaleDto, token, controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setPreview(result);
+      })
+      // Linha recusada pela API: o rodapé some e o erro aparece ao concluir.
+      .catch(() => {
+        if (!controller.signal.aborted) setPreview(null);
+      });
+    return () => controller.abort();
+  }, [previewKey, token]);
 
   const preview = values.items?.length ? loadedPreview : null;
 

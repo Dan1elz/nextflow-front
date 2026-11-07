@@ -11,7 +11,8 @@ const apiService = new ApiService();
 export const saleOptionService = {
   getVariantOptions(
     params: VariantSaleOptionsParams,
-    token?: string
+    token?: string,
+    signal?: AbortSignal
   ): Promise<VariantSaleOptionDto[]> {
     return apiService.get<VariantSaleOptionDto[]>(
       "sales/variant-options",
@@ -21,7 +22,8 @@ export const saleOptionService = {
         locationId: params.locationId,
         limit: params.limit,
       },
-      token
+      token,
+      signal
     );
   },
 

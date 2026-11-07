@@ -13,11 +13,18 @@ export const quickSaleService = {
     return apiService.post<OrderDetailDto>("sales/quick", dto, token);
   },
 
-  preview(dto: QuickSaleDto, token?: string): Promise<QuickSalePreviewDto> {
+  /** `signal` cancela a prévia anterior quando o carrinho muda de novo antes da resposta. */
+  preview(
+    dto: QuickSaleDto,
+    token?: string,
+    signal?: AbortSignal
+  ): Promise<QuickSalePreviewDto> {
     return apiService.post<QuickSalePreviewDto>(
       "sales/quick/preview",
       dto,
-      token
+      token,
+      false,
+      signal
     );
   },
 };

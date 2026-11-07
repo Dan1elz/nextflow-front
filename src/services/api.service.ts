@@ -125,7 +125,8 @@ export class ApiService {
     body?: unknown,
     token?: string,
     params?: QueryParams,
-    isFormData?: boolean
+    isFormData?: boolean,
+    signal?: AbortSignal
   ): Promise<T> {
     let response: Response;
     try {
@@ -137,8 +138,11 @@ export class ApiService {
           : body !== undefined
             ? JSON.stringify(body)
             : undefined,
+        signal,
       });
-    } catch {
+    } catch (error) {
+      // Cancelada por quem chamou (AbortController): não é falha de rede, o chamador ignora.
+      if (signal?.aborted) throw error;
       throw new ApiError(
         0,
         "Não foi possível falar com o servidor. Verifique a conexão."
@@ -170,17 +174,31 @@ export class ApiService {
     return content as T;
   }
 
-  public get<T>(uri: string, params?: QueryParams, token?: string) {
-    return this.request<T>("GET", uri, undefined, token, params);
+  public get<T>(
+    uri: string,
+    params?: QueryParams,
+    token?: string,
+    signal?: AbortSignal
+  ) {
+    return this.request<T>("GET", uri, undefined, token, params, false, signal);
   }
 
   public post<T>(
     uri: string,
     body: unknown,
     token?: string,
-    isFormData?: boolean
+    isFormData?: boolean,
+    signal?: AbortSignal
   ) {
-    return this.request<T>("POST", uri, body, token, undefined, isFormData);
+    return this.request<T>(
+      "POST",
+      uri,
+      body,
+      token,
+      undefined,
+      isFormData,
+      signal
+    );
   }
 
   public put<T>(

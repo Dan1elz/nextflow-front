@@ -64,7 +64,8 @@ export function VariantSalePicker({
   const [shortage, setShortage] = useState<VariantSaleOptionDto | null>(null);
   const { storeId, options, term, isLoading } = useVariantSaleOptions(
     search,
-    locationId
+    locationId,
+    open
   );
 
   const choose = (option: VariantSaleOptionDto) => {

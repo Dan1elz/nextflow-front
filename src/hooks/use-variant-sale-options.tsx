@@ -16,12 +16,34 @@ interface LoadedOptions {
   items: VariantSaleOptionDto[];
 }
 
+/** Respostas recentes por loja, local e termo: reabrir a busca ou repetir um termo não volta à API por 30 s. */
+const CACHE_TTL_MS = 30_000;
+const optionsCache = new Map<
+  string,
+  { at: number; items: VariantSaleOptionDto[] }
+>();
+
+const readCache = (key: string) => {
+  const hit = optionsCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > CACHE_TTL_MS) {
+    optionsCache.delete(key);
+    return null;
+  }
+  return hit.items;
+};
+
 /**
  * Opções do seletor de venda (T-VD1) da loja do topo, com a busca debounced. Sem loja selecionada (visão de todas), não
- * busca: a venda sempre nasce numa loja. `term` é a busca a que `options` responde, para o Enter do leitor saber se a
- * lista já é a do código digitado.
+ * busca: a venda sempre nasce numa loja. Só busca com `enabled` (lista aberta), usa o cache curto e cancela a busca
+ * anterior quando o termo muda. `term` é a busca a que `options` responde, para o Enter do leitor saber se a lista já é
+ * a do código digitado.
  */
-export function useVariantSaleOptions(search: string, locationId?: string) {
+export function useVariantSaleOptions(
+  search: string,
+  locationId?: string,
+  enabled = true
+) {
   const { token } = useAuth();
   const { storeId } = useCurrentStore();
   const term = useDebounce(search.trim(), 250);
@@ -29,32 +51,43 @@ export function useVariantSaleOptions(search: string, locationId?: string) {
   const [loaded, setLoaded] = useState<LoadedOptions | null>(null);
 
   useEffect(() => {
-    if (!storeId) return;
-    let ignore = false;
+    if (!storeId || !enabled) return;
+    const hit = readCache(key);
+    if (hit) {
+      // Fixa a resposta do cache no estado (fora do render): ela continua valendo depois de o cache expirar.
+      let ignore = false;
+      queueMicrotask(() => !ignore && setLoaded({ key, term, items: hit }));
+      return () => {
+        ignore = true;
+      };
+    }
+    const controller = new AbortController();
     saleOptionService
       .getVariantOptions(
         { search: term, storeId, locationId },
-        token ?? undefined
+        token ?? undefined,
+        controller.signal
       )
       .then((items) => {
-        if (!ignore) setLoaded({ key, term, items });
+        optionsCache.set(key, { at: Date.now(), items });
+        if (!controller.signal.aborted) setLoaded({ key, term, items });
       })
       .catch((error) => {
-        if (ignore) return;
+        if (controller.signal.aborted) return;
         handleError(error, "Erro ao buscar produtos");
         setLoaded({ key, term, items: [] });
       });
-    return () => {
-      ignore = true;
-    };
-  }, [key, storeId, locationId, term, token]);
+    return () => controller.abort();
+  }, [key, storeId, locationId, term, token, enabled]);
 
-  const isCurrent = loaded?.key === key;
+  // Termo já buscado há pouco: responde do cache, sem esperar o efeito.
+  const cached = loaded?.key === key ? null : readCache(key);
+  const isCurrent = loaded?.key === key || !!cached;
   return {
     storeId,
-    options: loaded?.items ?? [],
-    term: loaded?.term ?? "",
-    isLoading: !!storeId && (!isCurrent || search.trim() !== term),
+    options: cached ?? loaded?.items ?? [],
+    term: cached ? term : (loaded?.term ?? ""),
+    isLoading: !!storeId && enabled && (!isCurrent || search.trim() !== term),
   };
 }
 
