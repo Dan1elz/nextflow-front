@@ -48,7 +48,9 @@ const sourceOptions: IOption[] = Object.values(TSourceType).map((source) => ({
 
 /** Quantidades do kardex: até 3 casas, sem zeros sobrando ("12", "2,5"). */
 const formatQuantity = (value: number) =>
-  formatNumber(value, Number.isInteger(value) ? 0 : 3).replace(/,?0+$/, "");
+  Number.isInteger(value)
+    ? formatNumber(value, 0)
+    : formatNumber(value, 3).replace(/0+$/, "").replace(/,$/, "");
 
 const signed = (value: number) =>
   value > 0 ? `+${formatQuantity(value)}` : formatQuantity(value);
