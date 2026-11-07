@@ -213,7 +213,10 @@ export function PurchaseOrderForm({
           suggestion.minOrderQty ?? suggestion.orderMultiple ?? null
         ),
         unitCost: toInput(
-          suggestion.lastCostFromSupplier ?? suggestion.averageCost ?? null
+          suggestion.lastCostFromSupplier ??
+            suggestion.lastCost ??
+            suggestion.averageCost ??
+            null
         ),
       });
       form.clearErrors("items");

@@ -166,7 +166,7 @@ export interface ProductImageResponseDto {
   imageUrl?: string | null;
 }
 
-/** Aba Fornecedores do T3. `leadTimeDays` é o efetivo; `lastCost` e `lastPurchaseOn` ficam nulos até a F2.8. */
+/** Aba Fornecedores do T3. `leadTimeDays` é o efetivo; `lastCost` vem do último recebimento; `lastPurchaseOn` segue nulo. */
 export interface ProductSupplierResponseDto {
   supplierId: string;
   supplierName: string;

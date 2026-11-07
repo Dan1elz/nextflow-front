@@ -56,6 +56,7 @@ export interface PurchaseItemSuggestionDto {
   minOrderQty?: number | null;
   orderMultiple?: number | null;
   lastCostFromSupplier?: number | null;
+  lastCost?: number | null;
   averageCost?: number | null;
   availableAtStore: number;
   incomingQuantity: number;
