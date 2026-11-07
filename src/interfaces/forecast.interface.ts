@@ -6,7 +6,12 @@ import type {
   TLegacyRecommendationStatus,
   TUnitType,
 } from "@/types/enums";
-import type { IPurchaseOrder } from "./purchase-order.interface";
+/** Pedido devolvido pela API antiga ao aplicar Comprar; a F3.4 troca pelo `PurchaseOrderDetailDto`. */
+interface ILegacyAppliedPurchaseOrder {
+  id?: string;
+  supplier?: { name?: string };
+  totalAmount?: number | string;
+}
 
 export interface IForecastRunCounts {
   buy: number;
@@ -131,7 +136,7 @@ export interface IApplyPurchaseRequest {
 
 /** `ApplyPurchaseResultDto` */
 export interface IApplyPurchaseResult {
-  purchaseOrders: IPurchaseOrder[];
+  purchaseOrders: ILegacyAppliedPurchaseOrder[];
   recommendations: IForecastRecommendation[];
 }
 

@@ -1,82 +1,102 @@
-import { useState, useCallback, type ReactNode } from "react";
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
-import { useAuth } from "@/hooks/use-auth";
-import type {
-  IPurchaseOrder,
-  ICreatePurchaseOrder,
-  IUpdatePurchaseOrder,
-} from "@/interfaces/purchase-order.interface";
+import { useCallback, useState, type ReactNode } from "react";
+
 import { PurchaseOrdersContext } from "@/contexts/purchase-orders.context";
+import { useAuth } from "@/hooks/use-auth";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type {
+  PurchaseOrderListItemDto,
+  SavePurchaseOrderDto,
+} from "@/interfaces/purchase-order.interface";
 import { purchaseOrderService } from "@/services/purchase-order.service";
+import { storeService } from "@/services/store.service";
+import { supplierService } from "@/services/supplier.service";
 
 export function PurchaseOrdersProvider({ children }: { children: ReactNode }) {
-  const [purchaseOrders, setPurchaseOrders] = useState<IPurchaseOrder[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<
+    PurchaseOrderListItemDto[]
+  >([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
-  const [selectedPurchaseOrder, setSelectedPurchaseOrder] =
-    useState<IPurchaseOrder | null>(null);
   const { token } = useAuth();
+  const { storeId } = useCurrentStore();
+  const auth = token ?? undefined;
 
   const searchPurchaseOrders = useCallback(
     async (query?: IIndexParams) => {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
-
-      const response = await purchaseOrderService.getAll(
-        query,
-        token ?? undefined
-      );
+      const response = await purchaseOrderService.getAll(query, storeId, auth);
       setPurchaseOrders(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
-        total: response.total || 0,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
-    [token]
+    [auth, storeId]
   );
 
-  const selectPurchaseOrder = useCallback(
-    async (id: string): Promise<void> => {
-      const data = await purchaseOrderService.getById(id, token ?? undefined);
-      setSelectedPurchaseOrder(data);
-    },
-    [token]
+  const getPurchaseOrder = useCallback(
+    (id: string) => purchaseOrderService.getById(id, auth),
+    [auth]
   );
 
-  const getPurchaseOrderById = useCallback(
-    async (id: string): Promise<IPurchaseOrder> => {
-      return purchaseOrderService.getById(id, token ?? undefined);
-    },
-    [token]
+  const getPurchaseOrderForm = useCallback(
+    (id: string) => purchaseOrderService.getForm(id, auth),
+    [auth]
   );
 
   const createPurchaseOrder = useCallback(
-    async (purchaseOrder: ICreatePurchaseOrder): Promise<IPurchaseOrder> => {
-      return await purchaseOrderService.create(
-        purchaseOrder as Partial<IPurchaseOrder>,
-        token ?? undefined
-      );
-    },
-    [token]
+    (dto: SavePurchaseOrderDto) => purchaseOrderService.create(dto, auth),
+    [auth]
   );
 
   const updatePurchaseOrder = useCallback(
-    async (id: string, data: IUpdatePurchaseOrder): Promise<IPurchaseOrder> => {
-      return await purchaseOrderService.update(
-        id,
-        data as unknown as IPurchaseOrder,
-        token ?? undefined
-      );
-    },
-    [token]
+    (id: string, dto: SavePurchaseOrderDto) =>
+      purchaseOrderService.update(id, dto, auth),
+    [auth]
   );
 
-  const deletePurchaseOrder = useCallback(
-    async (id: string): Promise<void> => {
-      await purchaseOrderService.deletePurchaseOrder(id, token ?? undefined);
-    },
-    [token]
+  const sendPurchaseOrder = useCallback(
+    (id: string, version: number) =>
+      purchaseOrderService.send(id, version, auth),
+    [auth]
+  );
+
+  const cancelPurchaseOrder = useCallback(
+    (id: string, version: number, reason: string) =>
+      purchaseOrderService.cancel(id, version, reason, auth),
+    [auth]
+  );
+
+  const getItemSuggestion = useCallback(
+    (supplierId: string, variantId: string, store: string) =>
+      purchaseOrderService.itemSuggestion(supplierId, variantId, store, auth),
+    [auth]
+  );
+
+  const searchVariantOptions = useCallback(
+    (supplierId: string, search: string, onlyLinked: boolean) =>
+      purchaseOrderService.variantOptions(supplierId, search, onlyLinked, auth),
+    [auth]
+  );
+
+  const searchSupplierOptions = useCallback(
+    (search: string) => supplierService.options(search, auth),
+    [auth]
+  );
+
+  const getLocationOptions = useCallback(
+    () => purchaseOrderService.locationOptions(auth),
+    [auth]
+  );
+
+  const getDefaultReceiveLocationId = useCallback(
+    async (store: string) =>
+      (await storeService.getById(store, auth)).defaultReceiveLocationId ??
+      null,
+    [auth]
   );
 
   return (
@@ -84,13 +104,18 @@ export function PurchaseOrdersProvider({ children }: { children: ReactNode }) {
       value={{
         purchaseOrders,
         pagination,
-        selectedPurchaseOrder,
         searchPurchaseOrders,
-        selectPurchaseOrder,
-        getPurchaseOrderById,
+        getPurchaseOrder,
+        getPurchaseOrderForm,
         createPurchaseOrder,
         updatePurchaseOrder,
-        deletePurchaseOrder,
+        sendPurchaseOrder,
+        cancelPurchaseOrder,
+        getItemSuggestion,
+        searchVariantOptions,
+        searchSupplierOptions,
+        getLocationOptions,
+        getDefaultReceiveLocationId,
       }}
     >
       {children}

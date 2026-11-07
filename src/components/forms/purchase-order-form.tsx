@@ -1,1048 +1,634 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Plus,
-  Minus,
-  Trash2,
-  ArrowLeft,
-  Package,
-  PackagePlus,
-  Check,
-  Ban,
-  PackageCheck,
-  RotateCcw,
-  ClipboardList,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PackagePlus, Trash2 } from "lucide-react";
 
+import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
+import { SearchSelect } from "@/components/app/search-select";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-  CardDescription,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-
-import { SearchSelect } from "@/components/app/search-select";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import { formatCurrency, generateUUID } from "@/utils";
-
+import { useApiForm } from "@/hooks/use-api-form";
+import { useDebounce } from "@/hooks/use-debounce";
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
-import { useSuppliers } from "@/hooks/use-suppliers";
-import { useLegacyProducts } from "@/hooks/use-legacy-products";
-import { useCategories } from "@/hooks/use-categories";
-import { useSearchOptions } from "@/hooks/use-search-options";
-import { ProductForm } from "@/components/forms/legacy-product-form";
-import type { ProductSchema } from "@/schemas/legacy-product.schema";
-import type { ICategory } from "@/interfaces/category.interface";
-
-import type { SupplierOption } from "@/interfaces/supplier.interface";
-import type { IProduct } from "@/interfaces/legacy-product.interface";
-import type {
-  IPurchaseOrder,
-  ICreatePurchaseOrder,
-  IUpdatePurchaseOrder,
-} from "@/interfaces/purchase-order.interface";
-import {
-  LEGACY_PURCHASE_STATUS_LABELS,
-  TLegacyPurchaseStatus,
-} from "@/types/enums";
-import { API_URL } from "@/configs/api";
 import type { IOption } from "@/interfaces/api.interface";
-
-type CartItem = {
-  id: string;
-  product: IProduct;
-  quantity: number;
-  discount: number;
-  costPrice: number;
-};
-
-type PurchaseOrderFormMode = "create" | "edit" | "view";
+import type {
+  PurchaseItemSuggestionDto,
+  PurchaseOrderFormDto,
+  PurchaseVariantOptionDto,
+  SavePurchaseOrderDto,
+} from "@/interfaces/purchase-order.interface";
+import type { LocationOptionDto } from "@/interfaces/store.interface";
+import { parsePrice } from "@/schemas/product.schema";
+import {
+  purchaseOrderSchema,
+  type PurchaseOrderFormData,
+} from "@/schemas/purchase-order.schema";
+import { LIFECYCLE_LABELS, SALE_UNIT_LABELS, TLifecycle } from "@/types/enums";
+import {
+  formatCurrency,
+  formatDateOnly,
+  formatNumber,
+} from "@/utils/format.helpers";
+import { handleError } from "@/utils/toast.helpers";
 
 interface PurchaseOrderFormProps {
-  mode?: PurchaseOrderFormMode;
-  purchaseOrderId?: string;
+  mode: "create" | "edit";
+  /** Loja selecionada no topo: define o local de entrega padrão na criação. */
+  storeId: string | null;
+  initialData?: PurchaseOrderFormDto | null;
+  onSubmit: (dto: SavePurchaseOrderDto) => Promise<void>;
 }
 
-const CANCEL_REASON_OPTIONS = [
-  "Fornecedor não entregou",
-  "Produto indisponível",
-  "Erro no pedido",
-  "Pedido duplicado",
-  "Preço divergente",
-];
+const toInput = (value?: number | null) =>
+  value == null ? "" : String(value).replace(".", ",");
 
+const variantName = (item: { productName: string; variantLabel: string }) =>
+  item.variantLabel
+    ? `${item.productName} · ${item.variantLabel}`
+    : item.productName;
+
+/** Pedido de compra (T-CP2): cabeçalho, itens por variação e aviso de confirmação (mínimo, múltiplo, fora de linha). */
 export function PurchaseOrderForm({
-  mode = "create",
-  purchaseOrderId,
+  mode,
+  storeId,
+  initialData,
+  onSubmit,
 }: PurchaseOrderFormProps) {
-  const navigate = useNavigate();
   const {
-    createPurchaseOrder,
-    updatePurchaseOrder,
-    getPurchaseOrderById,
-    deletePurchaseOrder,
+    searchSupplierOptions,
+    getLocationOptions,
+    getDefaultReceiveLocationId,
+    getItemSuggestion,
+    searchVariantOptions,
   } = usePurchaseOrders();
-  const { searchSuppliersForOptions, getSupplierById } = useSuppliers();
-  const { searchProductsForOptions, getProductById, createProduct } =
-    useLegacyProducts();
-  const { searchCategoriesForOptions, getCategoryById } = useCategories();
 
-  const isView = mode === "view";
-  const isEdit = mode === "edit";
-  const isCreate = mode === "create";
-
-  // Purchase Order Info
-  const [supplierId, setSupplierId] = useState<string>("");
-  const [note, setNote] = useState<string>("");
-  const [purchaseStatus, setPurchaseStatus] = useState<number>(
-    TLegacyPurchaseStatus.Budget
-  );
-  const [loadedOrder, setLoadedOrder] = useState<IPurchaseOrder | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Cart Management
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-
-  // Mini-form state for adding product
-  const [selectedProductId, setSelectedProductId] = useState<string>("");
-  const [selectedProductData, setSelectedProductData] =
-    useState<IProduct | null>(null);
-  const [inputQuantity, setInputQuantity] = useState<number>(1);
-  const [inputDiscount, setInputDiscount] = useState<number>(0);
-  const [inputCostPrice, setInputCostPrice] = useState<number>(0);
-
-  // Cancel modal
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showReceiveModal, setShowReceiveModal] = useState(false);
-  const [actionReason, setActionReason] = useState("");
-
-  // New product dialog
-  const [showNewProductDialog, setShowNewProductDialog] = useState(false);
-  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
-
-  // Search options
-  const { options: supplierOptions, handleSearch: handleSearchSuppliers } =
-    useSearchOptions<SupplierOption>({
-      searchFn: searchSuppliersForOptions,
-      mapFn: (supplier) => ({
-        value: supplier.id ?? "",
-        label: supplier.name || "Fornecedor",
-      }),
-      selectFn: getSupplierById,
-      errorLabel: "fornecedores",
-      autoLoad: false,
-      perPage: 50,
-    });
-
-  const productFilters = useMemo(
-    () => (supplierId ? { supplierId } : ({} as Record<string, string>)),
-    [supplierId]
-  );
-
-  const { options: productOptions, handleSearch: handleSearchProducts } =
-    useSearchOptions<IProduct>({
-      searchFn: searchProductsForOptions,
-      mapFn: (prod) => ({
-        value: prod.id ?? "",
-        label: `${prod.productCode} - ${prod.name}`,
-      }),
-      selectFn: async (id) => {
-        const prod = await getProductById(id);
-        setSelectedProductData(prod);
-        return prod;
-      },
-      errorLabel: "produtos",
-      autoLoad: false,
-      perPage: 50,
-      initialFilters: productFilters,
-      enabled: !!supplierId,
-    });
-
-  const { options: categoryOptions, handleSearch: handleSearchCategories } =
-    useSearchOptions<ICategory>({
-      searchFn: searchCategoriesForOptions,
-      mapFn: (c) => ({
-        value: c.id ?? "",
-        label: c.description || "Categoria",
-      }),
-      selectFn: getCategoryById,
-      errorLabel: "categorias",
-      autoLoad: false,
-      perPage: 50,
-    });
-
-  // Load existing purchase order for edit/view
-  useEffect(() => {
-    if ((isEdit || isView) && purchaseOrderId) {
-      setLoading(true);
-      getPurchaseOrderById(purchaseOrderId)
-        .then(async (order) => {
-          setLoadedOrder(order);
-          setSupplierId(order.supplierId);
-          setNote(order.note ?? "");
-          setPurchaseStatus(order.status ?? TLegacyPurchaseStatus.Budget);
-
-          // Map items to cart items
-          if (order.items && order.items.length > 0) {
-            const items: CartItem[] = [];
-            for (const pi of order.items) {
-              let product: IProduct;
-              if (pi.product) {
-                product = pi.product;
-              } else {
-                product = await getProductById(pi.productId);
-              }
-              items.push({
-                id: pi.id ?? generateUUID(),
-                product,
-                quantity: Number(pi.quantity),
-                discount: Number(pi.discount),
-                costPrice: Number(pi.costPrice),
-              });
-            }
-            setCartItems(items);
-          }
-        })
-        .catch((err) => handleError(err, "Erro ao carregar pedido de compra"))
-        .finally(() => setLoading(false));
-    }
-  }, [isEdit, isView, purchaseOrderId, getPurchaseOrderById, getProductById]);
-
-  const handleProductSelect = useCallback(
-    async (val: string | number | boolean | undefined) => {
-      const id = String(val ?? "");
-      setSelectedProductId(id);
-      if (!id) {
-        setSelectedProductData(null);
-      } else {
-        const prod = await getProductById(id);
-        setSelectedProductData(prod);
-        setInputCostPrice(Number(prod.price || 0));
-      }
-      setInputQuantity(1);
-      setInputDiscount(0);
+  const form = useForm<PurchaseOrderFormData>({
+    resolver: zodResolver(purchaseOrderSchema),
+    defaultValues: {
+      supplierId: initialData?.supplierId ?? "",
+      receiveLocationId: initialData?.receiveLocationId ?? "",
+      note: initialData?.note ?? "",
+      items:
+        initialData?.items.map((item) => ({
+          id: item.id,
+          variantId: item.variantId,
+          quantity: toInput(item.quantity),
+          unitCost: toInput(item.unitCost),
+        })) ?? [],
     },
-    [getProductById]
+  });
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "items",
+  });
+  const { submit, confirmWarning } = useApiForm(form);
+  const { isSubmitting } = form.formState;
+  const supplierId = useWatch({ control: form.control, name: "supplierId" });
+  const receiveLocationId = useWatch({
+    control: form.control,
+    name: "receiveLocationId",
+  });
+
+  const [suggestions, setSuggestions] = useState<
+    Record<string, PurchaseItemSuggestionDto>
+  >(() =>
+    Object.fromEntries(
+      (initialData?.items ?? []).map((item) => [item.variantId, item])
+    )
+  );
+  const [supplierOptions, setSupplierOptions] = useState<IOption[]>(
+    initialData
+      ? [{ value: initialData.supplierId, label: initialData.supplierName }]
+      : []
+  );
+  const [locations, setLocations] = useState<LocationOptionDto[]>(
+    initialData?.options.locations ?? []
   );
 
-  const handleAddToCart = () => {
-    if (!selectedProductId || !selectedProductData) {
-      handleError(new Error("Selecione um produto primeiro."), "");
-      return;
-    }
-    if (inputQuantity <= 0) {
-      handleError(new Error("A quantidade deve ser maior que zero."), "");
-      return;
-    }
-    if (inputDiscount < 0) {
-      handleError(new Error("Desconto não pode ser negativo."), "");
-      return;
-    }
-    if (inputCostPrice <= 0) {
-      handleError(new Error("O custo unitário deve ser maior que zero."), "");
-      return;
-    }
-
-    setCartItems((prev) => {
-      const existing = prev.find(
-        (i) => i.product.id === selectedProductData.id
-      );
-      if (existing) {
-        return prev.map((i) =>
-          i.product.id === selectedProductData.id
-            ? {
-                ...i,
-                quantity: i.quantity + inputQuantity,
-                discount: i.discount + inputDiscount,
-              }
-            : i
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: generateUUID(),
-          product: selectedProductData,
-          quantity: inputQuantity,
-          discount: inputDiscount,
-          costPrice: inputCostPrice,
-        },
-      ];
-    });
-
-    setSelectedProductId("");
-    setSelectedProductData(null);
-    setInputQuantity(1);
-    setInputDiscount(0);
-    setInputCostPrice(0);
-  };
-
-  const updateCartItemQuantity = (id: string, delta: number) => {
-    setCartItems((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const newQ = Math.max(1, item.quantity + delta);
-          return { ...item, quantity: newQ };
-        }
-        return item;
+  useEffect(() => {
+    if (initialData) return;
+    getLocationOptions()
+      .then(setLocations)
+      .catch((error) => handleError(error, "Erro ao buscar locais"));
+    if (!storeId) return;
+    getDefaultReceiveLocationId(storeId)
+      .then((id) => {
+        if (id && !form.getValues("receiveLocationId"))
+          form.setValue("receiveLocationId", id);
       })
+      .catch(() => undefined);
+  }, [
+    form,
+    getDefaultReceiveLocationId,
+    getLocationOptions,
+    initialData,
+    storeId,
+  ]);
+
+  const deliveryStoreId = useMemo(
+    () => locations.find((l) => l.id === receiveLocationId)?.storeId ?? storeId,
+    [locations, receiveLocationId, storeId]
+  );
+
+  const searchSuppliers = async (term: string) => {
+    const options: IOption[] = (await searchSupplierOptions(term)).map(
+      (option) => ({ ...option })
     );
+    setSupplierOptions(options);
+    return options;
   };
 
-  const removeCartItem = (id: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const calculateTotals = useMemo(() => {
-    let subtotal = 0;
-    let totalDiscount = 0;
-    cartItems.forEach((item) => {
-      subtotal += item.costPrice * item.quantity;
-      totalDiscount += Number(item.discount || 0);
-    });
-
-    return {
-      subtotal,
-      totalDiscount,
-      total: subtotal - totalDiscount,
-      itemsCount: cartItems.reduce((acc, obj) => acc + obj.quantity, 0),
-    };
-  }, [cartItems]);
-
-  const handleSaveOrder = async (asPending = false) => {
-    try {
-      if (!supplierId) throw new Error("Por favor, selecione o fornecedor.");
-      if (cartItems.length === 0)
-        throw new Error("Adicione pelo menos um produto ao pedido.");
-
-      if (isCreate) {
-        const payload: ICreatePurchaseOrder = {
-          supplierId,
-          note: note || undefined,
-          items: cartItems.map((c) => ({
-            productId: c.product.id!,
-            quantity: c.quantity,
-            discount: c.discount,
-            costPrice: c.costPrice,
-          })),
-        };
-
-        const created = await createPurchaseOrder(payload);
-
-        // If creating as Pending, update status after creation
-        if (asPending && created?.id) {
-          await updatePurchaseOrder(created.id, {
-            status: TLegacyPurchaseStatus.Pending,
-          });
-        }
-
-        handleSuccess(
-          asPending
-            ? "Pedido de compra confirmado com sucesso!"
-            : "Orçamento salvo com sucesso!"
-        );
-      } else if (isEdit && purchaseOrderId) {
-        const payload: IUpdatePurchaseOrder = {
-          note: note || undefined,
-          items: cartItems.map((c) => ({
-            productId: c.product.id!,
-            quantity: c.quantity,
-            discount: c.discount,
-            costPrice: c.costPrice,
-          })),
-        };
-
-        await updatePurchaseOrder(purchaseOrderId, payload);
-        handleSuccess("Pedido de compra atualizado com sucesso!");
-      }
-      navigate("/purchase-orders");
-    } catch (error) {
-      handleError(error, "Erro ao salvar o pedido de compra");
+  const addVariant = async (option: PurchaseVariantOptionDto) => {
+    if (
+      form
+        .getValues("items")
+        .some((item) => item.variantId === option.variantId)
+    )
+      return;
+    if (!deliveryStoreId) {
+      handleError(new Error("Escolha o local de entrega antes dos itens."));
+      return;
     }
-  };
-
-  const handleConfirmPending = async () => {
-    if (!purchaseOrderId) return;
     try {
-      await updatePurchaseOrder(purchaseOrderId, {
-        status: TLegacyPurchaseStatus.Pending,
-      });
-      handleSuccess("Pedido confirmado como pendente!");
-      navigate("/purchase-orders");
-    } catch (error) {
-      handleError(error, "Erro ao confirmar pedido");
-    }
-  };
-
-  const handleCancelOrder = async () => {
-    if (!purchaseOrderId) return;
-    try {
-      await deletePurchaseOrder(purchaseOrderId);
-      handleSuccess("Pedido de compra cancelado com sucesso!");
-      navigate("/purchase-orders");
-    } catch (error) {
-      handleError(error, "Erro ao cancelar pedido de compra");
-    }
-  };
-
-  const handleConfirmReceived = async () => {
-    if (!purchaseOrderId) return;
-    try {
-      await updatePurchaseOrder(purchaseOrderId, {
-        status: TLegacyPurchaseStatus.Received,
-      });
-      handleSuccess("Pedido recebido! Estoque atualizado automaticamente.");
-      navigate("/purchase-orders");
-    } catch (error) {
-      handleError(error, "Erro ao confirmar recebimento");
-    }
-  };
-
-  const handleCreateProduct = async (data: ProductSchema) => {
-    try {
-      setIsCreatingProduct(true);
-      const productData = {
-        ...data,
+      const suggestion = await getItemSuggestion(
         supplierId,
-      } as unknown as Partial<IProduct>;
-      const created = await createProduct(productData);
-      handleSuccess("Produto criado com sucesso!");
-      setShowNewProductDialog(false);
-      if (created?.id) {
-        const fullProduct = await getProductById(created.id);
-        setSelectedProductId(created.id);
-        setSelectedProductData(fullProduct);
-        setInputCostPrice(Number(fullProduct.price || 0));
-        // Refresh product list
-        handleSearchProducts("");
-      }
+        option.variantId,
+        deliveryStoreId
+      );
+      setSuggestions((current) => ({
+        ...current,
+        [option.variantId]: suggestion,
+      }));
+      append({
+        id: null,
+        variantId: option.variantId,
+        quantity: toInput(
+          suggestion.minOrderQty ?? suggestion.orderMultiple ?? null
+        ),
+        unitCost: toInput(
+          suggestion.lastCostFromSupplier ?? suggestion.averageCost ?? null
+        ),
+      });
+      form.clearErrors("items");
     } catch (error) {
-      handleError(error, "Erro ao criar produto");
-    } finally {
-      setIsCreatingProduct(false);
+      handleError(error, "Erro ao buscar o item");
     }
   };
 
-  const canReceive =
-    (isEdit || isView) &&
-    (purchaseStatus === TLegacyPurchaseStatus.Budget ||
-      purchaseStatus === TLegacyPurchaseStatus.Pending);
-
-  // Determine which actions are available based on status
-  const handleResetForm = () => {
-    setSupplierId("");
-    setNote("");
-    setCartItems([]);
-    setSelectedProductId("");
-    setSelectedProductData(null);
-    setInputQuantity(1);
-    setInputDiscount(0);
-    setInputCostPrice(0);
-  };
-
-  const supplierLocked = isCreate && !!supplierId;
-
-  const canCancel =
-    purchaseStatus === TLegacyPurchaseStatus.Budget ||
-    purchaseStatus === TLegacyPurchaseStatus.Pending;
-  const isFinalized =
-    purchaseStatus === TLegacyPurchaseStatus.Canceled ||
-    purchaseStatus === TLegacyPurchaseStatus.Received;
-
-  // Titles
-  const pageTitle = isCreate
-    ? "Novo Pedido de Compra"
-    : isEdit
-      ? "Editar Pedido de Compra"
-      : "Visualizar Pedido de Compra";
-  const pageDescription = isCreate
-    ? "Selecione o fornecedor e os produtos desejados"
-    : isEdit
-      ? "Modifique os itens do pedido de compra"
-      : "Detalhes do pedido de compra";
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
-        Carregando pedido de compra...
-      </div>
-    );
-  }
+  const itemsError =
+    form.formState.errors.items?.root?.message ??
+    form.formState.errors.items?.message;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full pb-10">
-      {/* Left: Items and Form */}
-      <div className="col-span-1 lg:col-span-8 flex flex-col gap-6">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <div>
-                  <CardTitle className="text-xl">{pageTitle}</CardTitle>
-                  <CardDescription>{pageDescription}</CardDescription>
-                </div>
-                {!isCreate && (
-                  <Badge
-                    variant={
-                      purchaseStatus === TLegacyPurchaseStatus.Received
-                        ? "default"
-                        : purchaseStatus === TLegacyPurchaseStatus.Canceled
-                          ? "destructive"
-                          : purchaseStatus === TLegacyPurchaseStatus.Pending
-                            ? "outline"
-                            : "secondary"
-                    }
-                  >
-                    {LEGACY_PURCHASE_STATUS_LABELS[
-                      purchaseStatus as TLegacyPurchaseStatus
-                    ] ?? "Desconhecido"}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {isCreate && supplierLocked && (
-                  <Button variant="outline" size="sm" onClick={handleResetForm}>
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Limpar
-                  </Button>
-                )}
-                {!isCreate && canCancel && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      setActionReason("");
-                      setShowCancelModal(true);
-                    }}
-                  >
-                    <Ban className="w-4 h-4 mr-2" />
-                    Cancelar Pedido
-                  </Button>
-                )}
+    <form
+      noValidate
+      onSubmit={form.handleSubmit(async (data) => {
+        await submit(async (confirmWarnings) =>
+          onSubmit({
+            supplierId: data.supplierId,
+            receiveLocationId: data.receiveLocationId,
+            note: data.note || null,
+            version: initialData?.version ?? null,
+            confirmWarnings,
+            items: data.items.map((item) => ({
+              id: item.id,
+              variantId: item.variantId,
+              quantity: parsePrice(item.quantity),
+              unitCost: parsePrice(item.unitCost),
+            })),
+          })
+        );
+      })}
+    >
+      <FieldGroup className="grid gap-5 md:grid-cols-2">
+        <Controller
+          control={form.control}
+          name="supplierId"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <SearchSelect<IOption>
+                field={{
+                  value: field.value,
+                  onChange: (value) =>
+                    field.onChange(value ? String(value) : ""),
+                }}
+                label="Fornecedor"
+                data={supplierOptions}
+                onSearch={searchSuppliers}
+                placeholder="Digite para buscar"
+                disabled={isSubmitting || fields.length > 0}
+              />
+              {fields.length > 0 && (
+                <FieldDescription>
+                  Remova os itens para trocar o fornecedor.
+                </FieldDescription>
+              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="receiveLocationId"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="receiveLocationId">
+                Local de entrega
+              </FieldLabel>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isSubmitting || fields.length > 0}
+              >
+                <SelectTrigger
+                  id="receiveLocationId"
+                  aria-invalid={fieldState.invalid}
+                >
+                  <SelectValue placeholder="Escolha o local" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.storeName} › {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {initialData && (
+                <FieldDescription>
+                  Prazo de {initialData.leadTimeDays} dia(s)
+                  {initialData.expectedOn
+                    ? `, previsão em ${formatDateOnly(initialData.expectedOn)}`
+                    : ""}
+                  .
+                </FieldDescription>
+              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="note"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid} className="md:col-span-2">
+              <FieldLabel htmlFor="note">Observação</FieldLabel>
+              <Textarea
+                {...field}
+                id="note"
+                aria-invalid={fieldState.invalid}
+                disabled={isSubmitting}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
 
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Voltar
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Deseja mesmo sair?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {isView
-                          ? "Você será redirecionado para a listagem de pedidos de compra."
-                          : "Todos os dados não salvos deste formulário serão perdidos."}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>
-                        {isView ? "Continuar" : "Continuar Editando"}
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => navigate("/purchase-orders")}
-                      >
-                        Sim, Sair
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="grid gap-2">
-                {isView ? (
-                  <div className="grid gap-2">
-                    <Label>Fornecedor</Label>
-                    <Input
-                      disabled
-                      value={
-                        loadedOrder?.supplier
-                          ? loadedOrder.supplier.name
-                          : supplierId
-                      }
-                    />
-                  </div>
-                ) : (
-                  <SearchSelect<IOption>
-                    field={{
-                      value: supplierId,
-                      onChange: (val) => setSupplierId(String(val ?? "")),
-                    }}
-                    data={supplierOptions}
-                    onSearch={handleSearchSuppliers}
-                    placeholder="Selecione um fornecedor..."
-                    label="Fornecedor"
-                    disabled={isEdit || supplierLocked}
-                  />
-                )}
-              </div>
-              <div className="grid gap-2">
-                <Label>Observação</Label>
-                <Textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="Observações sobre o pedido..."
-                  disabled={isView || isFinalized}
-                  rows={2}
-                />
-              </div>
-            </div>
+        <div className="flex flex-col gap-3 md:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label>Itens</Label>
+            <VariantPicker
+              supplierId={supplierId}
+              disabled={!supplierId || !receiveLocationId || isSubmitting}
+              search={searchVariantOptions}
+              onSelect={addVariant}
+            />
+          </div>
 
-            <Separator />
-
-            {/* Mini form for adding product - hidden in view mode or when finalized */}
-            {!isView && !isFinalized && (
-              <div className="bg-muted/30 p-4 rounded-xl border border-dashed flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm">Adicionar Produto</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowNewProductDialog(true)}
-                  >
-                    <PackagePlus className="w-4 h-4 mr-2" />
-                    Novo Produto
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-end">
-                  <div className="xl:col-span-5 grid gap-2">
-                    <SearchSelect<IOption>
-                      field={{
-                        value: selectedProductId,
-                        onChange: handleProductSelect,
-                      }}
-                      data={productOptions}
-                      onSearch={handleSearchProducts}
-                      placeholder="Buscar Produto..."
-                      label="Produto"
-                    />
-                  </div>
-                  <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
-                    <div className="grid gap-2">
-                      <Label>Custo Unit. ($)</Label>
-                      <Input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={inputCostPrice}
-                        onChange={(e) =>
-                          setInputCostPrice(Number(e.target.value))
-                        }
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Quantidade</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={inputQuantity}
-                        onChange={(e) =>
-                          setInputQuantity(Number(e.target.value))
-                        }
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>Desconto ($)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={inputDiscount}
-                        onChange={(e) =>
-                          setInputDiscount(Number(e.target.value))
-                        }
-                      />
-                    </div>
-                    <Button
-                      onClick={handleAddToCart}
-                      className="w-full"
-                      variant="secondary"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Incluir
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Cart List */}
-            <div className="flex flex-col gap-4 mt-2">
-              <h3 className="font-semibold text-lg">
-                Itens {isView ? "" : "Adicionados"} ({cartItems.length})
-              </h3>
-              {cartItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center bg-muted/20 border-2 border-dashed rounded-xl">
-                  <Package className="w-12 h-12 text-muted-foreground/30 mb-3" />
-                  <p className="text-muted-foreground">
-                    Nenhum produto foi adicionado ao pedido ainda.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {cartItems.map((item) => {
-                    const price = Number(item.costPrice || 0);
-                    const lineTotal = price * item.quantity - item.discount;
-
-                    let imgUrl: string | null = null;
-                    if (typeof item.product.image === "string") {
-                      imgUrl = item.product.image.startsWith("http")
-                        ? item.product.image
-                        : `${API_URL}/assets/${item.product.image}`;
-                    } else if (item.product.image instanceof File) {
-                      imgUrl = URL.createObjectURL(item.product.image);
-                    }
-
+          {fields.length === 0 ? (
+            <Empty className="border">
+              <EmptyHeader>
+                <EmptyTitle>Nenhum item</EmptyTitle>
+                <EmptyDescription>
+                  Escolha o fornecedor e o local de entrega e adicione as
+                  variações. A compra é sempre na unidade de venda.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Quantidade</TableHead>
+                    <TableHead>Custo unitário</TableHead>
+                    <TableHead>Estoque</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fields.map((row, index) => {
+                    const info = suggestions[row.variantId];
                     return (
-                      <div
-                        key={item.id}
-                        className="relative bg-card border rounded-xl p-4 shadow-sm hover:shadow transition-shadow"
-                      >
-                        {/* Remove button */}
-                        {!isView && !isFinalized && (
+                      <TableRow key={row.id}>
+                        <TableCell className="min-w-56">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium">
+                              {info ? variantName(info) : row.variantId}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                              SKU {info?.sku}
+                              {info?.supplierSku
+                                ? ` · no fornecedor ${info.supplierSku}`
+                                : ""}
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {info?.lifecycle === TLifecycle.Discontinued && (
+                                <Badge variant="destructive">
+                                  {LIFECYCLE_LABELS[info.lifecycle]}
+                                </Badge>
+                              )}
+                              {info?.minOrderQty != null && (
+                                <Badge variant="outline">
+                                  Mínimo{" "}
+                                  {formatNumber(
+                                    info.minOrderQty,
+                                    info.decimalPlaces
+                                  )}
+                                </Badge>
+                              )}
+                              {info?.orderMultiple != null && (
+                                <Badge variant="outline">
+                                  Múltiplo{" "}
+                                  {formatNumber(
+                                    info.orderMultiple,
+                                    info.decimalPlaces
+                                  )}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="min-w-32">
+                          <ItemInput
+                            form={form}
+                            name={`items.${index}.quantity`}
+                            label="Quantidade"
+                            disabled={isSubmitting}
+                          />
+                          {info && (
+                            <span className="text-muted-foreground text-xs">
+                              {SALE_UNIT_LABELS[info.saleUnit]}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="min-w-32">
+                          <ItemInput
+                            form={form}
+                            name={`items.${index}.unitCost`}
+                            label="Custo unitário"
+                            disabled={isSubmitting}
+                          />
+                          {info?.averageCost != null && (
+                            <span className="text-muted-foreground text-xs">
+                              Médio {formatCurrency(info.averageCost)}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground min-w-36 text-xs">
+                          {info && (
+                            <div className="flex flex-col gap-1">
+                              <span>
+                                Disponível{" "}
+                                {formatNumber(
+                                  info.availableAtStore,
+                                  info.decimalPlaces
+                                )}
+                              </span>
+                              <span>
+                                A caminho{" "}
+                                {formatNumber(
+                                  info.incomingQuantity,
+                                  info.decimalPlaces
+                                )}
+                              </span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Button
+                            type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute top-2 right-2 text-muted-foreground hover:text-destructive shrink-0 h-8 w-8 z-10"
-                            onClick={() => removeCartItem(item.id)}
+                            aria-label="Remover item"
+                            disabled={isSubmitting}
+                            onClick={() => remove(index)}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 />
                           </Button>
-                        )}
-
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          {/* Image + Info */}
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            <div className="w-14 h-14 bg-muted rounded-md overflow-hidden shrink-0 flex items-center justify-center border">
-                              {imgUrl ? (
-                                <img
-                                  src={imgUrl}
-                                  alt={item.product.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <Package className="w-6 h-6 text-muted-foreground/40" />
-                              )}
-                            </div>
-                            <div className="flex flex-col min-w-0 pr-8">
-                              <span className="font-semibold text-sm truncate">
-                                {item.product.name}
-                              </span>
-                              <span className="text-xs text-muted-foreground truncate">
-                                Cod: {item.product.productCode}
-                              </span>
-                              <span className="text-sm font-medium text-primary mt-0.5">
-                                Custo: {formatCurrency(price)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Controls row */}
-                          <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 border-t sm:border-t-0 pt-3 sm:pt-0 sm:pr-6">
-                            <div className="flex flex-col items-center">
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
-                                Qtd
-                              </span>
-                              {isView || isFinalized ? (
-                                <span className="text-sm font-medium">
-                                  {item.quantity}
-                                </span>
-                              ) : (
-                                <div className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2 py-1 border">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 rounded-full hover:bg-background"
-                                    onClick={() =>
-                                      updateCartItemQuantity(item.id, -1)
-                                    }
-                                  >
-                                    <Minus className="w-3 h-3" />
-                                  </Button>
-                                  <span className="w-6 text-center text-sm font-medium">
-                                    {item.quantity}
-                                  </span>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 rounded-full hover:bg-background"
-                                    onClick={() =>
-                                      updateCartItemQuantity(item.id, 1)
-                                    }
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex flex-col items-center sm:items-end opacity-90">
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
-                                Desconto
-                              </span>
-                              <span className="text-sm font-medium text-destructive">
-                                -{formatCurrency(item.discount)}
-                              </span>
-                            </div>
-
-                            <div className="flex flex-col items-center sm:items-end">
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">
-                                Total
-                              </span>
-                              <span className="text-base font-bold whitespace-nowrap">
-                                {formatCurrency(Math.max(0, lineTotal))}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </div>
-              )}
+                </TableBody>
+              </Table>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Right: Summary and Totals */}
-      <div className="col-span-1 lg:col-span-4 flex flex-col gap-6">
-        <Card className="shadow-sm sticky top-6">
-          <CardHeader className="bg-muted/20 border-b">
-            <CardTitle>Resumo do Pedido</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                Produtos ({calculateTotals.itemsCount})
-              </span>
-              <span className="font-semibold">
-                {isView && loadedOrder
-                  ? formatCurrency(
-                      Number(loadedOrder.totalAmount ?? 0) +
-                        calculateTotals.totalDiscount
-                    )
-                  : formatCurrency(calculateTotals.subtotal)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Descontos (Total)</span>
-              <span className="font-semibold text-destructive">
-                -{formatCurrency(calculateTotals.totalDiscount)}
-              </span>
-            </div>
-
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-lg">Total</span>
-              <span className="font-bold text-2xl text-primary">
-                {isView && loadedOrder
-                  ? formatCurrency(Number(loadedOrder.totalAmount ?? 0))
-                  : formatCurrency(Math.max(0, calculateTotals.total))}
-              </span>
-            </div>
-          </CardContent>
-          {!isView && !isFinalized && (
-            <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 rounded-b-xl">
-              {isCreate ? (
-                <>
-                  <Button
-                    className="w-full py-6 text-sm font-bold shadow transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02]"
-                    onClick={() => handleSaveOrder(true)}
-                  >
-                    <ClipboardList className="w-5 h-5 mr-2" />
-                    Confirmar Pedido
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full bg-background transition-all duration-300"
-                    onClick={() => handleSaveOrder(false)}
-                  >
-                    <Check className="w-4 h-4 mr-2" />
-                    Salvar como Orçamento
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    className="w-full py-6 text-sm font-bold shadow transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02]"
-                    onClick={() => handleSaveOrder()}
-                  >
-                    <Check className="w-5 h-5 mr-2" />
-                    Salvar Alterações
-                  </Button>
-                  {purchaseStatus === TLegacyPurchaseStatus.Budget && (
-                    <Button
-                      variant="outline"
-                      className="w-full bg-background border-primary text-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
-                      onClick={handleConfirmPending}
-                    >
-                      <ClipboardList className="w-4 h-4 mr-2" />
-                      Confirmar Pedido
-                    </Button>
-                  )}
-                </>
-              )}
-              {canReceive && (
-                <Button
-                  variant="outline"
-                  className="w-full bg-background border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-all duration-300"
-                  onClick={() => setShowReceiveModal(true)}
-                >
-                  <PackageCheck className="w-4 h-4 mr-2" />
-                  Confirmar Recebimento
-                </Button>
-              )}
-            </CardFooter>
           )}
-          {isView && canReceive && (
-            <CardFooter className="flex flex-col gap-3 bg-muted/10 pt-4 rounded-b-xl">
-              <Button
-                className="w-full py-6 text-sm font-bold shadow transition-all duration-300 hover:shadow-primary/20 hover:scale-[1.02]"
-                onClick={() => setShowReceiveModal(true)}
-              >
-                <PackageCheck className="w-5 h-5 mr-2" />
-                Confirmar Recebimento
-              </Button>
-            </CardFooter>
+          {itemsError && <FieldError>{itemsError}</FieldError>}
+          {initialData && (
+            <p className="text-muted-foreground text-sm">
+              Total salvo: {formatCurrency(initialData.total)}. O total é
+              recalculado ao salvar.
+            </p>
           )}
-        </Card>
-      </div>
+        </div>
 
-      {/* Cancel Modal */}
-      <AlertDialog open={showCancelModal} onOpenChange={setShowCancelModal}>
-        <AlertDialogContent>
-          <AlertDialogHeader className="text-left">
-            <AlertDialogTitle>Cancelar Pedido de Compra</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação excluirá o pedido de compra. Esta ação não pode ser
-              desfeita.
-            </AlertDialogDescription>
-            <div className="grid gap-3 mt-4 py-2">
-              <Label>Motivo do cancelamento:</Label>
-              <div className="flex flex-col gap-2">
-                {CANCEL_REASON_OPTIONS.map((option) => (
-                  <Button
-                    key={option}
-                    variant={actionReason === option ? "default" : "outline"}
-                    size="sm"
-                    className="justify-start"
-                    onClick={() => setActionReason(option)}
-                  >
-                    {option}
-                  </Button>
-                ))}
-              </div>
-              <Input
-                value={
-                  CANCEL_REASON_OPTIONS.includes(actionReason)
-                    ? ""
-                    : actionReason
-                }
-                onChange={(e) => setActionReason(e.target.value)}
-                placeholder="Ou descreva outro motivo..."
-              />
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={handleCancelOrder}
-              disabled={!actionReason.trim()}
-            >
-              Confirmar Cancelamento
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <div className="flex justify-end md:col-span-2">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Spinner data-icon="inline-start" />}
+            {mode === "edit" ? "Salvar" : "Criar orçamento"}
+          </Button>
+        </div>
+      </FieldGroup>
+      <ConfirmWarningDialog state={confirmWarning} />
+    </form>
+  );
+}
 
-      {/* Receive Confirmation Modal */}
-      <AlertDialog open={showReceiveModal} onOpenChange={setShowReceiveModal}>
-        <AlertDialogContent>
-          <AlertDialogHeader className="text-left">
-            <AlertDialogTitle>Confirmar Recebimento</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ao confirmar o recebimento, os itens deste pedido serão
-              automaticamente adicionados ao estoque. Esta ação não pode ser
-              desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <Button onClick={handleConfirmReceived}>
-              <PackageCheck className="w-4 h-4 mr-2" />
-              Confirmar Recebimento
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* New Product Dialog */}
-      <Dialog
-        open={showNewProductDialog}
-        onOpenChange={setShowNewProductDialog}
-      >
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Cadastrar Novo Produto</DialogTitle>
-            <DialogDescription>
-              Preencha os dados do produto. Após salvar, ele será selecionado
-              automaticamente.
-            </DialogDescription>
-          </DialogHeader>
-          <ProductForm
-            onSubmit={handleCreateProduct}
-            isLoading={isCreatingProduct}
-            onBack={() => setShowNewProductDialog(false)}
-            initialData={{ supplierId } as IProduct}
-            disabled={false}
-            hideSupplier
-            supplierOptions={[
-              {
-                value: supplierId,
-                label:
-                  supplierOptions.find((s) => s.value === supplierId)?.label ||
-                  "Fornecedor",
-              },
-            ]}
-            onSearchSuppliers={async () => {}}
-            categoryOptions={categoryOptions}
-            onSearchCategory={handleSearchCategories}
+function ItemInput({
+  form,
+  name,
+  label,
+  disabled,
+}: {
+  form: ReturnType<typeof useForm<PurchaseOrderFormData>>;
+  name: `items.${number}.quantity` | `items.${number}.unitCost`;
+  label: string;
+  disabled: boolean;
+}) {
+  return (
+    <Controller
+      control={form.control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <Input
+            {...field}
+            value={field.value ?? ""}
+            inputMode="decimal"
+            aria-label={label}
+            aria-invalid={fieldState.invalid}
+            disabled={disabled}
           />
-        </DialogContent>
-      </Dialog>
-    </div>
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  );
+}
+
+/** Busca de variações (T-CP2): por padrão só as do fornecedor; "mostrar todos" abre o catálogo inteiro. */
+function VariantPicker({
+  supplierId,
+  disabled,
+  search,
+  onSelect,
+}: {
+  supplierId: string;
+  disabled: boolean;
+  search: (
+    supplierId: string,
+    search: string,
+    onlyLinked: boolean
+  ) => Promise<PurchaseVariantOptionDto[]>;
+  onSelect: (option: PurchaseVariantOptionDto) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState("");
+  const [showAll, setShowAll] = useState(false);
+  const [options, setOptions] = useState<PurchaseVariantOptionDto[]>([]);
+  const debouncedTerm = useDebounce(term, 300);
+  // A busca em andamento é a que ainda não respondeu: compara a chave pedida com a última respondida.
+  const requestKey = `${supplierId}|${showAll}|${debouncedTerm}`;
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loading = open && loadedKey !== requestKey;
+
+  useEffect(() => {
+    if (!open || !supplierId) return;
+    let active = true;
+    search(supplierId, debouncedTerm, !showAll)
+      .then((result) => {
+        if (!active) return;
+        setOptions(result);
+        setLoadedKey(`${supplierId}|${showAll}|${debouncedTerm}`);
+      })
+      .catch((error) => handleError(error, "Erro ao buscar itens"));
+    return () => {
+      active = false;
+    };
+  }, [debouncedTerm, open, search, showAll, supplierId]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" disabled={disabled}>
+          <PackagePlus data-icon="inline-start" />
+          Adicionar item
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[min(24rem,calc(100vw-2rem))] p-0"
+        align="end"
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            value={term}
+            onValueChange={setTerm}
+            placeholder="Nome, SKU ou código de barras"
+          />
+          <div className="flex items-center gap-2 border-b px-3 py-2">
+            <Switch
+              id="show-all-products"
+              checked={showAll}
+              onCheckedChange={setShowAll}
+            />
+            <Label htmlFor="show-all-products">Mostrar todos os produtos</Label>
+          </div>
+          <CommandList>
+            {loading ? (
+              <div className="flex justify-center p-4">
+                <Spinner />
+              </div>
+            ) : (
+              <>
+                <CommandEmpty>Nenhuma variação encontrada.</CommandEmpty>
+                <CommandGroup>
+                  {options.map((option) => (
+                    <CommandItem
+                      key={option.variantId}
+                      value={option.variantId}
+                      onSelect={async () => {
+                        setOpen(false);
+                        await onSelect(option);
+                      }}
+                    >
+                      <div className="flex flex-1 flex-col">
+                        <span>{variantName(option)}</span>
+                        <span className="text-muted-foreground text-xs">
+                          SKU {option.sku}
+                        </span>
+                      </div>
+                      {!option.isLinked && (
+                        <Badge variant="secondary">Sem vínculo</Badge>
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

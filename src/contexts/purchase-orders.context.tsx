@@ -1,26 +1,57 @@
 import { createContext } from "react";
 import type {
-  IPurchaseOrder,
-  ICreatePurchaseOrder,
-  IUpdatePurchaseOrder,
+  IIndexParams,
+  IPaginationInfo,
+  Option,
+} from "@/interfaces/api.interface";
+import type {
+  PurchaseItemSuggestionDto,
+  PurchaseOrderDetailDto,
+  PurchaseOrderFormDto,
+  PurchaseOrderListItemDto,
+  PurchaseVariantOptionDto,
+  SavePurchaseOrderDto,
 } from "@/interfaces/purchase-order.interface";
-import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
+import type { LocationOptionDto } from "@/interfaces/store.interface";
 
 export type PurchaseOrdersContextType = {
-  purchaseOrders: IPurchaseOrder[];
-  selectedPurchaseOrder: IPurchaseOrder | null;
+  purchaseOrders: PurchaseOrderListItemDto[];
   pagination: IPaginationInfo | null;
+  /** Listagem da loja selecionada no topo (T-CP1). */
   searchPurchaseOrders: (query?: IIndexParams) => Promise<void>;
-  selectPurchaseOrder: (id: string) => Promise<void>;
-  getPurchaseOrderById: (id: string) => Promise<IPurchaseOrder>;
+  getPurchaseOrder: (id: string) => Promise<PurchaseOrderDetailDto>;
+  getPurchaseOrderForm: (id: string) => Promise<PurchaseOrderFormDto>;
   createPurchaseOrder: (
-    purchaseOrder: ICreatePurchaseOrder
-  ) => Promise<IPurchaseOrder>;
+    dto: SavePurchaseOrderDto
+  ) => Promise<PurchaseOrderDetailDto>;
   updatePurchaseOrder: (
     id: string,
-    data: IUpdatePurchaseOrder
-  ) => Promise<IPurchaseOrder>;
-  deletePurchaseOrder: (id: string) => Promise<void>;
+    dto: SavePurchaseOrderDto
+  ) => Promise<PurchaseOrderDetailDto>;
+  sendPurchaseOrder: (
+    id: string,
+    version: number
+  ) => Promise<PurchaseOrderDetailDto>;
+  cancelPurchaseOrder: (
+    id: string,
+    version: number,
+    reason: string
+  ) => Promise<PurchaseOrderDetailDto>;
+  getItemSuggestion: (
+    supplierId: string,
+    variantId: string,
+    storeId: string
+  ) => Promise<PurchaseItemSuggestionDto>;
+  searchVariantOptions: (
+    supplierId: string,
+    search: string,
+    onlyLinked: boolean
+  ) => Promise<PurchaseVariantOptionDto[]>;
+  /** Combo de fornecedor ativo. */
+  searchSupplierOptions: (search: string) => Promise<Option[]>;
+  getLocationOptions: () => Promise<LocationOptionDto[]>;
+  /** Local de entrega padrão da loja (`stores.defaultReceiveLocationId`, RN-CP07). */
+  getDefaultReceiveLocationId: (storeId: string) => Promise<string | null>;
 };
 
 export const PurchaseOrdersContext =
