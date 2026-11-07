@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import {
   CheckCircle2,
@@ -6,8 +6,10 @@ import {
   RefreshCw,
   ShoppingCart,
   Trash2,
+  UserPlus,
 } from "lucide-react";
 
+import { ClientQuickCreateDialog } from "@/components/app/client-quick-create-dialog";
 import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
 import { SearchSelect } from "@/components/app/search-select";
 import { VariantSalePicker } from "@/components/app/variant-sale-picker";
@@ -61,6 +63,8 @@ import {
 } from "@/types/enums";
 import { formatCurrency } from "@/utils/format.helpers";
 import { SALE_UNIT_SHORT } from "@/utils/product.helpers";
+
+type ClientOption = Record<string, unknown> & ClientOptionDto;
 
 interface CartLine {
   variantId: string;
@@ -134,6 +138,16 @@ export default function QuickSalePage() {
   );
   const [done, setDone] = useState<OrderDetailDto | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [newClientOpen, setNewClientOpen] = useState(false);
+  // Cliente recém-cadastrado entra como opção do combo, para o rótulo aparecer sem nova busca.
+  const [createdClients, setCreatedClients] = useState<ClientOption[]>([]);
+  const searchClients = useCallback(
+    (search: string) =>
+      clientService.clientOptions(search, token ?? undefined) as Promise<
+        ClientOption[]
+      >,
+    [token]
+  );
 
   const form = useForm<QuickSaleForm>({ defaultValues: EMPTY_FORM });
   const { submit, handleSubmit, confirmWarning } = useApiForm(form);
@@ -466,27 +480,33 @@ export default function QuickSalePage() {
               name="clientId"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <SearchSelect<Record<string, unknown> & ClientOptionDto>
-                    field={{
-                      value: field.value,
-                      onChange: (value) =>
-                        field.onChange(value ? String(value) : ""),
-                    }}
-                    label="Cliente (opcional)"
-                    data={[]}
-                    onSearch={(search) =>
-                      clientService.clientOptions(
-                        search,
-                        token ?? undefined
-                      ) as Promise<
-                        (Record<string, unknown> & ClientOptionDto)[]
-                      >
-                    }
-                    getOptionLabel={(client) => client.label}
-                    getOptionValue={(client) => client.id}
-                    placeholder="Consumidor final"
-                    disabled={isSubmitting}
-                  />
+                  <div className="flex items-end gap-2">
+                    <div className="min-w-0 flex-1">
+                      <SearchSelect<ClientOption>
+                        field={{
+                          value: field.value,
+                          onChange: (value) =>
+                            field.onChange(value ? String(value) : ""),
+                        }}
+                        label="Cliente (opcional)"
+                        data={createdClients}
+                        onSearch={searchClients}
+                        getOptionLabel={(client) => client.label}
+                        getOptionValue={(client) => client.id}
+                        placeholder="Consumidor final"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setNewClientOpen(true)}
+                      disabled={isSubmitting}
+                    >
+                      <UserPlus />
+                      Novo cliente
+                    </Button>
+                  </div>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
@@ -623,6 +643,14 @@ export default function QuickSalePage() {
       </Card>
 
       <ConfirmWarningDialog state={confirmWarning} />
+      <ClientQuickCreateDialog
+        open={newClientOpen}
+        onOpenChange={setNewClientOpen}
+        onCreated={(client) => {
+          setCreatedClients([client as ClientOption]);
+          form.setValue("clientId", client.id);
+        }}
+      />
     </form>
   );
 }

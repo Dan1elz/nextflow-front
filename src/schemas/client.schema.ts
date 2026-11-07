@@ -15,3 +15,16 @@ export const clientSchema = z.object({
 });
 
 export type ClientFormData = z.infer<typeof clientSchema>;
+
+/** Cadastro rápido na venda (T-CD4): nome e telefone com DDD; o resto completa depois em Pessoas. */
+export const quickClientSchema = z.object({
+  name: personNameSchema("nome"),
+  phone: z
+    .string()
+    .min(1, "Informe o telefone.")
+    .refine((value) => [10, 11].includes(value.replace(/\D/g, "").length), {
+      message: "Informe um telefone com DDD.",
+    }),
+});
+
+export type QuickClientFormData = z.infer<typeof quickClientSchema>;
