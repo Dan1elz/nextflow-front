@@ -37,12 +37,15 @@ export const manualMovementSchema = z
     type: z.enum(movementTypes, { message: "Escolha entrada ou saída." }),
     quantity: z.string(),
     unitCost: z.string(),
-    /** F1.7: lote existente, "__new" para lote novo ou vazio (saída: baixa pelo que vence primeiro). */
+    /** F1.7: lote existente, "__new" para lote novo, "__auto" (saída: baixa pelo que vence primeiro) ou vazio. */
     lotId: z.string(),
-    newLotCode: z
-      .string()
-      .max(40, "O código do lote deve ter no máximo 40 caracteres."),
-    newLotExpiresOn: z.string(),
+    /** Mesmo caminho do erro da API (`newLot.code`), para o erro cair no campo. */
+    newLot: z.object({
+      code: z
+        .string()
+        .max(40, "O código do lote deve ter no máximo 40 caracteres."),
+      expiresOn: z.string(),
+    }),
     note: z
       .string()
       .max(500, "A observação deve ter no máximo 500 caracteres."),

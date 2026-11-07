@@ -92,7 +92,7 @@ function toRequest(
     locationId: data.locationId,
     lotId: isChosenLot ? data.lotId : null,
     newLot: isNewLot
-      ? { code: data.newLotCode.trim(), expiresOn: data.newLotExpiresOn }
+      ? { code: data.newLot.code.trim(), expiresOn: data.newLot.expiresOn }
       : null,
     type: data.type,
     reason: data.reason,
@@ -121,9 +121,8 @@ export function ManualMovementForm({
       type: TMovementType.Out,
       quantity: "",
       unitCost: "",
-      lotId: "",
-      newLotCode: "",
-      newLotExpiresOn: "",
+      lotId: AUTO_LOT,
+      newLot: { code: "", expiresOn: "" },
       note: "",
     },
   });
@@ -207,12 +206,12 @@ export function ManualMovementForm({
       valid = false;
     }
     if (isInbound && data.lotId === NEW_LOT) {
-      if (!data.newLotCode.trim()) {
-        form.setError("newLotCode", { message: "Informe o código do lote." });
+      if (!data.newLot.code.trim()) {
+        form.setError("newLot.code", { message: "Informe o código do lote." });
         valid = false;
       }
-      if (!data.newLotExpiresOn) {
-        form.setError("newLotExpiresOn", {
+      if (!data.newLot.expiresOn) {
+        form.setError("newLot.expiresOn", {
           message: "Informe a validade do lote.",
         });
         valid = false;
@@ -227,7 +226,10 @@ export function ManualMovementForm({
     if (nextType) form.setValue("type", nextType);
     if (value !== TMovementReason.Opening) form.setValue("unitCost", "");
     // Trocar o sentido muda a lista de lotes: a escolha anterior pode não valer mais.
-    form.setValue("lotId", "");
+    form.setValue(
+      "lotId",
+      (nextType ?? form.getValues("type")) === TMovementType.In ? "" : AUTO_LOT
+    );
     form.clearErrors(["reason", "type", "unitCost", "note", "lotId"]);
   };
 
@@ -297,7 +299,7 @@ export function ManualMovementForm({
         ) : (
           renderSelect("type", "Tipo", typeOptions, (value) => {
             form.setValue("type", value as TMovementType);
-            form.setValue("lotId", "");
+            form.setValue("lotId", value === TMovementType.In ? "" : AUTO_LOT);
             form.clearErrors(["type", "lotId"]);
           })
         )}
@@ -306,7 +308,7 @@ export function ManualMovementForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormInputField
               control={form.control}
-              name="newLotCode"
+              name="newLot.code"
               label="Código do lote"
               icon={Hash}
               maxLength={40}
@@ -314,7 +316,7 @@ export function ManualMovementForm({
             />
             <FormInputField
               control={form.control}
-              name="newLotExpiresOn"
+              name="newLot.expiresOn"
               label="Validade"
               type="date"
               disabled={isSubmitting}
