@@ -113,6 +113,7 @@ export function SupplierPurchasesTab({ supplierId }: { supplierId: string }) {
       page={page}
       totalPages={Math.max(1, Math.ceil(total / perPage))}
       total={total}
+      perPage={perPage}
       onPageChange={setPage}
       onPerPageChange={(value) => {
         setPerPage(value);

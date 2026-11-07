@@ -92,6 +92,7 @@ function PromotionsTab({ product, onChanged }: ProductPromotionsTabProps) {
           page={pagination?.currentPage ?? 1}
           totalPages={pagination?.lastPage ?? 1}
           total={pagination?.total}
+          perPage={PER_PAGE}
           onPageChange={load}
         />
       )}

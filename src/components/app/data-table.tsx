@@ -26,13 +26,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   page: number;
   totalPages: number;
   total?: number;
+  /** Tamanho real da página usado na requisição (controlado pela tela). */
+  perPage?: number;
   onPageChange: (page: number) => void;
+  /** Sem este callback o seletor de itens por página não é exibido. */
   onPerPageChange?: (perPage: number) => void;
   disablePagination?: boolean;
   onSelectionChange?: (rows: string[]) => void;
@@ -44,13 +49,13 @@ export function DataTable<TData, TValue>({
   page,
   totalPages,
   total,
+  perPage,
   onPageChange,
   onPerPageChange,
   disablePagination,
   onSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
-  const [perPage, setPerPage] = useState(10);
   const [rowSelection, setRowSelection] = useState({});
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -71,10 +76,20 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  // "de N" e "X de Y" saem do mesmo perPage: Y = ceil(N / perPage), mínimo 1.
+  const lastPage =
+    total !== undefined && perPage
+      ? Math.max(1, Math.ceil(total / perPage))
+      : Math.max(1, totalPages);
+
+  const perPageOptions =
+    perPage && !PER_PAGE_OPTIONS.includes(perPage)
+      ? [...PER_PAGE_OPTIONS, perPage].sort((a, b) => a - b)
+      : PER_PAGE_OPTIONS;
+
+  // A tela refaz a busca na página 1 ao trocar o tamanho.
   const handlePerPageChange = (value: string) => {
-    const newPerPage = Number(value);
-    setPerPage(newPerPage);
-    onPerPageChange?.(newPerPage);
+    onPerPageChange?.(Number(value));
   };
 
   const { rows: selectedRows } = table.getSelectedRowModel();
@@ -210,17 +225,23 @@ export function DataTable<TData, TValue>({
         <div className="flex justify-center sm:flex-row items-center sm:justify-end gap-3 pt-4">
           {/* Select de itens por página */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Select value={String(perPage)} onValueChange={handlePerPageChange}>
-              <SelectTrigger className="w-[80px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-              </SelectContent>
-            </Select>
+            {onPerPageChange && (
+              <Select
+                value={perPage ? String(perPage) : undefined}
+                onValueChange={handlePerPageChange}
+              >
+                <SelectTrigger className="w-[80px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {perPageOptions.map((option) => (
+                    <SelectItem key={option} value={String(option)}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {total !== undefined && <span> de {total}</span>}
           </div>
 
@@ -235,13 +256,13 @@ export function DataTable<TData, TValue>({
               <ChevronLeft />
             </Button>
             <span className="text-sm text-muted-foreground">
-              {page} de {totalPages}
+              {page} de {lastPage}
             </span>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(page + 1)}
-              disabled={page >= totalPages}
+              disabled={page >= lastPage}
             >
               <ChevronRight />
             </Button>

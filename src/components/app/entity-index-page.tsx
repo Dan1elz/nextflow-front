@@ -156,6 +156,7 @@ export function EntityIndexPage<TData>({
             page={pagination?.currentPage ?? 1}
             totalPages={pagination?.lastPage ?? 1}
             total={pagination?.total ?? 0}
+            perPage={pagination?.perPage}
             onPageChange={onPageChange}
             onPerPageChange={onPerPageChange}
             onSelectionChange={onSelectionChange}
