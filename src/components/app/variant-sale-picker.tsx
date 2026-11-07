@@ -61,6 +61,7 @@ export function VariantSalePicker({
     null
   );
   const handledEnter = useRef<{ term: string } | null>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const [shortage, setShortage] = useState<VariantSaleOptionDto | null>(null);
   const { storeId, options, term, isLoading } = useVariantSaleOptions(
     search,
@@ -113,7 +114,7 @@ export function VariantSalePicker({
       <Command shouldFilter={false} className="overflow-visible bg-transparent">
         <Popover open={open && !!storeId} onOpenChange={setOpen}>
           <PopoverAnchor asChild>
-            <div className="rounded-md border">
+            <div ref={anchorRef} className="rounded-md border">
               <CommandInput
                 value={search}
                 onValueChange={(value) => {
@@ -121,6 +122,7 @@ export function VariantSalePicker({
                   setOpen(true);
                 }}
                 onFocus={() => setOpen(true)}
+                onClick={() => setOpen(true)}
                 onKeyDown={handleKeyDown}
                 placeholder={
                   storeId ? placeholder : "Selecione uma loja no topo"
@@ -134,6 +136,11 @@ export function VariantSalePicker({
             align="start"
             className="w-[var(--radix-popover-trigger-width)] min-w-[min(calc(100vw-2rem),22rem)] p-0"
             onOpenAutoFocus={(event) => event.preventDefault()}
+            // Clique no próprio campo não é "fora": sem isso o Radix fecha a lista no pointerdown e ela só voltava ao digitar.
+            onInteractOutside={(event) => {
+              if (anchorRef.current?.contains(event.target as Node))
+                event.preventDefault();
+            }}
           >
             <CommandList>
               {isLoading && options.length === 0 ? (

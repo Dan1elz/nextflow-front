@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import {
   CheckCircle2,
@@ -42,6 +42,7 @@ import { useApiForm } from "@/hooks/use-api-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { useDebounce } from "@/hooks/use-debounce";
+import { cn } from "@/lib/utils";
 import type { ClientOptionDto } from "@/interfaces/client.interface";
 import type {
   OrderDetailDto,
@@ -91,6 +92,9 @@ const toNumber = (value: string) => {
   const parsed = Number(value.replace(",", "."));
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+/** Valor da API no formato do campo (vírgula decimal), sem recálculo. */
+const toInputAmount = (value: number) => value.toFixed(2).replace(".", ",");
 
 /** Corpo da API a partir do formulário; o preço e os totais ficam com a API (RN-VD02). */
 function toDto(
@@ -170,6 +174,31 @@ export default function QuickSalePage() {
   }, [previewKey, token]);
 
   const preview = values.items?.length ? loadedPreview : null;
+  const previewTotal = preview?.total;
+
+  // Uma forma de pagamento só: o valor acompanha o total da API enquanto o vendedor não digitar outro.
+  const autoAmount = useRef<string | null>(null);
+  useEffect(() => {
+    if (previewTotal == null) return;
+    const current = form.getValues("payments");
+    if (current.length !== 1) return;
+    const { amount } = current[0];
+    if (amount !== "" && amount !== autoAmount.current) return;
+    const next = toInputAmount(previewTotal);
+    if (next === amount) return;
+    autoAmount.current = next;
+    form.setValue("payments.0.amount", next);
+  }, [previewTotal, form]);
+
+  // Outra forma já nasce com o que falta pagar (valor da prévia da API).
+  const addPayment = () =>
+    payments.append({
+      method: TPaymentMethod.Cash,
+      amount:
+        preview && preview.remaining > 0
+          ? toInputAmount(preview.remaining)
+          : "",
+    });
 
   const previewByVariant = useMemo(
     () => new Map(preview?.items.map((item) => [item.variantId, item]) ?? []),
@@ -247,6 +276,7 @@ export default function QuickSalePage() {
 
   const newSale = () => {
     form.reset(EMPTY_FORM);
+    autoAmount.current = null;
     setPreview(null);
     setDone(null);
   };
@@ -522,13 +552,7 @@ export default function QuickSalePage() {
                 )}
               </div>
             ))}
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                payments.append({ method: TPaymentMethod.Cash, amount: "" })
-              }
-            >
+            <Button type="button" variant="outline" onClick={addPayment}>
               <Plus />
               Outra forma
             </Button>
@@ -568,7 +592,22 @@ export default function QuickSalePage() {
           <SummaryRow label="Descontos" value={preview?.discountTotal} />
           <Separator />
           <SummaryRow label="Total" value={preview?.total} strong />
-          <SummaryRow label="Falta pagar" value={preview?.remaining} />
+          {payments.fields.length > 1 && (
+            <SummaryRow label="Soma dos pagamentos" value={preview?.paid} />
+          )}
+          <div
+            className={cn(
+              "flex items-center justify-between rounded-md border px-3 py-2 text-lg font-semibold",
+              preview && preview.remaining > 0
+                ? "border-destructive/40 bg-destructive/10 text-destructive"
+                : "bg-muted"
+            )}
+          >
+            <span>Falta pagar</span>
+            <span className="tabular-nums">
+              {preview == null ? "—" : formatCurrency(preview.remaining)}
+            </span>
+          </div>
           {preview?.change != null && (
             <SummaryRow label="Troco" value={preview.change} />
           )}
