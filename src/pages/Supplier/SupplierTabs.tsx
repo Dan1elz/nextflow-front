@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Package, ShoppingBag } from "lucide-react";
 
 import { OwnerAddresses } from "@/components/app/owner-addresses";
 import { OwnerContacts } from "@/components/app/owner-contacts";
-import { PendingTab } from "@/components/app/pending-tab";
+import { SupplierProductsTab } from "@/components/app/supplier-products-tab";
+import { SupplierPurchasesTab } from "@/components/app/supplier-purchases-tab";
 import { SupplierForm } from "@/components/forms/supplier-form";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -97,24 +97,12 @@ function SupplierTabsContent({ mode }: { mode: Mode }) {
     {
       value: "products",
       label: "Produtos",
-      content: (
-        <PendingTab
-          icon={Package}
-          title="Sem produtos por enquanto"
-          description="Os produtos vinculados aparecem aqui quando o catálogo estiver pronto."
-        />
-      ),
+      content: id && <SupplierProductsTab supplierId={id} />,
     },
     {
       value: "purchases",
       label: "Compras",
-      content: (
-        <PendingTab
-          icon={ShoppingBag}
-          title="Sem compras por enquanto"
-          description="Os pedidos de compra aparecem aqui quando o módulo de compras estiver pronto."
-        />
-      ),
+      content: id && <SupplierPurchasesTab supplierId={id} />,
     },
   ];
 

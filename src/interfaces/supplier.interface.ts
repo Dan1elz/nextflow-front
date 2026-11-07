@@ -1,5 +1,6 @@
 import type { AddressResponseDto } from "./address.interface";
 import type { ContactResponseDto } from "./contact.interface";
+import type { TLifecycle } from "@/types/enums";
 
 export interface SupplierRequestDto {
   name: string;
@@ -9,7 +10,7 @@ export interface SupplierRequestDto {
   note?: string | null;
 }
 
-/** `realLeadTimeDays`, `productCount` e `lastPurchaseOn` ficam nulos ou zero até as fases 1 e 2. */
+/** `realLeadTimeDays` (média dos recebidos) e `lastPurchaseOn` (último envio) vêm dos pedidos de compra; nulos sem pedido. */
 export interface SupplierListItemDto {
   id: string;
   name: string;
@@ -35,6 +36,21 @@ export interface SupplierResponseDto {
   mainContact?: ContactResponseDto | null;
   createdAt: string;
   updatedAt?: string | null;
+}
+
+/** Linha da aba Produtos do fornecedor: o vínculo produto × fornecedor. `leadTimeDays` é o efetivo (RN-CE60). */
+export interface SupplierProductDto {
+  productId: string;
+  productName: string;
+  brand?: string | null;
+  productIsActive: boolean;
+  lifecycle: TLifecycle;
+  isPreferred: boolean;
+  supplierSku?: string | null;
+  leadTimeDays: number;
+  minOrderQty?: number | null;
+  orderMultiple?: number | null;
+  lastCost?: number | null;
 }
 
 /** Combo e referência de fornecedor nas telas ainda não migradas (compras, produtos). */

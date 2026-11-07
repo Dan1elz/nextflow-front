@@ -6,8 +6,8 @@ import { DatePicker } from "@/components/app/date-picker";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
+import { OrderStatusBadge } from "@/components/app/order-status-badge";
 import { SearchSelect } from "@/components/app/search-select";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -75,16 +75,6 @@ const paymentLabels = (methods: TPaymentMethod[]) =>
   methods.length > 0
     ? methods.map((method) => PAYMENT_METHOD_LABELS[method]).join(", ")
     : "-";
-
-function OrderStatusBadge({ status }: { status: TOrderStatus }) {
-  const variant =
-    status === TOrderStatus.Paid
-      ? "default"
-      : status === TOrderStatus.Budget
-        ? "outline"
-        : "secondary";
-  return <Badge variant={variant}>{ORDER_STATUS_LABELS[status]}</Badge>;
-}
 
 /** Histórico das vendas de balcão da loja selecionada no topo, com o detalhe da venda num diálogo. */
 function SalesHistory() {

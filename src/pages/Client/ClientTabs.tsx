@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ShoppingCart } from "lucide-react";
 
 import { OwnerAddresses } from "@/components/app/owner-addresses";
 import { OwnerContacts } from "@/components/app/owner-contacts";
-import { PendingTab } from "@/components/app/pending-tab";
+import { ClientOrdersTab } from "@/components/app/client-orders-tab";
 import { ClientForm } from "@/components/forms/client-form";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -97,13 +96,7 @@ function ClientTabsContent({ mode }: { mode: Mode }) {
     {
       value: "orders",
       label: "Compras",
-      content: (
-        <PendingTab
-          icon={ShoppingCart}
-          title="Sem compras por enquanto"
-          description="Os pedidos do cliente aparecem aqui quando o módulo de vendas estiver pronto."
-        />
-      ),
+      content: id && <ClientOrdersTab clientId={id} />,
     },
   ];
 

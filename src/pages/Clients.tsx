@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
+import { OwnerActivityFilters } from "@/components/app/owner-activity-filters";
 import { SearchSelect } from "@/components/app/search-select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,6 +33,9 @@ type ClientFilters = {
   search: string;
   isActive: string;
   birthdaysThisMonth: string;
+  stateId: string;
+  cityId: string;
+  purchases: string;
 };
 
 const statusOptions: IOption[] = [
@@ -56,7 +60,14 @@ function Clients() {
     handlePageChange,
   } = useIndexSearch<ClientFilters, "search">({
     search: searchClients,
-    initialFilters: { search: "", isActive: "", birthdaysThisMonth: "" },
+    initialFilters: {
+      search: "",
+      isActive: "",
+      birthdaysThisMonth: "",
+      stateId: "",
+      cityId: "",
+      purchases: "",
+    },
     quickSearchKey: "search",
     perPageInitial: 10,
     debounceMs: 400,
@@ -215,6 +226,11 @@ function Clients() {
               label="Status"
               data={statusOptions}
               placeholder="Todos"
+            />
+            <OwnerActivityFilters
+              filters={filters}
+              setFilters={setFilters}
+              purchasesLabel="Compras"
             />
             <Field orientation="horizontal">
               <Checkbox

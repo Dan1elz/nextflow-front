@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
+import { OwnerActivityFilters } from "@/components/app/owner-activity-filters";
 import { SearchSelect } from "@/components/app/search-select";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,7 +14,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { useCityOptions } from "@/hooks/use-city-options";
 import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSuppliers } from "@/hooks/use-suppliers";
 import type { IOption } from "@/interfaces/api.interface";
@@ -29,12 +29,20 @@ import { handleError, handleSuccess } from "@/utils/toast.helpers";
 type SupplierFilters = {
   search: string;
   isActive: string;
+  stateId: string;
   cityId: string;
+  purchases: string;
+  pendingOrders: string;
 };
 
 const statusOptions: IOption[] = [
   { value: "true", label: "Ativo" },
   { value: "false", label: "Inativo" },
+];
+
+const pendingOptions: IOption[] = [
+  { value: "true", label: "Com pedido a receber" },
+  { value: "false", label: "Sem pedido a receber" },
 ];
 
 function Suppliers() {
@@ -46,7 +54,6 @@ function Suppliers() {
     deleteSupplier,
     reactivateSupplier,
   } = useSuppliers();
-  const { cityOptions, searchCities } = useCityOptions();
   const {
     setPerPage,
     selectedIds,
@@ -60,7 +67,14 @@ function Suppliers() {
     handlePageChange,
   } = useIndexSearch<SupplierFilters, "search">({
     search: searchSuppliers,
-    initialFilters: { search: "", isActive: "", cityId: "" },
+    initialFilters: {
+      search: "",
+      isActive: "",
+      stateId: "",
+      cityId: "",
+      purchases: "",
+      pendingOrders: "",
+    },
     quickSearchKey: "search",
     perPageInitial: 10,
     debounceMs: 400,
@@ -229,19 +243,23 @@ function Suppliers() {
               data={statusOptions}
               placeholder="Todos"
             />
+            <OwnerActivityFilters
+              filters={filters}
+              setFilters={setFilters}
+              purchasesLabel="Pedidos de compra"
+            />
             <SearchSelect<IOption>
               field={{
-                value: filters.cityId,
+                value: filters.pendingOrders,
                 onChange: (value) =>
                   setFilters((prev) => ({
                     ...prev,
-                    cityId: value ? String(value) : "",
+                    pendingOrders: value ? String(value) : "",
                   })),
               }}
-              label="Cidade/UF"
-              data={cityOptions}
-              onSearch={searchCities}
-              placeholder="Digite para buscar"
+              label="Pedido a receber"
+              data={pendingOptions}
+              placeholder="Todos"
             />
           </ListFiltersSheet>
         </>
