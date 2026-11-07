@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -535,8 +535,8 @@ export function SearchSelect<T extends Record<string, unknown>>({
     : selectedObject !== undefined && selectedObject !== null;
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {label && <Label>{label}</Label>}
+    <div className={cn("flex flex-col gap-3", className)}>
+      {label && <FieldLabel>{label}</FieldLabel>}
       <Popover open={open} onOpenChange={setOpen}>
         <div className="relative">
           <PopoverTrigger asChild>
