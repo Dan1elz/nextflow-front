@@ -390,7 +390,7 @@ function Orders() {
           }}
           className="w-full flex-wrap"
         >
-          <TabsList className="flex w-full md:w-auto overflow-x-auto justify-start h-auto p-1">
+          <TabsList className="flex w-full max-w-full md:w-auto overflow-x-auto overflow-y-hidden justify-start h-auto p-1 [&>*]:shrink-0">
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="open">Em Aberto</TabsTrigger>
             <TabsTrigger value="completed">Concluídos</TabsTrigger>

@@ -905,7 +905,7 @@ function ForecastContent() {
               value={actionFilter}
               onValueChange={(v) => setActionFilter(v as ActionFilter)}
             >
-              <TabsList className="flex h-auto w-full justify-start overflow-x-auto p-1 md:w-auto">
+              <TabsList className="flex h-auto w-full max-w-full justify-start overflow-x-auto overflow-y-hidden p-1 md:w-auto [&>*]:shrink-0">
                 <TabsTrigger value="all">
                   Todas ({actionCounts.all})
                 </TabsTrigger>

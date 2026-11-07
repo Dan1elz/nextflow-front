@@ -135,12 +135,16 @@ export function EntityTabsLayout({
             <TabsList
               ref={tabsListRef}
               className={cn(
-                // No celular as abas rolam: em colunas iguais, os rótulos se sobrepõem.
-                "flex w-full justify-start overflow-x-auto md:grid",
+                // As abas ficam numa linha só e rolam na horizontal quando não
+                // cabem. Colunas iguais só no desktop e só até 5 abas: com mais,
+                // o grid de 5 colunas quebrava em 2 linhas dentro da altura fixa
+                // (h-9) e o overflow virava rolagem vertical.
+                "flex w-full max-w-full justify-start overflow-x-auto overflow-y-hidden",
+                tabs.length <= 5 && "md:grid",
                 tabs.length === 2 && "md:grid-cols-2",
                 tabs.length === 3 && "md:grid-cols-3",
                 tabs.length === 4 && "md:grid-cols-4",
-                tabs.length >= 5 && "md:grid-cols-5"
+                tabs.length === 5 && "md:grid-cols-5"
               )}
             >
               {tabs.map((tab) => (
@@ -148,6 +152,7 @@ export function EntityTabsLayout({
                   key={tab.value}
                   value={tab.value}
                   disabled={disabledTabs.includes(tab.value)}
+                  className="shrink-0"
                 >
                   {tab.label}
                 </TabsTrigger>
