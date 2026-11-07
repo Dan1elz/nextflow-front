@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -99,13 +99,7 @@ export function ReceivePurchaseOrderDialog({
     emptyRows(order)
   );
   const [submitted, setSubmitted] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setRows(emptyRows(order));
-      setSubmitted(false);
-    }
-  }, [open, order]);
+  // As linhas nascem a cada abertura: o pai monta o dialog de novo com `key` (sem efeito que zere ao trocar o `order`).
 
   const lotItems = order.items.filter((item) => item.tracksLots);
   const errors = Object.fromEntries(

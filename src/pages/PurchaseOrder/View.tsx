@@ -319,7 +319,9 @@ function ViewPurchaseOrder() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* A cada abertura um dialog novo: as linhas de lote começam limpas. */}
       <ReceivePurchaseOrderDialog
+        key={receiveOpen ? "receive-open" : "receive-closed"}
         open={receiveOpen}
         order={order}
         onOpenChange={setReceiveOpen}
