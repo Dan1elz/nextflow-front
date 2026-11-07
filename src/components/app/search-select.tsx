@@ -56,6 +56,8 @@ export function SearchSelect<T extends Record<string, unknown>>({
   const [open, setOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [data, setData] = React.useState<T[]>(initialData);
+  // Opções escolhidas pelo usuário, guardadas fora da lista da busca (que a limpeza do termo zera).
+  const [picked, setPicked] = React.useState<T[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
   const [isLoadingInitial, setIsLoadingInitial] = React.useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
@@ -140,16 +142,18 @@ export function SearchSelect<T extends Record<string, unknown>>({
   const findObjectByValue = React.useCallback(
     (id: string | number | undefined): T | undefined => {
       if (id === undefined || id === null) return undefined;
-      return data.find((item) => {
+      const matches = (item: T) => {
         const itemValue = getOptionValue
           ? getOptionValue(item)
           : (item as T)[
               isFieldObject ? ("value" as keyof T) : (field as keyof T)
             ]?.toString();
         return itemValue === id || itemValue?.toString() === id?.toString();
-      });
+      };
+      // A lista da busca muda (ou é limpa) depois da escolha; a opção escolhida continua com o rótulo.
+      return data.find(matches) ?? picked.find(matches);
     },
-    [data, getOptionValue, field, isFieldObject]
+    [data, picked, getOptionValue, field, isFieldObject]
   );
 
   // Obtém o objeto selecionado (converte ID para objeto se necessário)
@@ -281,8 +285,10 @@ export function SearchSelect<T extends Record<string, unknown>>({
           newValues = [...currentValues, item];
         }
 
+        setPicked(newValues);
         handleChange(newValues.length > 0 ? newValues : undefined);
       } else {
+        setPicked([item]);
         handleChange(item);
         setOpen(false);
         setSearchTerm("");
@@ -329,9 +335,14 @@ export function SearchSelect<T extends Record<string, unknown>>({
   // Atualiza os dados quando initialData muda (quando os dados são carregados externamente)
   // Mas apenas se não houver busca ativa
   React.useEffect(() => {
-    if (
-      !onSearch ||
-      (searchTerm.trim() === "" && debouncedSearchTerm.trim() === "")
+    // Com busca na API e sem dados iniciais (`data={[]}`), não zera a lista já buscada: além de apagar as opções, o
+    // array novo a cada render do pai fazia o combo renderizar de novo a cada tecla do formulário.
+    if (!onSearch) {
+      setData(initialData);
+    } else if (
+      initialData.length > 0 &&
+      searchTerm.trim() === "" &&
+      debouncedSearchTerm.trim() === ""
     ) {
       setData(initialData);
     }
