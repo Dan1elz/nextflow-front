@@ -117,7 +117,20 @@ export interface PurchaseOrderDetailItemDto {
   averageCostAfter?: number | null;
 }
 
-/** Visualização (T-CP3) e resposta de criar, editar, enviar e cancelar. */
+/** Lote de um item recebido (T-CP4). Recusado pela API até a F1.7 (lotes). */
+export interface ReceivePurchaseLotDto {
+  code: string;
+  expiresOn: string;
+  quantity: number;
+}
+
+/** Recebimento (T-CP4): cada item do pedido uma vez, sem recebimento parcial. */
+export interface ReceivePurchaseOrderDto {
+  version: number;
+  items: { itemId: string; lots?: ReceivePurchaseLotDto[] | null }[];
+}
+
+/** Visualização (T-CP3) e resposta de criar, editar, enviar, cancelar e receber. */
 export interface PurchaseOrderDetailDto {
   id: string;
   number: number;

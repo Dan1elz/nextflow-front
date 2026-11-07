@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Ban, Pencil, Send } from "lucide-react";
+import { ArrowLeft, Ban, PackageCheck, Pencil, Send } from "lucide-react";
 
 import { CancelPurchaseOrderDialog } from "@/components/app/cancel-purchase-order-dialog";
+import { ReceivePurchaseOrderDialog } from "@/components/app/receive-purchase-order-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,12 +54,17 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
 function ViewPurchaseOrder() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getPurchaseOrder, sendPurchaseOrder, cancelPurchaseOrder } =
-    usePurchaseOrders();
+  const {
+    getPurchaseOrder,
+    sendPurchaseOrder,
+    cancelPurchaseOrder,
+    receivePurchaseOrder,
+  } = usePurchaseOrders();
   const [order, setOrder] = useState<PurchaseOrderDetailDto | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [receiveOpen, setReceiveOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -86,6 +92,23 @@ function ViewPurchaseOrder() {
       await load();
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleReceive = async () => {
+    if (!order) return;
+    try {
+      setOrder(
+        await receivePurchaseOrder(order.id, {
+          version: order.version,
+          items: order.items.map((item) => ({ itemId: item.id })),
+        })
+      );
+      handleSuccess("Pedido recebido e estoque atualizado");
+    } catch (error) {
+      handleError(error, "Erro ao receber o pedido");
+      await load();
+      throw error;
     }
   };
 
@@ -125,6 +148,12 @@ function ViewPurchaseOrder() {
                 <Pencil data-icon="inline-start" />
                 Editar
               </Button>
+              {order.status === TPurchaseStatus.Pending && (
+                <Button onClick={() => setReceiveOpen(true)}>
+                  <PackageCheck data-icon="inline-start" />
+                  Receber
+                </Button>
+              )}
               {order.status === TPurchaseStatus.Budget && (
                 <Button onClick={() => setSendOpen(true)}>
                   <Send data-icon="inline-start" />
@@ -173,6 +202,18 @@ function ViewPurchaseOrder() {
               }
             />
             <Info label="Total" value={formatCurrency(order.total)} />
+            {order.receivedAt && (
+              <>
+                <Info
+                  label="Recebido"
+                  value={`${formatDateTime(order.receivedAt)} por ${order.receivedByName ?? "-"}`}
+                />
+                <Info
+                  label="Lead time real"
+                  value={`${order.realLeadTimeDays ?? 0} dia(s)`}
+                />
+              </>
+            )}
           </div>
           {order.note && <Info label="Observação" value={order.note} />}
           <Separator />
@@ -186,6 +227,11 @@ function ViewPurchaseOrder() {
                   <TableHead className="text-right">Quantidade</TableHead>
                   <TableHead className="text-right">Custo unitário</TableHead>
                   <TableHead className="text-right">Subtotal</TableHead>
+                  {order.receivedAt && (
+                    <TableHead className="text-right">
+                      Custo médio após
+                    </TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -214,6 +260,13 @@ function ViewPurchaseOrder() {
                     <TableCell className="text-right">
                       {formatCurrency(item.subtotal)}
                     </TableCell>
+                    {order.receivedAt && (
+                      <TableCell className="text-right">
+                        {item.averageCostAfter != null
+                          ? formatCurrency(item.averageCostAfter, "BRL", 2)
+                          : "-"}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -250,6 +303,12 @@ function ViewPurchaseOrder() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <ReceivePurchaseOrderDialog
+        open={receiveOpen}
+        order={order}
+        onOpenChange={setReceiveOpen}
+        onConfirm={handleReceive}
+      />
       <CancelPurchaseOrderDialog
         open={cancelOpen}
         number={order.number}

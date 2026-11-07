@@ -8,6 +8,7 @@ import type {
   PurchaseOrderFormDto,
   PurchaseOrderListItemDto,
   PurchaseVariantOptionDto,
+  ReceivePurchaseOrderDto,
   SavePurchaseOrderDto,
 } from "@/interfaces/purchase-order.interface";
 
@@ -58,6 +59,13 @@ export const purchaseOrderService = {
     apiService.post<PurchaseOrderDetailDto>(
       `${endpoint}/${id}/cancel`,
       { version, reason },
+      token
+    ),
+
+  receive: (id: string, dto: ReceivePurchaseOrderDto, token?: string) =>
+    apiService.post<PurchaseOrderDetailDto>(
+      `${endpoint}/${id}/receive`,
+      dto,
       token
     ),
 

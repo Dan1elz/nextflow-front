@@ -10,6 +10,7 @@ import type {
   PurchaseOrderFormDto,
   PurchaseOrderListItemDto,
   PurchaseVariantOptionDto,
+  ReceivePurchaseOrderDto,
   SavePurchaseOrderDto,
 } from "@/interfaces/purchase-order.interface";
 import type { LocationOptionDto } from "@/interfaces/store.interface";
@@ -36,6 +37,10 @@ export type PurchaseOrdersContextType = {
     id: string,
     version: number,
     reason: string
+  ) => Promise<PurchaseOrderDetailDto>;
+  receivePurchaseOrder: (
+    id: string,
+    dto: ReceivePurchaseOrderDto
   ) => Promise<PurchaseOrderDetailDto>;
   getItemSuggestion: (
     supplierId: string,

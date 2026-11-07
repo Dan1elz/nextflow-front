@@ -6,6 +6,7 @@ import { useCurrentStore } from "@/hooks/use-current-store";
 import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 import type {
   PurchaseOrderListItemDto,
+  ReceivePurchaseOrderDto,
   SavePurchaseOrderDto,
 } from "@/interfaces/purchase-order.interface";
 import { purchaseOrderService } from "@/services/purchase-order.service";
@@ -70,6 +71,12 @@ export function PurchaseOrdersProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const receivePurchaseOrder = useCallback(
+    (id: string, dto: ReceivePurchaseOrderDto) =>
+      purchaseOrderService.receive(id, dto, auth),
+    [auth]
+  );
+
   const getItemSuggestion = useCallback(
     (supplierId: string, variantId: string, store: string) =>
       purchaseOrderService.itemSuggestion(supplierId, variantId, store, auth),
@@ -111,6 +118,7 @@ export function PurchaseOrdersProvider({ children }: { children: ReactNode }) {
         updatePurchaseOrder,
         sendPurchaseOrder,
         cancelPurchaseOrder,
+        receivePurchaseOrder,
         getItemSuggestion,
         searchVariantOptions,
         searchSupplierOptions,

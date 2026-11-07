@@ -130,6 +130,14 @@ function PurchaseOrders() {
             : "-",
       },
       {
+        accessorKey: "receivedAt",
+        header: "Recebido",
+        cell: ({ row }) =>
+          row.original.receivedAt
+            ? `${formatDateTime(row.original.receivedAt)} (${row.original.realLeadTimeDays ?? 0} dia(s))`
+            : "-",
+      },
+      {
         id: "actions",
         header: "Ações",
         cell: ({ row }) => (
