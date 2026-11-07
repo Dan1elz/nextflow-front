@@ -318,6 +318,7 @@ Rota catch-all `*` → redireciona para `/login`.
 | `stock-policy.service.ts` | `/stock-policies` | getAll e update da política por classe ABC (T13) |
 | `order.service.ts`          | `/orders`          | CRUD + cancel + refund                                                        |
 | `sale.service.ts`           | `/sales`           | Create (checkout)                                                             |
+| `sales-history.service.ts`  | `/orders`          | Histórico de vendas: listagem paginada e detalhe (`/sales/history`)           |
 | `purchase-order.service.ts` | `/PurchaseOrders`  | CRUD                                                                          |
 | `forecast.service.ts`       | `/forecasts`       | generate, latest, products/{id}, recommendations (purchase/promotion/dismiss) |
 | `promotion.service.ts`      | `/promotions`      | getAll (filtros productId/status/source), create, cancel                      |

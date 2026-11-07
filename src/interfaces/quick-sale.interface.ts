@@ -102,3 +102,21 @@ export interface OrderDetailDto {
   }[];
   allowedActions: string[];
 }
+
+/** Linha do histórico de vendas (T-VD3): totais e formas de pagamento vêm prontos da API. */
+export interface OrderListItemDto {
+  id: string;
+  number: number;
+  status: TOrderStatus;
+  channel: TOrderChannel;
+  createdAt: string;
+  paidAt: string | null;
+  /** Nulo = consumidor final. */
+  clientName: string | null;
+  storeName: string;
+  saleLocationName: string;
+  userName: string;
+  itemCount: number;
+  total: number;
+  paymentMethods: TPaymentMethod[];
+}

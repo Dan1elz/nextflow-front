@@ -11,6 +11,7 @@ import {
   Package,
   Activity,
   ScanBarcode,
+  History,
   ShoppingBag,
   SlidersHorizontal,
   Store,
@@ -64,6 +65,7 @@ const items: SidebarMenuGroup[] = [
     title: "COMERCIAL",
     items: [
       { name: "Venda rápida", url: "/sales/quick", icon: ScanBarcode },
+      { name: "Histórico de vendas", url: "/sales/history", icon: History },
       { name: "Pedidos de Compra", url: "/purchase-orders", icon: ShoppingBag },
       { name: "Promoções", url: "/promotions", icon: BadgePercent },
     ],

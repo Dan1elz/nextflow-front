@@ -35,6 +35,7 @@ import ViewPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/View";
 import ForecastPageWrapper from "@/pages/Forecast";
 import PromotionsPageWrapper from "@/pages/Promotions";
 import QuickSalePage from "@/pages/Sales/Quick";
+import SalesHistoryPageWrapper from "@/pages/Sales/History";
 
 function AppRoutes() {
   return (
@@ -105,6 +106,7 @@ function AppRoutes() {
         <Route path="stock-movements" element={<StockMovementsPageWrapper />} />
 
         <Route path="sales/quick" element={<QuickSalePage />} />
+        <Route path="sales/history" element={<SalesHistoryPageWrapper />} />
         {/* Pedidos e orçamentos (F2.5) ainda sem endpoint na API v2: todas as rotas mostram o aviso. */}
         <Route path="orders/*" element={<OrdersPendingPage />} />
 

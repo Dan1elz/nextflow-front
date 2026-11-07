@@ -21,6 +21,7 @@ const routeNameMap: Record<string, string> = {
   "purchase-orders": "Pedidos de Compra",
   "stock-movements": "Movimentações de Estoque",
   sales: "Vendas",
+  history: "Histórico",
   orders: "Pedidos de Venda",
   forecast: "Previsão de Demanda (IA)",
   promotions: "Promoções",
