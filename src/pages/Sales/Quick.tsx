@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
-import { CheckCircle2, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Plus,
+  RefreshCw,
+  ShoppingCart,
+  Trash2,
+} from "lucide-react";
 
 import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
 import { SearchSelect } from "@/components/app/search-select";
@@ -45,6 +51,8 @@ import type {
 import type { VariantSaleOptionDto } from "@/interfaces/sale-option.interface";
 import { clientService } from "@/services/client.service";
 import { quickSaleService } from "@/services/quick-sale.service";
+import { saleOptionService } from "@/services/sale-option.service";
+import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import {
   PAYMENT_METHOD_LABELS,
   TPaymentMethod,
@@ -121,6 +129,7 @@ export default function QuickSalePage() {
     null
   );
   const [done, setDone] = useState<OrderDetailDto | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const form = useForm<QuickSaleForm>({ defaultValues: EMPTY_FORM });
   const { submit, confirmWarning } = useApiForm(form);
@@ -191,6 +200,39 @@ export default function QuickSalePage() {
     });
   });
 
+  // Preço mudou desde a busca (aviso `confirm` da API): rebusca cada linha pelo SKU e grava o preço efetivo atual como o
+  // esperado, para o vendedor revisar o rodapé antes de concluir de novo.
+  const refreshPrices = async () => {
+    if (!storeId) return;
+    setRefreshing(true);
+    try {
+      const lines = form.getValues("items");
+      const found = await Promise.all(
+        lines.map((line) =>
+          saleOptionService.getVariantOptions(
+            { search: line.sku, storeId, limit: 5 },
+            token ?? undefined
+          )
+        )
+      );
+      lines.forEach((line, index) => {
+        const option = found[index].find(
+          (candidate) => candidate.variantId === line.variantId
+        );
+        if (option && option.effectivePrice !== line.expectedUnitPrice)
+          items.update(index, {
+            ...form.getValues(`items.${index}`),
+            expectedUnitPrice: option.effectivePrice,
+          });
+      });
+      handleSuccess("Preços atualizados. Revise o total e os pagamentos.");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const newSale = () => {
     form.reset(EMPTY_FORM);
     setPreview(null);
@@ -240,8 +282,20 @@ export default function QuickSalePage() {
       <VariantSalePicker onSelect={addOption} disabled={isSubmitting} />
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle>Carrinho</CardTitle>
+          {items.fields.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={refreshPrices}
+              disabled={refreshing || isSubmitting}
+            >
+              {refreshing ? <Spinner /> : <RefreshCw />}
+              Atualizar preços
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {items.fields.length === 0 ? (
