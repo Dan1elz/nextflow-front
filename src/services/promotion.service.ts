@@ -1,30 +1,40 @@
 import { BaseService } from "./base.service";
-import { ApiService } from "./api.service";
 import type {
-  ICreatePromotion,
-  IPromotion,
+  PromotionListItemDto,
+  PromotionPreviewDto,
+  PromotionRequestDto,
 } from "@/interfaces/promotion.interface";
 
-const baseService = new BaseService<IPromotion>("promotions");
-const apiService = new ApiService();
-
-export const promotionService = {
-  /** GET /api/promotions — filtros: productId, status (active|scheduled|ended|canceled), source */
-  getAll: baseService.getAll.bind(baseService),
-  getById: baseService.getById.bind(baseService),
-
-  /** POST /api/promotions (Admin) */
-  async create(data: ICreatePromotion, token?: string): Promise<IPromotion> {
-    const response = await apiService.post<IPromotion>(
-      "promotions",
-      data,
+/** Promoções (T-VD7). Cancelar é `POST /{id}/cancel`; não há editar nem reativar (RN-VD12). */
+class PromotionService extends BaseService<
+  PromotionListItemDto,
+  PromotionRequestDto,
+  PromotionListItemDto
+> {
+  preview(
+    productId: string,
+    variantId: string | null | undefined,
+    discountPercent: number,
+    token?: string
+  ): Promise<PromotionPreviewDto> {
+    return this.apiService.get<PromotionPreviewDto>(
+      `${this.endpoint}/preview`,
+      {
+        productId,
+        discountPercent,
+        ...(variantId ? { variantId } : {}),
+      },
       token
     );
-    return response;
-  },
+  }
 
-  /** DELETE /api/promotions/{id} (Admin) — cancela a promoção (IsActive = false) */
-  async cancel(id: string, token?: string): Promise<void> {
-    await apiService.delete(`promotions/${id}`, token);
-  },
-};
+  cancel(id: string, token?: string): Promise<void> {
+    return this.apiService.post<void>(
+      `${this.endpoint}/${id}/cancel`,
+      {},
+      token
+    );
+  }
+}
+
+export const promotionService = new PromotionService("promotions");

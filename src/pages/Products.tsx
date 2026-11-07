@@ -209,11 +209,22 @@ function Products() {
       {
         id: "price",
         header: "Preço",
-        cell: ({ row }) =>
-          formatPriceRange(
-            row.original.minEffectivePrice,
-            row.original.maxEffectivePrice
-          ),
+        // Preço efetivo já com a promoção vigente; o selo mostra o maior desconto (F2.3).
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            <span>
+              {formatPriceRange(
+                row.original.minEffectivePrice,
+                row.original.maxEffectivePrice
+              )}
+            </span>
+            {row.original.activePromotionPercent != null && (
+              <Badge variant="secondary">
+                −{formatNumber(row.original.activePromotionPercent, 2)}%
+              </Badge>
+            )}
+          </div>
+        ),
       },
       {
         accessorKey: "availableQuantity",

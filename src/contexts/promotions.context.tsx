@@ -1,17 +1,31 @@
 import { createContext } from "react";
+
 import type {
-  ICreatePromotion,
-  IPromotion,
+  IIndexParams,
+  IOption,
+  IPaginationInfo,
+} from "@/interfaces/api.interface";
+import type {
+  PromotionListItemDto,
+  PromotionPreviewDto,
+  PromotionRequestDto,
 } from "@/interfaces/promotion.interface";
-import type { IIndexParams, IPaginationInfo } from "@/interfaces/api.interface";
 
 export type PromotionsContextType = {
-  promotions: IPromotion[];
+  promotions: PromotionListItemDto[];
   pagination: IPaginationInfo | null;
   searchPromotions: (query?: IIndexParams) => Promise<void>;
-  getPromotionById: (id: string) => Promise<IPromotion>;
-  createPromotion: (data: ICreatePromotion) => Promise<IPromotion>;
+  previewPromotion: (
+    productId: string,
+    variantId: string | null | undefined,
+    discountPercent: number
+  ) => Promise<PromotionPreviewDto>;
+  createPromotion: (dto: PromotionRequestDto) => Promise<PromotionListItemDto>;
   cancelPromotion: (id: string) => Promise<void>;
+  /** Produtos ativos para o combo do dialog (T-VD7: só produto ativo recebe promoção, RN-VD11). */
+  searchProductOptions: (search: string) => Promise<IOption[]>;
+  /** Variações não removidas do produto, para o escopo. */
+  getVariantOptions: (productId: string) => Promise<IOption[]>;
 };
 
 export const PromotionsContext = createContext<PromotionsContextType | null>(

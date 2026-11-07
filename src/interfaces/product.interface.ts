@@ -1,6 +1,7 @@
 import type { Option } from "@/interfaces/api.interface";
 import type { CategoryOptionDto } from "@/interfaces/category.interface";
 import type { LocationOptionDto } from "@/interfaces/store.interface";
+import type { PromotionSummaryDto } from "@/interfaces/promotion.interface";
 import type { TLifecycle, TProductType, TSaleUnit } from "@/types/enums";
 
 export interface ProductAttributeValueRequestDto {
@@ -94,7 +95,7 @@ export interface ProductFormDto extends ProductRequestDto {
 
 /**
  * `availableQuantity` é o físico na loja de `filters.storeId` (ou na empresa). `hasLowStock`: alguma variação abaixo do
- * mínimo efetivo em algum local do mesmo recorte (RN-CE33). `activePromotionPercent` fica nulo até a F2.3 (contrato T1).
+ * mínimo efetivo em algum local do mesmo recorte (RN-CE33). `activePromotionPercent`: maior desconto vigente entre as variações (F2.3).
  */
 export interface ProductListItemDto {
   id: string;
@@ -116,7 +117,7 @@ export interface ProductListItemDto {
   hasLowStock: boolean;
 }
 
-/** Disponível é o físico da empresa; custo médio é a faixa entre as variações com custo. Promoção entra na F2.3 (contrato T3). */
+/** Disponível é o físico da empresa; custo médio é a faixa entre as variações com custo; `activePromotionPercent` é o maior desconto vigente (F2.3). */
 export interface ProductResponseDto {
   id: string;
   name: string;
@@ -153,6 +154,7 @@ export interface ProductVariantResponseDto {
   barcode?: string | null;
   price: number;
   effectivePrice: number;
+  activePromotion?: PromotionSummaryDto | null;
   averageCost?: number | null;
   lastCost?: number | null;
   marginPercent?: number | null;

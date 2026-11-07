@@ -1,300 +1,95 @@
 import { useCallback, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import type { ColumnDef } from "@tanstack/react-table";
-import { Package } from "lucide-react";
 
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DatePicker } from "@/components/app/date-picker";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
-import { NavActionColumn } from "@/components/app/nav-action-column";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
+import { buildPromotionColumns } from "@/components/app/promotion-columns";
+import { PromotionCreateDialog } from "@/components/app/promotion-create-dialog";
 import { SearchSelect } from "@/components/app/search-select";
-import {
-  PromotionSourceBadge,
-  PromotionStatusBadge,
-} from "@/components/app/forecast-badges";
-import { CreatePromotionDialog } from "@/components/app/create-promotion-dialog";
-
-import { usePromotions } from "@/hooks/use-promotions";
-import { useLegacyProducts } from "@/hooks/use-legacy-products";
-import { useAuth } from "@/hooks/use-auth";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { useIndexSearch } from "@/hooks/use-index-search";
-import { useSearchOptions } from "@/hooks/use-search-options";
+import { usePromotions } from "@/hooks/use-promotions";
+import type { IOption } from "@/interfaces/api.interface";
+import type { PromotionListItemDto } from "@/interfaces/promotion.interface";
 import { PromotionsProvider } from "@/providers/promotions.provider";
-import { LegacyProductsProvider } from "@/providers/legacy-products.provider";
-
-import type { IIndexParams, IOption } from "@/interfaces/api.interface";
-import type { IProduct } from "@/interfaces/legacy-product.interface";
-import type { IPromotion } from "@/interfaces/promotion.interface";
-import { TLegacyPromotionSource, TLegacyPromotionStatus } from "@/types/enums";
-import { isAdmin } from "@/utils/auth.helpers";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import {
-  formatCurrency,
-  formatDateOnly,
-  formatDateTime,
-} from "@/utils/format.helpers";
-import { formatDiscount } from "@/utils/forecast.helpers";
+  PROMOTION_SOURCE_LABELS,
+  PROMOTION_STATUS_LABELS,
+  TPromotionSource,
+  TPromotionStatus,
+} from "@/types/enums";
+import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
-type PromotionFilters = {
-  productId: string;
+type PromotionIndexFilters = {
   status: string;
   source: string;
+  productId: string;
+  from: string;
+  to: string;
 };
 
-const ALL = "all";
+const statusOptions: IOption[] = Object.values(TPromotionStatus).map(
+  (value) => ({ value, label: PROMOTION_STATUS_LABELS[value] })
+);
+
+const sourceOptions: IOption[] = Object.values(TPromotionSource).map(
+  (value) => ({ value, label: PROMOTION_SOURCE_LABELS[value] })
+);
 
 function Promotions() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const admin = isAdmin(user);
-  const { promotions, pagination, searchPromotions, cancelPromotion } =
-    usePromotions();
-  const { searchProductsForOptions, getProductById } = useLegacyProducts();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  // Remove os valores "all" antes de enviar os filtros (productId, status, source) à API.
-  const customSearch = useCallback(
-    async (params?: IIndexParams) => {
-      const activeFilters = { ...params?.filters } as Record<string, string>;
-      if (activeFilters.status === ALL) delete activeFilters.status;
-      if (activeFilters.source === ALL) delete activeFilters.source;
-      await searchPromotions({ ...params, filters: activeFilters });
-    },
-    [searchPromotions]
-  );
-
+  const {
+    promotions,
+    pagination,
+    searchPromotions,
+    cancelPromotion,
+    searchProductOptions,
+  } = usePromotions();
+  const [isCreating, setIsCreating] = useState(false);
   const {
     setPerPage,
     selectedIds,
     setSelectedIds,
     filters,
     setFilters,
+    resetFilters,
+    isFiltersOpen,
+    handleFiltersOpenChange,
     handleSearch,
     handlePageChange,
-  } = useIndexSearch<PromotionFilters, "productId">({
-    search: customSearch,
-    initialFilters: { productId: "", status: ALL, source: ALL },
-    quickSearchKey: "productId",
+  } = useIndexSearch<PromotionIndexFilters, "status">({
+    search: searchPromotions,
+    initialFilters: { status: "", source: "", productId: "", from: "", to: "" },
+    quickSearchKey: "status",
     perPageInitial: 10,
-    debounceMs: 300,
+    debounceMs: 0,
     onError: (error) => handleError(error, "Erro ao buscar promoções"),
   });
 
-  const { options: productOptions, handleSearch: handleSearchProducts } =
-    useSearchOptions<IProduct>({
-      searchFn: searchProductsForOptions,
-      mapFn: (p) => ({
-        value: p.id ?? "",
-        label: `${p.productCode} - ${p.name}`,
-      }),
-      selectFn: getProductById,
-      errorLabel: "produtos",
-      autoLoad: false,
-      perPage: 50,
-    });
-
-  const currentPage = pagination?.currentPage ?? 1;
-
   const handleCancel = useCallback(
-    async (promotion: IPromotion) => {
+    async (promotion: PromotionListItemDto) => {
       try {
         await cancelPromotion(promotion.id);
-        handleSuccess("Promoção cancelada com sucesso");
-        await handleSearch(currentPage);
+        handleSuccess("Promoção cancelada");
+        await handleSearch(1);
       } catch (error) {
-        handleError(error, "Erro ao cancelar promoção");
+        handleError(error, "Erro ao cancelar a promoção");
       }
     },
-    [cancelPromotion, handleSearch, currentPage]
+    [cancelPromotion, handleSearch]
   );
 
-  const handleViewProduct = useCallback(
-    (promotion: IPromotion) =>
-      navigate(`/products/${promotion.productId}/view`),
-    [navigate]
+  const columns = useMemo(
+    () => buildPromotionColumns(handleCancel),
+    [handleCancel]
   );
 
-  const columns = useMemo<ColumnDef<IPromotion>[]>(
-    () => [
-      {
-        id: "select",
-        header: ({ table }) => {
-          const isAllSelected = table.getIsAllPageRowsSelected();
-          const isSomeSelected = table.getIsSomePageRowsSelected();
-          return (
-            <Checkbox
-              checked={isAllSelected}
-              indeterminate={isSomeSelected && !isAllSelected}
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-              aria-label="Selecionar todos"
-            />
-          );
-        },
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
-            aria-label="Selecionar linha"
-          />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      },
-      {
-        id: "product",
-        header: "Produto",
-        cell: ({ row }) => {
-          const product = row.original.product;
-          return product ? (
-            <div className="flex flex-col">
-              <span className="font-medium">{product.name}</span>
-              <span className="text-xs text-muted-foreground">
-                Cód. {product.productCode}
-              </span>
-            </div>
-          ) : (
-            "-"
-          );
-        },
-      },
-      {
-        accessorKey: "discountPercent",
-        header: "Desconto",
-        cell: ({ row }) => (
-          <span className="font-semibold text-violet-700 dark:text-violet-400">
-            {formatDiscount(row.original.discountPercent)}
-          </span>
-        ),
-      },
-      {
-        id: "price",
-        header: "Preço",
-        cell: ({ row }) => (
-          <span className="whitespace-nowrap">
-            <span className="mr-1.5 text-xs text-muted-foreground line-through">
-              {formatCurrency(Number(row.original.originalPrice))}
-            </span>
-            <span className="font-semibold">
-              {formatCurrency(Number(row.original.promotionalPrice))}
-            </span>
-          </span>
-        ),
-      },
-      {
-        id: "period",
-        header: "Período",
-        cell: ({ row }) =>
-          `${formatDateOnly(row.original.startDate)} a ${formatDateOnly(row.original.endDate)}`,
-      },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => (
-          <PromotionStatusBadge status={row.original.status} />
-        ),
-      },
-      {
-        accessorKey: "source",
-        header: "Origem",
-        cell: ({ row }) => (
-          <PromotionSourceBadge source={row.original.source} />
-        ),
-      },
-      {
-        accessorKey: "reason",
-        header: "Motivo",
-        cell: ({ row }) =>
-          row.original.reason ? (
-            <span
-              className="line-clamp-2 max-w-[260px] text-xs text-muted-foreground"
-              title={row.original.reason}
-            >
-              {row.original.reason}
-            </span>
-          ) : (
-            "-"
-          ),
-      },
-      {
-        accessorKey: "createAt",
-        header: "Criada",
-        cell: ({ row }) =>
-          row.original.createAt ? formatDateTime(row.original.createAt) : "-",
-      },
-      {
-        id: "actions",
-        header: "Ações",
-        cell: ({ row }) => {
-          const canCancel =
-            admin &&
-            row.original.isActive &&
-            (row.original.status === TLegacyPromotionStatus.Active ||
-              row.original.status === TLegacyPromotionStatus.Scheduled);
-          return (
-            <NavActionColumn
-              object={row.original}
-              onDelete={canCancel ? handleCancel : undefined}
-              deleteLabel="Cancelar"
-              deleteDialogTitle="Cancelar promoção"
-              deleteDialogDescription="O preço do produto volta ao valor normal imediatamente (se a promoção estiver vigente). Esta ação não pode ser desfeita."
-              deleteButtonLabel="Confirmar cancelamento"
-              extraActions={[
-                {
-                  label: "Ver produto",
-                  icon: <Package className="mr-2 h-4 w-4" />,
-                  onClick: handleViewProduct,
-                },
-              ]}
-            />
-          );
-        },
-        enableSorting: false,
-        enableHiding: false,
-      },
-    ],
-    [admin, handleCancel, handleViewProduct]
-  );
-
-  const applyFilterAndSearch = (patch: Partial<PromotionFilters>) => {
-    setFilters((prev) => ({ ...prev, ...patch }));
-    setTimeout(() => handleSearch(1), 0);
-  };
+  const setFilter =
+    (key: keyof PromotionIndexFilters) =>
+    (value: string | number | undefined) =>
+      setFilters((prev) => ({ ...prev, [key]: value ? String(value) : "" }));
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="px-4 md:px-0">
-        <Tabs
-          value={filters.status}
-          onValueChange={(val) => applyFilterAndSearch({ status: val })}
-          className="w-full flex-wrap"
-        >
-          <TabsList className="flex h-auto w-full justify-start overflow-x-auto p-1 md:w-auto">
-            <TabsTrigger value={ALL}>Todas</TabsTrigger>
-            <TabsTrigger value={TLegacyPromotionStatus.Active}>
-              Vigentes
-            </TabsTrigger>
-            <TabsTrigger value={TLegacyPromotionStatus.Scheduled}>
-              Agendadas
-            </TabsTrigger>
-            <TabsTrigger value={TLegacyPromotionStatus.Ended}>
-              Encerradas
-            </TabsTrigger>
-            <TabsTrigger value={TLegacyPromotionStatus.Canceled}>
-              Canceladas
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
+    <>
       <EntityIndexPage
         title="Promoções"
         selectedIds={selectedIds}
@@ -302,41 +97,60 @@ function Promotions() {
         toolbar={
           <>
             <SearchSelect<IOption>
-              className="w-full md:w-[280px] space-y-0"
-              field={{
-                value: filters.productId,
-                onChange: (value) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    productId: value ? String(value) : "",
-                  })),
-              }}
-              data={productOptions}
-              onSearch={handleSearchProducts}
-              placeholder="Filtrar por produto..."
+              field={{ value: filters.status, onChange: setFilter("status") }}
+              data={statusOptions}
+              placeholder="Todos os status"
+              className="w-full md:w-[200px]"
             />
-            <Select
-              value={filters.source}
-              onValueChange={(val) => applyFilterAndSearch({ source: val })}
+            <ListFiltersSheet
+              open={isFiltersOpen}
+              onOpenChange={handleFiltersOpenChange}
+              description="Filtre as promoções por origem, produto e período."
+              onApply={() => {
+                handleSearch(1);
+                handleFiltersOpenChange(false);
+              }}
+              onClear={() => {
+                resetFilters();
+                handleSearch(1);
+                handleFiltersOpenChange(false);
+              }}
             >
-              <SelectTrigger
-                className="w-full md:w-[190px]"
-                aria-label="Origem"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Todas as origens</SelectItem>
-                <SelectItem value={String(TLegacyPromotionSource.Manual)}>
-                  Manual
-                </SelectItem>
-                <SelectItem
-                  value={String(TLegacyPromotionSource.AiRecommendation)}
-                >
-                  Recomendação da IA
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              <SearchSelect<IOption>
+                field={{ value: filters.source, onChange: setFilter("source") }}
+                label="Origem"
+                data={sourceOptions}
+                placeholder="Todas"
+              />
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.productId,
+                  onChange: setFilter("productId"),
+                }}
+                label="Produto"
+                data={[]}
+                onSearch={searchProductOptions}
+                placeholder="Todos"
+              />
+              <Field>
+                <FieldLabel>De</FieldLabel>
+                <DatePicker
+                  value={filters.from}
+                  onChange={(value) =>
+                    setFilters((prev) => ({ ...prev, from: value }))
+                  }
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Até</FieldLabel>
+                <DatePicker
+                  value={filters.to}
+                  onChange={(value) =>
+                    setFilters((prev) => ({ ...prev, to: value }))
+                  }
+                />
+              </Field>
+            </ListFiltersSheet>
           </>
         }
         columns={columns}
@@ -344,26 +158,22 @@ function Promotions() {
         pagination={pagination}
         onPageChange={handlePageChange}
         onPerPageChange={setPerPage}
-        onCreate={admin ? () => setIsCreateOpen(true) : undefined}
+        onCreate={() => setIsCreating(true)}
       />
 
-      {admin && (
-        <CreatePromotionDialog
-          open={isCreateOpen}
-          onOpenChange={setIsCreateOpen}
-          onSuccess={() => void handleSearch(1)}
-        />
-      )}
-    </div>
+      <PromotionCreateDialog
+        open={isCreating}
+        onOpenChange={setIsCreating}
+        onCreated={() => handleSearch(1)}
+      />
+    </>
   );
 }
 
 export default function PromotionsPageWrapper() {
   return (
-    <LegacyProductsProvider>
-      <PromotionsProvider>
-        <Promotions />
-      </PromotionsProvider>
-    </LegacyProductsProvider>
+    <PromotionsProvider>
+      <Promotions />
+    </PromotionsProvider>
   );
 }

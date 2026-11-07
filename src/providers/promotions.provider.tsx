@@ -1,54 +1,88 @@
-import { useState, useCallback, type ReactNode } from "react";
-import type { IPaginationInfo, IIndexParams } from "@/interfaces/api.interface";
+import { useCallback, useState, type ReactNode } from "react";
+
+import { PromotionsContext } from "@/contexts/promotions.context";
 import { useAuth } from "@/hooks/use-auth";
 import type {
-  ICreatePromotion,
-  IPromotion,
+  IIndexParams,
+  IOption,
+  IPaginationInfo,
+} from "@/interfaces/api.interface";
+import type {
+  PromotionListItemDto,
+  PromotionRequestDto,
 } from "@/interfaces/promotion.interface";
-import { PromotionsContext } from "@/contexts/promotions.context";
+import { productService } from "@/services/product.service";
 import { promotionService } from "@/services/promotion.service";
 
 export function PromotionsProvider({ children }: { children: ReactNode }) {
-  const [promotions, setPromotions] = useState<IPromotion[]>([]);
+  const [promotions, setPromotions] = useState<PromotionListItemDto[]>([]);
   const [pagination, setPagination] = useState<IPaginationInfo | null>(null);
   const { token } = useAuth();
+  const auth = token ?? undefined;
 
   const searchPromotions = useCallback(
     async (query?: IIndexParams) => {
       const page = query?.page ?? 1;
       const perPage = query?.perPage ?? 10;
-
-      const response = await promotionService.getAll(query, token ?? undefined);
+      const response = await promotionService.getAll(query, auth);
       setPromotions(response.items || []);
       setPagination({
         currentPage: page,
-        lastPage: Math.ceil((response.total || 0) / perPage) || 1,
-        total: response.total || 0,
+        lastPage: Math.ceil(response.total / perPage) || 1,
+        total: response.total,
         perPage,
       });
     },
-    [token]
+    [auth]
   );
 
-  const getPromotionById = useCallback(
-    async (id: string): Promise<IPromotion> => {
-      return promotionService.getById(id, token ?? undefined);
-    },
-    [token]
+  const previewPromotion = useCallback(
+    (
+      productId: string,
+      variantId: string | null | undefined,
+      discountPercent: number
+    ) => promotionService.preview(productId, variantId, discountPercent, auth),
+    [auth]
   );
 
   const createPromotion = useCallback(
-    async (data: ICreatePromotion): Promise<IPromotion> => {
-      return promotionService.create(data, token ?? undefined);
-    },
-    [token]
+    (dto: PromotionRequestDto) => promotionService.create(dto, auth),
+    [auth]
   );
 
   const cancelPromotion = useCallback(
-    async (id: string): Promise<void> => {
-      await promotionService.cancel(id, token ?? undefined);
+    (id: string) => promotionService.cancel(id, auth),
+    [auth]
+  );
+
+  const searchProductOptions = useCallback(
+    async (search: string): Promise<IOption[]> => {
+      const page = await productService.getAll(
+        {
+          filters: { isActive: "true", ...(search ? { search } : {}) },
+          perPage: 20,
+        },
+        auth
+      );
+      return page.items.map((product) => ({
+        value: product.id,
+        label: product.name,
+      }));
     },
-    [token]
+    [auth]
+  );
+
+  const getVariantOptions = useCallback(
+    async (productId: string): Promise<IOption[]> => {
+      const variants = await productService.variants(productId, auth);
+      return variants.map((variant) => ({
+        value: variant.id,
+        label: variant.label
+          ? `${variant.label} (${variant.sku})`
+          : variant.sku,
+      }));
+    },
+    [auth]
   );
 
   return (
@@ -57,9 +91,11 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
         promotions,
         pagination,
         searchPromotions,
-        getPromotionById,
+        previewPromotion,
         createPromotion,
         cancelPromotion,
+        searchProductOptions,
+        getVariantOptions,
       }}
     >
       {children}

@@ -1,11 +1,5 @@
+import type { PromotionSummaryDto } from "@/interfaces/promotion.interface";
 import type { TLifecycle, TSaleUnit } from "@/types/enums";
-
-/** Promoção vigente da opção (T-VD1). Vem nula até a F2.3. */
-export interface SaleOptionPromotionDto {
-  id: string;
-  discountPercent: number;
-  endDate: string;
-}
 
 /** Lote que a venda baixaria por FEFO (RN-CE15). Vem nulo até a F1.7. */
 export interface SaleOptionLotDto {
@@ -33,7 +27,8 @@ export interface VariantSaleOptionDto {
   allowsNegative: boolean;
   listPrice: number;
   effectivePrice: number;
-  activePromotion: SaleOptionPromotionDto | null;
+  /** Promoção vigente (F2.3); nula sem promoção. */
+  activePromotion: PromotionSummaryDto | null;
   availableQuantity: number;
   locationId: string;
   nextLot: SaleOptionLotDto | null;

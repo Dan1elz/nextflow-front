@@ -2,7 +2,7 @@
 import type { TUnitType } from "@/types/enums";
 import type { ICategory } from "./category.interface";
 import type { SupplierOption } from "./supplier.interface";
-import type { IPromotionSummary } from "./promotion.interface";
+import type { IPromotionSummary } from "./legacy-promotion.interface";
 
 export interface IProduct {
   id?: string;

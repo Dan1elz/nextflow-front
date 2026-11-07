@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { History, ImageOff, PackagePlus, Pencil } from "lucide-react";
 
 import { ManualMovementDrawer } from "@/components/app/manual-movement-drawer";
+import { ProductPromotionsTab } from "@/components/app/product-promotions-tab";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,18 @@ function VariantsTab({
               <TableCell>{variant.sku}</TableCell>
               <TableCell>{variant.barcode ?? "-"}</TableCell>
               <TableCell>{formatCurrency(variant.price)}</TableCell>
-              <TableCell>{formatCurrency(variant.effectivePrice)}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  {formatCurrency(variant.effectivePrice)}
+                  {variant.activePromotion && (
+                    <Badge variant="secondary">
+                      −
+                      {formatNumber(variant.activePromotion.discountPercent, 2)}
+                      %
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>{formatCost(variant.averageCost)}</TableCell>
               <TableCell>{formatCost(variant.lastCost)}</TableCell>
               <TableCell>
@@ -321,7 +333,7 @@ function PricesTab({ history }: { history: PriceHistoryResponseDto[] }) {
   );
 }
 
-/** T3: só o que já tem dado. Lotes, movimentações, previsão e promoções entram nas fatias deles. */
+/** T3: só o que já tem dado. Lotes, movimentações e previsão entram nas fatias deles. */
 function ViewProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -372,7 +384,7 @@ function ViewProduct() {
     loadStock();
   }, [loadStock]);
 
-  // Depois do lançamento: saldo na matriz; disponível e custo médio no cabeçalho e nas variações.
+  // Depois do lançamento ou da promoção: saldo na matriz; disponível, custo médio e preço efetivo no cabeçalho e nas variações.
   const reloadAfterMovement = useCallback(() => {
     if (!id) return;
     loadStock();
@@ -449,10 +461,10 @@ function ViewProduct() {
             />
             <Detail
               label="Preço efetivo"
-              value={formatPriceRange(
+              value={`${formatPriceRange(
                 product.minEffectivePrice,
                 product.maxEffectivePrice
-              )}
+              )}${product.activePromotionPercent != null ? ` (promoção de até ${formatNumber(product.activePromotionPercent, 2)}%)` : ""}`}
             />
             <Detail
               label="Custo médio"
@@ -533,6 +545,16 @@ function ViewProduct() {
             value: "prices",
             label: "Preços",
             content: <PricesTab history={history} />,
+          },
+          {
+            value: "promotions",
+            label: "Promoções",
+            content: (
+              <ProductPromotionsTab
+                product={product}
+                onChanged={reloadAfterMovement}
+              />
+            ),
           },
         ]}
       />

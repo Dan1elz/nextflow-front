@@ -1,4 +1,5 @@
 import { useContext } from "react";
+
 import { PromotionsContext } from "@/contexts/promotions.context";
 
 export function usePromotions() {
