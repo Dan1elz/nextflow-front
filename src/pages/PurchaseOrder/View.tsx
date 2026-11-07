@@ -3,7 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Ban, PackageCheck, Pencil, Send } from "lucide-react";
 
 import { CancelPurchaseOrderDialog } from "@/components/app/cancel-purchase-order-dialog";
-import { ReceivePurchaseOrderDialog } from "@/components/app/receive-purchase-order-dialog";
+import {
+  ReceivePurchaseOrderDialog,
+  type ReceiveLots,
+} from "@/components/app/receive-purchase-order-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,13 +98,16 @@ function ViewPurchaseOrder() {
     }
   };
 
-  const handleReceive = async () => {
+  const handleReceive = async (lots: ReceiveLots) => {
     if (!order) return;
     try {
       setOrder(
         await receivePurchaseOrder(order.id, {
           version: order.version,
-          items: order.items.map((item) => ({ itemId: item.id })),
+          items: order.items.map((item) => ({
+            itemId: item.id,
+            lots: lots[item.id] ?? null,
+          })),
         })
       );
       handleSuccess("Pedido recebido e estoque atualizado");
@@ -244,6 +250,16 @@ function ViewPurchaseOrder() {
                           {" "}
                           · {item.variantLabel}
                         </span>
+                      )}
+                      {item.lots && item.lots.length > 0 && (
+                        <div className="text-muted-foreground text-xs">
+                          {item.lots
+                            .map(
+                              (lot) =>
+                                `Lote ${lot.lotCode} · validade ${formatDateOnly(lot.expiresOn)} · ${formatNumber(lot.quantity, Number.isInteger(lot.quantity) ? 0 : 3)}`
+                            )
+                            .join("; ")}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>{item.sku}</TableCell>

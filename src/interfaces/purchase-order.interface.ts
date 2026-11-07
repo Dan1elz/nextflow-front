@@ -118,7 +118,7 @@ export interface PurchaseOrderDetailItemDto {
   averageCostAfter?: number | null;
 }
 
-/** Lote de um item recebido (T-CP4). Recusado pela API até a F1.7 (lotes). */
+/** Lote de um item recebido (T-CP4, F1.7): código único por variação; os lotes somam a quantidade do item. */
 export interface ReceivePurchaseLotDto {
   code: string;
   expiresOn: string;
