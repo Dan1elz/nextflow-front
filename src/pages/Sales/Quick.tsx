@@ -1,0 +1,546 @@
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { CheckCircle2, Plus, ShoppingCart, Trash2 } from "lucide-react";
+
+import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
+import { SearchSelect } from "@/components/app/search-select";
+import { VariantSalePicker } from "@/components/app/variant-sale-picker";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
+import { useApiForm } from "@/hooks/use-api-form";
+import { useAuth } from "@/hooks/use-auth";
+import { useCurrentStore } from "@/hooks/use-current-store";
+import { useDebounce } from "@/hooks/use-debounce";
+import type { ClientOptionDto } from "@/interfaces/client.interface";
+import type {
+  OrderDetailDto,
+  QuickSaleDto,
+  QuickSalePreviewDto,
+} from "@/interfaces/quick-sale.interface";
+import type { VariantSaleOptionDto } from "@/interfaces/sale-option.interface";
+import { clientService } from "@/services/client.service";
+import { quickSaleService } from "@/services/quick-sale.service";
+import {
+  PAYMENT_METHOD_LABELS,
+  TPaymentMethod,
+  type TSaleUnit,
+} from "@/types/enums";
+import { formatCurrency } from "@/utils/format.helpers";
+import { SALE_UNIT_SHORT } from "@/utils/product.helpers";
+
+interface CartLine {
+  variantId: string;
+  productName: string;
+  variantLabel: string | null;
+  sku: string;
+  saleUnit: TSaleUnit;
+  decimalPlaces: number;
+  expectedUnitPrice: number;
+  quantity: string;
+  discount: string;
+}
+
+interface QuickSaleForm {
+  clientId: string;
+  items: CartLine[];
+  payments: { method: TPaymentMethod; amount: string }[];
+  cashReceived: string;
+}
+
+const EMPTY_FORM: QuickSaleForm = {
+  clientId: "",
+  items: [],
+  payments: [{ method: TPaymentMethod.Pix, amount: "" }],
+  cashReceived: "",
+};
+
+const toNumber = (value: string) => {
+  const parsed = Number(value.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+/** Corpo da API a partir do formulário; o preço e os totais ficam com a API (RN-VD02). */
+function toDto(
+  values: QuickSaleForm,
+  storeId: string,
+  confirmWarnings = false
+): QuickSaleDto {
+  return {
+    storeId,
+    clientId: values.clientId || null,
+    items: values.items.map((item) => ({
+      variantId: item.variantId,
+      quantity: toNumber(item.quantity),
+      discount: toNumber(item.discount),
+      expectedUnitPrice: item.expectedUnitPrice,
+    })),
+    payments: values.payments
+      .filter((payment) => payment.amount !== "")
+      .map((payment) => ({
+        method: payment.method,
+        amount: toNumber(payment.amount),
+      })),
+    cashReceived: values.cashReceived ? toNumber(values.cashReceived) : null,
+    confirmWarnings,
+  };
+}
+
+/**
+ * Venda rápida de balcão (T-VD2, RN-VD15): bipa ou busca, ajusta quantidade e desconto, paga e conclui. Sem caixa, TEF,
+ * cupom ou offline. Rodapé (preço efetivo, totais, falta pagar e troco) vem da prévia da API; a conclusão revalida tudo.
+ */
+export default function QuickSalePage() {
+  const { token } = useAuth();
+  const { storeId } = useCurrentStore();
+  const [loadedPreview, setPreview] = useState<QuickSalePreviewDto | null>(
+    null
+  );
+  const [done, setDone] = useState<OrderDetailDto | null>(null);
+
+  const form = useForm<QuickSaleForm>({ defaultValues: EMPTY_FORM });
+  const { submit, confirmWarning } = useApiForm(form);
+  const items = useFieldArray({ control: form.control, name: "items" });
+  const payments = useFieldArray({ control: form.control, name: "payments" });
+  const values = useWatch({ control: form.control }) as QuickSaleForm;
+  const previewKey = useDebounce(JSON.stringify(values), 300);
+  const hasCash = values.payments?.some(
+    (payment) => payment.method === TPaymentMethod.Cash
+  );
+
+  useEffect(() => {
+    if (!storeId || !token) return;
+    const current = JSON.parse(previewKey) as QuickSaleForm;
+    // Carrinho vazio: o rodapé usa `preview` só quando há itens (ver `preview` abaixo).
+    if (!current.items?.length) return;
+    let active = true;
+    quickSaleService
+      .preview(toDto(current, storeId), token)
+      .then((result) => active && setPreview(result))
+      // Linha inválida no meio da digitação: o rodapé some e o erro aparece ao concluir.
+      .catch(() => active && setPreview(null));
+    return () => {
+      active = false;
+    };
+  }, [previewKey, storeId, token]);
+
+  const preview = values.items?.length ? loadedPreview : null;
+
+  const previewByVariant = useMemo(
+    () => new Map(preview?.items.map((item) => [item.variantId, item]) ?? []),
+    [preview]
+  );
+
+  const addOption = (option: VariantSaleOptionDto) => {
+    const index = form
+      .getValues("items")
+      .findIndex((line) => line.variantId === option.variantId);
+    if (index >= 0) {
+      const line = form.getValues(`items.${index}`);
+      items.update(index, {
+        ...line,
+        quantity: String(toNumber(line.quantity) + 1),
+      });
+      return;
+    }
+    items.append({
+      variantId: option.variantId,
+      productName: option.productName,
+      variantLabel: option.variantLabel,
+      sku: option.sku,
+      saleUnit: option.saleUnit,
+      decimalPlaces: option.decimalPlaces,
+      expectedUnitPrice: option.effectivePrice,
+      quantity: "1",
+      discount: "0",
+    });
+  };
+
+  const onSubmit = form.handleSubmit(async (formValues) => {
+    if (!storeId) return;
+    await submit(async (confirmWarnings) => {
+      const order = await quickSaleService.create(
+        toDto(formValues, storeId, confirmWarnings),
+        token ?? undefined
+      );
+      setDone(order);
+    });
+  });
+
+  const newSale = () => {
+    form.reset(EMPTY_FORM);
+    setPreview(null);
+    setDone(null);
+  };
+
+  if (done) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-4">
+        <Alert>
+          <CheckCircle2 />
+          <AlertTitle>Venda nº {done.number} concluída</AlertTitle>
+          <AlertDescription>
+            Total {formatCurrency(done.total)}
+            {done.change != null && done.change > 0
+              ? ` · troco ${formatCurrency(done.change)}`
+              : ""}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={newSale} autoFocus>
+          <Plus />
+          Nova venda
+        </Button>
+      </div>
+    );
+  }
+
+  const { isSubmitting } = form.formState;
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4"
+    >
+      <h1 className="text-2xl font-semibold">Venda rápida</h1>
+
+      {!storeId && (
+        <Alert>
+          <AlertTitle>Selecione uma loja</AlertTitle>
+          <AlertDescription>
+            A venda nasce na loja escolhida no topo e baixa do local de venda
+            padrão dela.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <VariantSalePicker onSelect={addOption} disabled={isSubmitting} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Carrinho</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {items.fields.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ShoppingCart />
+                </EmptyMedia>
+                <EmptyTitle>Carrinho vazio</EmptyTitle>
+                <EmptyDescription>
+                  Bipe o código ou busque o produto acima.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            items.fields.map((line, index) => {
+              const priced = previewByVariant.get(line.variantId);
+              return (
+                <div key={line.id} className="flex flex-col gap-2">
+                  {index > 0 && <Separator />}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate font-medium">
+                        {line.productName}
+                        {line.variantLabel && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {line.variantLabel}
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {line.sku}
+                        {priced &&
+                          ` · ${formatCurrency(priced.unitPrice)} / ${SALE_UNIT_SHORT[line.saleUnit]}`}
+                        {priced?.promotion &&
+                          ` (−${priced.promotion.discountPercent}%)`}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remover item"
+                      onClick={() => items.remove(index)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                  <FieldGroup className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <Controller
+                      control={form.control}
+                      name={`items.${index}.quantity`}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor={`qty-${line.id}`}>
+                            Quantidade
+                          </FieldLabel>
+                          <Input
+                            {...field}
+                            id={`qty-${line.id}`}
+                            inputMode="decimal"
+                            aria-invalid={fieldState.invalid}
+                          />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                    <Controller
+                      control={form.control}
+                      name={`items.${index}.discount`}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel htmlFor={`disc-${line.id}`}>
+                            Desconto (R$)
+                          </FieldLabel>
+                          <Input
+                            {...field}
+                            id={`disc-${line.id}`}
+                            inputMode="decimal"
+                            aria-invalid={fieldState.invalid}
+                          />
+                          {fieldState.invalid && (
+                            <FieldError errors={[fieldState.error]} />
+                          )}
+                        </Field>
+                      )}
+                    />
+                    <div className="col-span-2 flex flex-col items-end justify-end sm:col-span-1">
+                      <span className="text-xs text-muted-foreground">
+                        Total da linha
+                      </span>
+                      <span className="font-medium tabular-nums">
+                        {priced ? formatCurrency(priced.lineTotal) : "—"}
+                      </span>
+                    </div>
+                  </FieldGroup>
+                  {form.formState.errors.items?.[index]?.variantId && (
+                    <FieldError
+                      errors={[form.formState.errors.items[index]?.variantId]}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
+          {form.formState.errors.items?.root && (
+            <FieldError errors={[form.formState.errors.items.root]} />
+          )}
+          {form.formState.errors.items?.message && (
+            <FieldError errors={[form.formState.errors.items]} />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Cliente e pagamento</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup>
+            <Controller
+              control={form.control}
+              name="clientId"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <SearchSelect<Record<string, unknown> & ClientOptionDto>
+                    field={{
+                      value: field.value,
+                      onChange: (value) =>
+                        field.onChange(value ? String(value) : ""),
+                    }}
+                    label="Cliente (opcional)"
+                    data={[]}
+                    onSearch={(search) =>
+                      clientService.clientOptions(
+                        search,
+                        token ?? undefined
+                      ) as Promise<
+                        (Record<string, unknown> & ClientOptionDto)[]
+                      >
+                    }
+                    getOptionLabel={(client) => client.label}
+                    getOptionValue={(client) => client.id}
+                    placeholder="Consumidor final"
+                    disabled={isSubmitting}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            {payments.fields.map((payment, index) => (
+              <div key={payment.id} className="flex items-end gap-2">
+                <Controller
+                  control={form.control}
+                  name={`payments.${index}.method`}
+                  render={({ field }) => (
+                    <Field className="flex-1">
+                      <FieldLabel>Forma</FieldLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger aria-label="Forma de pagamento">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {Object.values(TPaymentMethod).map((method) => (
+                              <SelectItem key={method} value={method}>
+                                {PAYMENT_METHOD_LABELS[method]}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name={`payments.${index}.amount`}
+                  render={({ field, fieldState }) => (
+                    <Field className="flex-1" data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor={`pay-${payment.id}`}>
+                        Valor (R$)
+                      </FieldLabel>
+                      <Input
+                        {...field}
+                        id={`pay-${payment.id}`}
+                        inputMode="decimal"
+                        aria-invalid={fieldState.invalid}
+                      />
+                    </Field>
+                  )}
+                />
+                {payments.fields.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Remover pagamento"
+                    onClick={() => payments.remove(index)}
+                  >
+                    <Trash2 />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                payments.append({ method: TPaymentMethod.Cash, amount: "" })
+              }
+            >
+              <Plus />
+              Outra forma
+            </Button>
+            {form.formState.errors.payments?.message && (
+              <FieldError errors={[form.formState.errors.payments]} />
+            )}
+
+            {hasCash && (
+              <Controller
+                control={form.control}
+                name="cashReceived"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="cash-received">
+                      Recebido em dinheiro (R$)
+                    </FieldLabel>
+                    <Input
+                      {...field}
+                      id="cash-received"
+                      inputMode="decimal"
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            )}
+          </FieldGroup>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="flex flex-col gap-2">
+          <SummaryRow label="Subtotal" value={preview?.subtotal} />
+          <SummaryRow label="Descontos" value={preview?.discountTotal} />
+          <Separator />
+          <SummaryRow label="Total" value={preview?.total} strong />
+          <SummaryRow label="Falta pagar" value={preview?.remaining} />
+          {preview?.change != null && (
+            <SummaryRow label="Troco" value={preview.change} />
+          )}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isSubmitting || !storeId || items.fields.length === 0}
+          >
+            {isSubmitting && <Spinner />}
+            Concluir venda
+          </Button>
+        </CardContent>
+      </Card>
+
+      <ConfirmWarningDialog state={confirmWarning} />
+    </form>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: number | undefined;
+  strong?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between ${strong ? "text-lg font-semibold" : "text-sm"}`}
+    >
+      <span className={strong ? undefined : "text-muted-foreground"}>
+        {label}
+      </span>
+      <span className="tabular-nums">
+        {value == null ? "—" : formatCurrency(value)}
+      </span>
+    </div>
+  );
+}

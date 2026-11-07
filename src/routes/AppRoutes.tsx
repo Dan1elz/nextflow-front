@@ -37,6 +37,7 @@ import EditPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/Edit";
 import ViewPurchaseOrderPageWrapper from "@/pages/PurchaseOrder/View";
 import ForecastPageWrapper from "@/pages/Forecast";
 import PromotionsPageWrapper from "@/pages/Promotions";
+import QuickSalePage from "@/pages/Sales/Quick";
 
 function AppRoutes() {
   return (
@@ -106,6 +107,7 @@ function AppRoutes() {
 
         <Route path="stock-movements" element={<StockMovementsPageWrapper />} />
 
+        <Route path="sales/quick" element={<QuickSalePage />} />
         <Route path="orders" element={<OrdersPageWrapper />} />
         <Route path="orders/create" element={<CreateOrderPageWrapper />} />
         <Route path="orders/:id/edit" element={<EditOrderPageWrapper />} />

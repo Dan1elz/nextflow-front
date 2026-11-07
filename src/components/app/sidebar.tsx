@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Package,
   Activity,
+  ScanBarcode,
   ShoppingCart,
   ShoppingBag,
   SlidersHorizontal,
@@ -63,6 +64,7 @@ const items: SidebarMenuGroup[] = [
   {
     title: "COMERCIAL",
     items: [
+      { name: "Venda rápida", url: "/sales/quick", icon: ScanBarcode },
       { name: "Vendas (Pedidos)", url: "/orders", icon: ShoppingCart },
       { name: "Pedidos de Compra", url: "/purchase-orders", icon: ShoppingBag },
       { name: "Promoções", url: "/promotions", icon: BadgePercent },
