@@ -413,6 +413,19 @@ export const AI_BATCH_STATUS_LABELS: Record<TAiBatchStatus, string> = {
   Failed: "Falhou",
 };
 
+export const TLeadTimeSource = {
+  History: "History",
+  ProductSupplier: "ProductSupplier",
+  Supplier: "Supplier",
+} as const;
+export type TLeadTimeSource =
+  (typeof TLeadTimeSource)[keyof typeof TLeadTimeSource];
+export const LEAD_TIME_SOURCE_LABELS: Record<TLeadTimeSource, string> = {
+  History: "Média dos recebimentos",
+  ProductSupplier: "Vínculo do produto",
+  Supplier: "Cadastro do fornecedor",
+};
+
 export const TAbcClass = {
   A: "A",
   B: "B",
