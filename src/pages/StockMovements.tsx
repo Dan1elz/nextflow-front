@@ -191,7 +191,12 @@ function StockMovements() {
       { accessorKey: "locationName", header: "Local" },
       {
         accessorKey: "lotCode",
-        header: "Lote",
+        // Com lote, o "saldo após" é o saldo do lote no local (F1.7), não o da variação no local.
+        header: () => (
+          <span title="Com lote, o saldo após é o saldo do lote neste local">
+            Lote
+          </span>
+        ),
         cell: ({ row }) => row.original.lotCode ?? "-",
       },
       {
