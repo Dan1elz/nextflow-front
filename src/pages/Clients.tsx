@@ -182,6 +182,7 @@ function Clients() {
   return (
     <EntityIndexPage
       title="Clientes"
+      onRowOpen={handleView}
       selectedIds={selectedIds}
       onSelectionChange={setSelectedIds}
       toolbar={

@@ -129,18 +129,15 @@ function StatTile({
   label,
   value,
   icon,
-  accent,
 }: {
   label: string;
   value: number;
   icon: React.ReactNode;
-  accent: string;
 }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between rounded-lg border border-l-4 bg-card/65 p-3",
-        accent
+        "flex items-center justify-between rounded-2xl border border-border/60 bg-card p-4 shadow-[var(--shadow-1)]"
       )}
     >
       <div>
@@ -306,7 +303,7 @@ function ProductDetails({
   const unit = rec.product.unitType;
 
   return (
-    <Card className="bg-card/65 backdrop-blur-sm">
+    <Card>
       <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <CardTitle className="text-lg">{rec.product.name}</CardTitle>
@@ -664,7 +661,7 @@ function ForecastContent() {
   );
 
   const renderHeader = () => (
-    <Card className="bg-card/65 backdrop-blur-sm border-l-4 border-l-violet-500">
+    <Card>
       <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-full bg-violet-500/10 p-2 text-violet-500">
@@ -811,30 +808,26 @@ function ForecastContent() {
           label="Comprar"
           value={latestRun.counts?.buy ?? 0}
           icon={<ShoppingCart />}
-          accent="border-l-indigo-500"
         />
         <StatTile
           label="Promover"
           value={latestRun.counts?.promote ?? 0}
           icon={<BadgePercent />}
-          accent="border-l-violet-500"
         />
         <StatTile
           label="Manter"
           value={latestRun.counts?.hold ?? 0}
           icon={<PauseCircle />}
-          accent="border-l-slate-400"
         />
         <StatTile
           label="Pendentes"
           value={latestRun.counts?.pending ?? 0}
           icon={<Sparkles />}
-          accent="border-l-amber-500"
         />
       </div>
 
       {latestRun.summary && (
-        <Card className="bg-card/65 backdrop-blur-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Sparkles className="h-4 w-4 text-violet-500" />
@@ -858,7 +851,7 @@ function ForecastContent() {
       )}
 
       {/* Recomendações */}
-      <Card className="bg-card/65 backdrop-blur-sm">
+      <Card>
         <CardHeader className="flex flex-col gap-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>

@@ -317,8 +317,8 @@ function AiRecommendationsCardContent() {
   };
 
   return (
-    <Card className="bg-card/65 backdrop-blur-sm border-l-4 border-l-violet-500">
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <Card className="rounded-none border-0 border-t border-border/70 bg-transparent pt-8 shadow-none">
+      <CardHeader className="flex flex-col gap-3 px-0 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-full bg-violet-500/10 p-2 text-violet-500">
             <Sparkles className="h-5 w-5" />
@@ -350,7 +350,7 @@ function AiRecommendationsCardContent() {
           </Link>
         </Button>
       </CardHeader>
-      <CardContent>{renderBody()}</CardContent>
+      <CardContent className="px-0">{renderBody()}</CardContent>
 
       <ApplyPurchaseDialog
         open={purchaseRecs.length > 0}

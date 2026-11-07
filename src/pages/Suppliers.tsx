@@ -198,6 +198,7 @@ function Suppliers() {
   return (
     <EntityIndexPage
       title="Fornecedores"
+      onRowOpen={handleView}
       selectedIds={selectedIds}
       onSelectionChange={setSelectedIds}
       toolbar={

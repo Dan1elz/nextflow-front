@@ -1,5 +1,3 @@
-import { Moon, Sun } from "lucide-react";
-
 import { ChangePasswordForm } from "@/components/forms/change-password-form";
 import { ProfileForm } from "@/components/forms/profile-form";
 import {
@@ -10,19 +8,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/hooks/use-theme";
 import type {
   ChangePasswordRequestDto,
   UpdateProfileRequestDto,
 } from "@/interfaces/user.interface";
-import type { TTheme } from "@/types/theme";
 import { handleSuccess } from "@/utils/toast.helpers";
 
 export default function Profile() {
   const { user, updateProfile, changePassword } = useAuth();
-  const { theme, setTheme } = useTheme();
 
   const handleProfile = async (dto: UpdateProfileRequestDto) => {
     await updateProfile(dto);
@@ -64,30 +58,6 @@ export default function Profile() {
         </CardHeader>
         <CardContent>
           <ChangePasswordForm onSubmit={handlePassword} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Tema</CardTitle>
-          <CardDescription>Vale só para este navegador.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={theme}
-            onValueChange={(value) => value && setTheme(value as TTheme)}
-          >
-            <ToggleGroupItem value="light" aria-label="Tema claro">
-              <Sun />
-              Claro
-            </ToggleGroupItem>
-            <ToggleGroupItem value="dark" aria-label="Tema escuro">
-              <Moon />
-              Escuro
-            </ToggleGroupItem>
-          </ToggleGroup>
         </CardContent>
       </Card>
     </div>

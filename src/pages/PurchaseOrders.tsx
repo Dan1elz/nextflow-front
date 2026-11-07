@@ -166,6 +166,7 @@ function PurchaseOrders() {
   return (
     <EntityIndexPage
       title="Pedidos de compra"
+      onRowOpen={(order) => navigate(`/purchase-orders/${order.id}/view`)}
       selectedIds={selectedIds}
       onSelectionChange={setSelectedIds}
       toolbar={

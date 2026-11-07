@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   type ColumnDef,
   flexRender,
@@ -41,6 +41,26 @@ interface DataTableProps<TData, TValue> {
   onPerPageChange?: (perPage: number) => void;
   disablePagination?: boolean;
   onSelectionChange?: (rows: string[]) => void;
+  /** Quando definido, a coluna principal (a primeira após a seleção) vira um link que abre o registro. */
+  onRowOpen?: (row: TData) => void;
+}
+
+function OpenLink({
+  onOpen,
+  children,
+}: {
+  onOpen: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="max-w-full cursor-pointer rounded-md text-left font-medium underline-offset-4 outline-none transition-colors duration-150 hover:text-primary hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
+    >
+      {children}
+    </button>
+  );
 }
 
 export function DataTable<TData, TValue>({
@@ -54,6 +74,7 @@ export function DataTable<TData, TValue>({
   onPerPageChange,
   disablePagination,
   onSelectionChange,
+  onRowOpen,
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [rowSelection, setRowSelection] = useState({});
@@ -94,6 +115,10 @@ export function DataTable<TData, TValue>({
 
   const { rows: selectedRows } = table.getSelectedRowModel();
 
+  const mainColumnId = table
+    .getVisibleLeafColumns()
+    .find((column) => column.id !== "select")?.id;
+
   useEffect(() => {
     if (onSelectionChange) {
       const selectedIds = selectedRows.map(
@@ -130,19 +155,30 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row, rowIndex) => (
                 <TableRow
                   key={row.id}
+                  className="animate-in fade-in fill-mode-both duration-500"
+                  style={{ animationDelay: `${Math.min(rowIndex, 12) * 28}ms` }}
                   data-state={row.getIsSelected() ? "selected" : undefined}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="text-left">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const content = flexRender(
+                      cell.column.columnDef.cell,
+                      cell.getContext()
+                    );
+                    return (
+                      <TableCell key={cell.id} className="text-left">
+                        {onRowOpen && cell.column.id === mainColumnId ? (
+                          <OpenLink onOpen={() => onRowOpen(row.original)}>
+                            {content}
+                          </OpenLink>
+                        ) : (
+                          content
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (
@@ -151,7 +187,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Sem resultados.
+                  Nenhum resultado encontrado.
                 </TableCell>
               </TableRow>
             )}
@@ -179,9 +215,18 @@ export function DataTable<TData, TValue>({
               >
                 <CardHeader className="flex flex-row items-center justify-between px-2 pb-0">
                   <div className="font-medium text-lg text-left min-w-0 flex-1 break-all">
-                    {flexRender(
-                      firstCell.column.columnDef.cell,
-                      firstCell.getContext()
+                    {onRowOpen ? (
+                      <OpenLink onOpen={() => onRowOpen(row.original)}>
+                        {flexRender(
+                          firstCell.column.columnDef.cell,
+                          firstCell.getContext()
+                        )}
+                      </OpenLink>
+                    ) : (
+                      flexRender(
+                        firstCell.column.columnDef.cell,
+                        firstCell.getContext()
+                      )
                     )}
                   </div>
                   <div>
@@ -230,7 +275,7 @@ export function DataTable<TData, TValue>({
                 value={perPage ? String(perPage) : undefined}
                 onValueChange={handlePerPageChange}
               >
-                <SelectTrigger className="w-[80px]">
+                <SelectTrigger className="w-[84px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

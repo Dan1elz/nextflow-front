@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import NextflowLogoSvg from "@/assets/nextflow-logo.svg";
+import NextflowMarkSvg from "@/assets/nextflow-mark.svg";
 import NextflowLogo3Svg from "@/assets/nextflow-logo3.svg";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -43,4 +44,9 @@ export function NextflowLogo({ className }: NextflowLogoProps) {
   const logoSrc = isDark ? NextflowLogo3Svg : NextflowLogoSvg;
 
   return <img src={logoSrc} alt="Nextflow" className={className} />;
+}
+
+/** Só o "n" da marca: usado na sidebar recolhida e como favicon. */
+export function NextflowMark({ className }: NextflowLogoProps) {
+  return <img src={NextflowMarkSvg} alt="Nextflow" className={className} />;
 }
