@@ -22,6 +22,7 @@ export interface IPurchaseOrder {
   note?: string;
   createAt?: string;
   updateAt?: string;
+  receivedAt?: string | null;
   active?: boolean;
   items?: IPurchaseItem[];
 }

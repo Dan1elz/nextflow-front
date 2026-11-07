@@ -19,6 +19,9 @@ const routeNameMap: Record<string, string> = {
   "purchase-orders": "Pedidos de Compra",
   "stock-movements": "Movimentações de Estoque",
   sales: "Vendas",
+  orders: "Pedidos de Venda",
+  forecast: "Previsão de Demanda (IA)",
+  promotions: "Promoções",
 };
 
 export function useBreadcrumbPath(): IBreadcrumb[] | null {

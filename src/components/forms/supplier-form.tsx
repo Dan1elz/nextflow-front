@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, CreditCard } from "lucide-react";
+import { Building2, CreditCard, Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,10 +49,12 @@ export function SupplierForm({
       ? {
           name: initialData.name,
           cnpj: initialData.cnpj ? formatCpfCnpj(initialData.cnpj) : "",
+          leadTimeDays: Number(initialData.leadTimeDays ?? 7) || 7,
         }
       : {
           name: "",
           cnpj: "",
+          leadTimeDays: 7,
         },
   });
 
@@ -71,7 +73,7 @@ export function SupplierForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormField
             control={form.control}
             name="name"
@@ -115,6 +117,40 @@ export function SupplierForm({
                       onChange={(e) =>
                         handleCnpjChange(e.target.value, field.onChange)
                       }
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="leadTimeDays"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Prazo de entrega (dias)</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Truck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      placeholder="7"
+                      className="pl-9"
+                      disabled={isLoading || disabled}
+                      min={1}
+                      max={180}
+                      step={1}
+                      value={
+                        field.value !== undefined && !Number.isNaN(field.value)
+                          ? field.value
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        field.onChange(v === "" ? undefined : Number(v));
+                      }}
                     />
                   </div>
                 </FormControl>

@@ -45,6 +45,7 @@ export function SupplierTab({ mode }: SupplierTabProps) {
     const base = {
       name: data.name,
       cnpj: cnpj,
+      leadTimeDays: data.leadTimeDays,
     };
 
     try {

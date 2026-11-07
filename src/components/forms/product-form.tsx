@@ -6,6 +6,9 @@ import {
   CircleDollarSign,
   Package,
   Layers,
+  Tag,
+  Wallet,
+  ShieldAlert,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +26,7 @@ import type { IOption } from "@/interfaces/api.interface";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -100,6 +104,14 @@ export function ProductForm({
           quantity: Number(initialData.quantity) || 0,
           unitType: Number(initialData.unitType) as TUnitType,
           price: Number(initialData.price) || 0,
+          brand: initialData.brand ?? "",
+          costPrice:
+            initialData.costPrice !== undefined &&
+            initialData.costPrice !== null &&
+            initialData.costPrice !== ""
+              ? Number(initialData.costPrice)
+              : null,
+          minStock: Number(initialData.minStock ?? 0) || 0,
           validity: initialData.validity ?? "",
         }
       : {
@@ -112,6 +124,9 @@ export function ProductForm({
           quantity: 0,
           unitType: TUnitType.Unit,
           price: 0,
+          brand: "",
+          costPrice: null,
+          minStock: 0,
           validity: "",
         },
   });
@@ -379,6 +394,107 @@ export function ProductForm({
                           maxDate={new Date(2100, 11, 31)}
                           placeholder="dd/mm/aaaa"
                           error={!!form.formState.errors.validity}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Marca, custo e estoque mínimo: 3 x 1 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="brand"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marca</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Tag className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="Marca (opcional)"
+                          className="pl-9"
+                          disabled={isLoading || disabled}
+                          autoComplete="off"
+                          maxLength={60}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="costPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custo</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Wallet className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          placeholder="Custo de referência"
+                          className="pl-9"
+                          disabled={isLoading || disabled}
+                          autoComplete="off"
+                          min={0}
+                          step="any"
+                          value={
+                            field.value !== undefined && field.value !== null
+                              ? field.value
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === "" ? null : Number(v));
+                          }}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Atualizado ao receber pedidos de compra.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="minStock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estoque mínimo</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <ShieldAlert className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="number"
+                          placeholder="Estoque de segurança"
+                          className="pl-9"
+                          disabled={isLoading || disabled}
+                          autoComplete="off"
+                          min={0}
+                          step="any"
+                          value={
+                            field.value !== undefined && field.value !== null
+                              ? field.value
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === "" ? 0 : Number(v));
+                          }}
                         />
                       </div>
                     </FormControl>

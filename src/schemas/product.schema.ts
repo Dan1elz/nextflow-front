@@ -55,6 +55,19 @@ export const productSchema = z.object({
 
   price: z.coerce.number().min(0, "O preço não pode ser negativo"),
 
+  brand: z
+    .string()
+    .max(60, "A marca não pode exceder 60 caracteres")
+    .nullish()
+    .or(z.literal("")),
+
+  costPrice: z.number().min(0, "O custo não pode ser negativo").nullish(),
+
+  minStock: z.coerce
+    .number()
+    .min(0, "O estoque mínimo não pode ser negativo")
+    .default(0),
+
   validity: dateOnlyOptionalSchema,
 });
 

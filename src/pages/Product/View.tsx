@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { ProductTab } from "@/pages/Product/Tabs/ProductTab";
 import { StockMovementsTab } from "@/pages/Product/Tabs/StockMovementsTab";
+import { ForecastTab } from "@/pages/Product/Tabs/ForecastTab";
 import { ProductsProvider } from "@/providers/products.provider";
 import { SuppliersProvider } from "@/providers/suppliers.provider";
 import { CategoriesProvider } from "@/providers/categories.provider";
@@ -29,6 +30,17 @@ function ViewProduct() {
           productId={id ?? null}
           productName={selectedProduct?.name}
           disabled
+        />
+      ),
+    },
+    {
+      value: "forecast",
+      label: "Previsão",
+      content: (
+        <ForecastTab
+          productId={id ?? null}
+          currentStock={selectedProduct?.quantity}
+          unitType={selectedProduct?.unitType}
         />
       ),
     },

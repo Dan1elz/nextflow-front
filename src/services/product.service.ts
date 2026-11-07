@@ -5,6 +5,10 @@ import type { IProduct } from "@/interfaces/product.interface";
 const baseService = new BaseService<IProduct>("products");
 const apiService = new ApiService();
 
+function hasValue(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== "";
+}
+
 function toCreateFormData(product: Partial<IProduct>): FormData {
   const fd = new FormData();
   if (product.supplierId) fd.append("SupplierId", product.supplierId);
@@ -18,6 +22,12 @@ function toCreateFormData(product: Partial<IProduct>): FormData {
   if (product.price !== undefined && product.price !== null)
     fd.append("Price", String(product.price));
   if (product.validity) fd.append("Validity", product.validity);
+  if (product.brand && product.brand.trim())
+    fd.append("Brand", product.brand.trim());
+  if (hasValue(product.costPrice))
+    fd.append("CostPrice", String(product.costPrice));
+  if (hasValue(product.minStock))
+    fd.append("MinStock", String(product.minStock));
   const categoryIds = product.categoryIds ?? [];
   for (const id of categoryIds) if (id) fd.append("CategoryIds", id);
   if (product.image instanceof File) fd.append("Image", product.image);
@@ -35,6 +45,9 @@ function toUpdateBody(product: Partial<IProduct>): Record<string, unknown> {
     unitType: product.unitType,
     price: product.price,
     validity: product.validity || null,
+    brand: product.brand?.trim() ? product.brand.trim() : null,
+    costPrice: hasValue(product.costPrice) ? Number(product.costPrice) : null,
+    minStock: hasValue(product.minStock) ? Number(product.minStock) : 0,
   };
 }
 

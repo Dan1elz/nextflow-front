@@ -22,6 +22,7 @@ import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
 import { SearchSelect } from "@/components/app/search-select";
+import { PromotionDiscountBadge } from "@/components/app/forecast-badges";
 
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { formatCurrency, formatDateOnly, formatNumber } from "@/utils";
@@ -286,7 +287,30 @@ function Products() {
       {
         accessorKey: "price",
         header: "Preço",
-        cell: ({ row }) => formatCurrency(Number(row.original.price)),
+        cell: ({ row }) => {
+          const { price, effectivePrice, activePromotion } = row.original;
+          if (
+            !activePromotion ||
+            effectivePrice === undefined ||
+            effectivePrice === null
+          )
+            return formatCurrency(Number(price));
+          return (
+            <div className="flex flex-col items-start gap-1">
+              <span className="whitespace-nowrap">
+                <span className="mr-1.5 text-xs text-muted-foreground line-through">
+                  {formatCurrency(Number(price))}
+                </span>
+                <span className="font-semibold">
+                  {formatCurrency(Number(effectivePrice))}
+                </span>
+              </span>
+              <PromotionDiscountBadge
+                discountPercent={activePromotion.discountPercent}
+              />
+            </div>
+          );
+        },
       },
       {
         accessorKey: "quantity",

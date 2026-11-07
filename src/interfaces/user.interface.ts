@@ -1,3 +1,5 @@
+import type { TRoleEnum } from "@/types/enums";
+
 export interface IUser {
   id: string;
   name: string;
@@ -6,6 +8,8 @@ export interface IUser {
   cpf: string;
   birthDate: string;
   isActive?: boolean;
+  /** Papel do usuário (enviado no login/check-auth). */
+  role?: TRoleEnum;
 }
 
 export interface ICreateUser {

@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { toast, type ExternalToast } from "sonner";
 import { ApiError } from "@/services/api.service";
 
 export function handleError(
@@ -26,8 +26,8 @@ export function handleError(
   }
 }
 
-export function handleSuccess(message: string): void {
-  toast.success(message);
+export function handleSuccess(message: string, options?: ExternalToast): void {
+  toast.success(message, options);
 }
 
 export function handleWarning(message: string): void {
