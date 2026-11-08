@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ButtonLoader } from "@/components/ui/button-loader";
 import { useForecast } from "@/hooks/use-forecast";
-import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
+import type { IForecastRecommendation } from "@/interfaces/legacy-forecast.interface";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 
 type DismissRecommendationDialogProps = {

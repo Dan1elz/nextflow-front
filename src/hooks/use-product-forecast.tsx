@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useForecast } from "@/hooks/use-forecast";
-import type { IProductForecast } from "@/interfaces/forecast.interface";
+import type { IProductForecast } from "@/interfaces/legacy-forecast.interface";
 
 type ProductForecastResult = {
   key: string;

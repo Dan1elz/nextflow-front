@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
+import type { IForecastRecommendation } from "@/interfaces/legacy-forecast.interface";
 import { formatDateOnly } from "@/utils/format.helpers";
 import { formatDiscount, formatQuantity } from "@/utils/forecast.helpers";
 import {

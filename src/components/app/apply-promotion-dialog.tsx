@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { PromotionForm } from "@/components/forms/promotion-form";
 import { useForecast } from "@/hooks/use-forecast";
-import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
+import type { IForecastRecommendation } from "@/interfaces/legacy-forecast.interface";
 import type { PromotionSchema } from "@/schemas/promotion.schema";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { addDaysToDateOnly, getTodayDateOnly } from "@/utils/date.helpers";

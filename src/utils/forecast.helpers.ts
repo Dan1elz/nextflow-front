@@ -1,7 +1,7 @@
 import type {
   IForecastRecommendation,
   IForecastRun,
-} from "@/interfaces/forecast.interface";
+} from "@/interfaces/legacy-forecast.interface";
 import {
   TLegacyRecommendationAction,
   TLegacyRecommendationStatus,

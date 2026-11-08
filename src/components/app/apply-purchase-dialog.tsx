@@ -20,7 +20,7 @@ import { useForecast } from "@/hooks/use-forecast";
 import type {
   IApplyPurchaseResult,
   IForecastRecommendation,
-} from "@/interfaces/forecast.interface";
+} from "@/interfaces/legacy-forecast.interface";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import { formatCurrency, formatDateOnly } from "@/utils/format.helpers";
 import { formatQuantity, getUnitShortLabel } from "@/utils/forecast.helpers";

@@ -33,7 +33,7 @@ import { DismissRecommendationDialog } from "@/components/app/dismiss-recommenda
 import { ForecastProvider } from "@/providers/forecast.provider";
 import { useForecast } from "@/hooks/use-forecast";
 import { useAuth } from "@/hooks/use-auth";
-import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
+import type { IForecastRecommendation } from "@/interfaces/legacy-forecast.interface";
 import {
   TLegacyForecastRunStatus,
   TLegacyRecommendationAction,

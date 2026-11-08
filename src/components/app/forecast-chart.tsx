@@ -19,7 +19,7 @@ import type {
   IForecastHistoryPoint,
   IForecastProjectionPoint,
   ISeasonalityPoint,
-} from "@/interfaces/forecast.interface";
+} from "@/interfaces/legacy-forecast.interface";
 import { formatNumber } from "@/utils/format.helpers";
 import { formatQuantity, formatSeasonalIndex } from "@/utils/forecast.helpers";
 
