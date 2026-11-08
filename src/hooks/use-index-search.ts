@@ -31,7 +31,7 @@ export function useIndexSearch<
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const hasSearchedRef = useRef(false);
-  const didTypeQuickSearchOnceRef = useRef(false);
+  const lastQuickSearchRef = useRef(initialFilters[quickSearchKey]);
 
   const searchRef = useRef(search);
   const perPageRef = useRef(perPage);
@@ -100,13 +100,13 @@ export function useIndexSearch<
     handleSearch(1);
   }, [perPage, handleSearch]);
 
-  // Pesquisa rápida (debounce) pelo campo configurado.
+  // Pesquisa rápida (debounce) pelo campo configurado. Compara com o último valor em vez de pular só a primeira
+  // execução: no StrictMode o efeito roda de novo na remontagem com o mesmo valor, e uma flag de "primeira vez" já
+  // gasta disparava uma terceira busca logo depois da inicial.
   const quickSearchValue = filters[quickSearchKey];
   useEffect(() => {
-    if (!didTypeQuickSearchOnceRef.current) {
-      didTypeQuickSearchOnceRef.current = true;
-      return;
-    }
+    if (lastQuickSearchRef.current === quickSearchValue) return;
+    lastQuickSearchRef.current = quickSearchValue;
 
     // Não dispara enquanto o painel de filtros estiver aberto.
     if (isFiltersOpenRef.current) return;
