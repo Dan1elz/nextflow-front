@@ -1,0 +1,26 @@
+# Homologação do front da API nova (branch homolog) na VM, atrás do proxy de borda. Convive com o staging
+# (compose.staging.yaml, projeto nextflow-staging): projeto, imagem e alias do proxy são próprios.
+#   dev-nextflow.zanni.tech  → front  (alias nextflow-dev-web:80)
+# A API sobe pelo compose.homolog.yaml do nextflow (dev-nextflow-api.zanni.tech).
+#   docker compose -f compose.homolog.yaml up -d --build
+name: nextflow-front-homolog
+
+services:
+  front:
+    image: nextflow-front:homolog
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Entra no build (fica embutida no JS): mudou, tem que reconstruir a imagem (--build)
+        VITE_API_URL: ${VITE_API_URL:-https://dev-nextflow-api.zanni.tech}
+    # Sem "ports": quem recebe de fora é o proxy de borda.
+    # Não precisa da rede do backend: é o navegador que chama a API, não o container
+    networks:
+      proxy-net:
+        aliases: [nextflow-dev-web]
+    restart: unless-stopped
+
+networks:
+  proxy-net:
+    external: true

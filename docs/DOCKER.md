@@ -22,7 +22,8 @@ A estrutura baseia-se nos seguintes arquivos:
 
 - **Dockerfile:** Gerencia a criação da imagem da aplicação (base para produção).
 - **Dockerfile.development:** Gerencia a criação da imagem com dependências e ferramentas úteis para o estágio de desenvolvimento.
-- **compose.staging.yaml:** Orquestrador do container frontend para ambientes de homologação/produção.
+- **compose.staging.yaml:** Orquestrador do container frontend para o staging (nextflow.zanni.tech).
+- **compose.homolog.yaml:** Orquestrador do container frontend para a homologação na VM (dev-nextflow.zanni.tech), junto do `compose.homolog.yaml` do backend.
 - **compose.development.yaml:** Orquestrador do container frontend para ambiente de desenvolvimento.
 
 ---
