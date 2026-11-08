@@ -13,6 +13,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { useIndexSearch } from "@/hooks/use-index-search";
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 import type { IOption } from "@/interfaces/api.interface";
@@ -55,6 +56,7 @@ function PurchaseOrders() {
     getPurchaseOrder,
     cancelPurchaseOrder,
   } = usePurchaseOrders();
+  const { storeId } = useCurrentStore();
   const {
     setPerPage,
     selectedIds,
@@ -73,6 +75,7 @@ function PurchaseOrders() {
     perPageInitial: 10,
     debounceMs: 400,
     onError: (error) => handleError(error, "Erro ao buscar pedidos de compra"),
+    refreshKey: storeId,
   });
 
   const handleCancel = useCallback(

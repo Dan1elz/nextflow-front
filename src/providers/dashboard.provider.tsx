@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { dashboardService } from "@/services/dashboard.service";
 import {
   DashboardContext,
@@ -12,8 +13,9 @@ const BLOCK_ERROR = "Não foi possível carregar este bloco.";
 
 /** Um bloco do painel: começa carregando e guarda o próprio erro. */
 function useDashboardBlock<T>(
-  loader: (token?: string) => Promise<T>,
-  token?: string
+  loader: (token?: string, storeId?: string | null) => Promise<T>,
+  token?: string,
+  storeId?: string | null
 ): DashboardBlock<T> {
   const [state, setState] = useState<BlockState<T>>({
     data: null,
@@ -24,7 +26,7 @@ function useDashboardBlock<T>(
   const reload = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const data = await loader(token);
+      const data = await loader(token, storeId);
       setState({ data, loading: false, error: null });
     } catch (error) {
       setState({
@@ -34,7 +36,7 @@ function useDashboardBlock<T>(
           error instanceof Error && error.message ? error.message : BLOCK_ERROR,
       });
     }
-  }, [loader, token]);
+  }, [loader, token, storeId]);
 
   return useMemo(() => ({ ...state, reload }), [state, reload]);
 }
@@ -42,16 +44,28 @@ function useDashboardBlock<T>(
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   const authToken = token ?? undefined;
+  // Vendas, estoque baixo e lotes seguem a loja do topo; trocar a loja recarrega esses blocos.
+  const { storeId } = useCurrentStore();
 
-  const salesKpis = useDashboardBlock(dashboardService.getSalesKpis, authToken);
+  const salesKpis = useDashboardBlock(
+    dashboardService.getSalesKpis,
+    authToken,
+    storeId
+  );
   const salesChart = useDashboardBlock(
     dashboardService.getSalesChart,
-    authToken
+    authToken,
+    storeId
   );
-  const lowStock = useDashboardBlock(dashboardService.getLowStock, authToken);
+  const lowStock = useDashboardBlock(
+    dashboardService.getLowStock,
+    authToken,
+    storeId
+  );
   const expiringLots = useDashboardBlock(
     dashboardService.getExpiringLots,
-    authToken
+    authToken,
+    storeId
   );
   const upcomingEvents = useDashboardBlock(
     dashboardService.getUpcomingEvents,

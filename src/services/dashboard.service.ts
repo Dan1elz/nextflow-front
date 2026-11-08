@@ -17,36 +17,50 @@ export const UPCOMING_EVENTS_DAYS = 90;
 /** Recomendações mostradas no card do painel. */
 export const FORECAST_TOP_LIMIT = 5;
 
+/** Loja do topo como filtro: `null` (todas as lojas) não manda o parâmetro. */
+const storeQuery = (storeId?: string | null) =>
+  storeId ? { storeId } : undefined;
+
 /** Painel inicial (T-DF1): um método por bloco, cada um na sua rota. */
 export const dashboardService = {
-  /** GET /api/dashboard/sales-kpis */
-  getSalesKpis(token?: string): Promise<ISalesKpis> {
-    return apiService.get<ISalesKpis>("dashboard/sales-kpis", undefined, token);
+  /** GET /api/dashboard/sales-kpis?storeId= */
+  getSalesKpis(token?: string, storeId?: string | null): Promise<ISalesKpis> {
+    return apiService.get<ISalesKpis>(
+      "dashboard/sales-kpis",
+      storeQuery(storeId),
+      token
+    );
   },
 
-  /** GET /api/dashboard/sales-chart */
-  getSalesChart(token?: string): Promise<ISalesChart> {
+  /** GET /api/dashboard/sales-chart?storeId= */
+  getSalesChart(token?: string, storeId?: string | null): Promise<ISalesChart> {
     return apiService.get<ISalesChart>(
       "dashboard/sales-chart",
-      undefined,
+      storeQuery(storeId),
       token
     );
   },
 
-  /** GET /api/dashboard/low-stock */
-  getLowStock(token?: string): Promise<ILowStockSummary> {
+  /** GET /api/dashboard/low-stock?storeId= */
+  getLowStock(
+    token?: string,
+    storeId?: string | null
+  ): Promise<ILowStockSummary> {
     return apiService.get<ILowStockSummary>(
       "dashboard/low-stock",
-      undefined,
+      storeQuery(storeId),
       token
     );
   },
 
-  /** GET /api/dashboard/expiring-lots?days=30 */
-  getExpiringLots(token?: string): Promise<IExpiringLotsSummary> {
+  /** GET /api/dashboard/expiring-lots?days=30&storeId= */
+  getExpiringLots(
+    token?: string,
+    storeId?: string | null
+  ): Promise<IExpiringLotsSummary> {
     return apiService.get<IExpiringLotsSummary>(
       "dashboard/expiring-lots",
-      { days: EXPIRING_LOTS_DAYS },
+      { days: EXPIRING_LOTS_DAYS, ...storeQuery(storeId) },
       token
     );
   },

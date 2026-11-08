@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useCurrentStore } from "@/hooks/use-current-store";
 import { useIndexSearch } from "@/hooks/use-index-search";
 import { useSalesHistory } from "@/hooks/use-sales-history";
 import type { IOption } from "@/interfaces/api.interface";
@@ -79,6 +80,7 @@ const paymentLabels = (methods: TPaymentMethod[]) =>
 /** Histórico das vendas de balcão da loja selecionada no topo, com o detalhe da venda num diálogo. */
 function SalesHistory() {
   const { sales, pagination, searchSales, getSale } = useSalesHistory();
+  const { storeId } = useCurrentStore();
   const [detail, setDetail] = useState<OrderDetailDto | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const {
@@ -106,6 +108,7 @@ function SalesHistory() {
     perPageInitial: 10,
     debounceMs: 400,
     onError: (error) => handleError(error, "Erro ao buscar vendas"),
+    refreshKey: storeId,
   });
 
   const openDetail = useCallback(
@@ -138,6 +141,10 @@ function SalesHistory() {
         header: "Cliente",
         cell: ({ row }) => row.original.clientName ?? "Consumidor final",
       },
+      // Em "Todas as lojas" a loja de cada venda precisa aparecer.
+      ...(storeId
+        ? []
+        : [{ accessorKey: "storeName", header: "Loja" } as const]),
       { accessorKey: "itemCount", header: "Itens" },
       {
         accessorKey: "total",
@@ -168,7 +175,7 @@ function SalesHistory() {
         enableHiding: false,
       },
     ],
-    [loadingId, openDetail]
+    [loadingId, openDetail, storeId]
   );
 
   return (
