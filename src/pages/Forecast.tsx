@@ -14,6 +14,8 @@ import {
   RefreshCw,
   Search,
   ShoppingCart,
+  Tag,
+  X,
   Sparkles,
 } from "lucide-react";
 
@@ -46,7 +48,9 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ApplyPromotionDialog } from "@/components/app/apply-promotion-dialog";
 import { ApplyPurchaseDialog } from "@/components/app/apply-purchase-dialog";
+import { DismissRecommendationDialog } from "@/components/app/dismiss-recommendation-dialog";
 import { DataTable } from "@/components/app/data-table";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { RecommendationDetailSheet } from "@/components/app/recommendation-detail-sheet";
@@ -399,24 +403,69 @@ const selectColumn: ColumnDef<IForecastRecommendationListItem> = {
   enableSorting: false,
 };
 
-function actionsColumn(
-  onBuy: (rec: IForecastRecommendationListItem) => void
-): ColumnDef<IForecastRecommendationListItem> {
+type RowActions = {
+  admin: boolean;
+  onBuy: (rec: IForecastRecommendationListItem) => void;
+  onPromote: (rec: IForecastRecommendationListItem) => void;
+  onDismiss: (rec: IForecastRecommendationListItem) => void;
+};
+
+/** Promover é só do Admin (T-DF6); Descartar vale para qualquer pendente (T-DF8). */
+function isPromotable(rec: IForecastRecommendationListItem) {
+  return (
+    rec.action === TRecommendationAction.Promote &&
+    rec.status === TRecommendationStatus.Pending
+  );
+}
+
+function actionsColumn({
+  admin,
+  onBuy,
+  onPromote,
+  onDismiss,
+}: RowActions): ColumnDef<IForecastRecommendationListItem> {
   return {
     id: "actions",
     header: "",
-    cell: ({ row }) =>
-      isBuyable(row.original) ? (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onBuy(row.original)}
-          aria-label={`Comprar ${row.original.productName}`}
-        >
-          <ShoppingCart data-icon="inline-start" />
-          Comprar
-        </Button>
-      ) : null,
+    cell: ({ row }) => {
+      const rec = row.original;
+      if (rec.status !== TRecommendationStatus.Pending) return null;
+      return (
+        <div className="flex flex-wrap justify-end gap-1">
+          {isBuyable(rec) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onBuy(rec)}
+              aria-label={`Comprar ${rec.productName}`}
+            >
+              <ShoppingCart data-icon="inline-start" />
+              Comprar
+            </Button>
+          )}
+          {admin && isPromotable(rec) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPromote(rec)}
+              aria-label={`Promover ${rec.productName}`}
+            >
+              <Tag data-icon="inline-start" />
+              Promover
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDismiss(rec)}
+            aria-label={`Descartar ${rec.productName}`}
+          >
+            <X data-icon="inline-start" />
+            Descartar
+          </Button>
+        </div>
+      );
+    },
   };
 }
 
@@ -572,10 +621,29 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
     (recs: IForecastRecommendationListItem[]) => setBuying(recs),
     []
   );
+  const { user } = useAuth();
+  const admin = isAdmin(user);
+  const [promoting, setPromoting] =
+    useState<IForecastRecommendationListItem | null>(null);
+  const [dismissing, setDismissing] =
+    useState<IForecastRecommendationListItem | null>(null);
   const tableColumns = useMemo(
-    () => [selectColumn, ...columns, actionsColumn((rec) => openBuy([rec]))],
-    [openBuy]
+    () => [
+      selectColumn,
+      ...columns,
+      actionsColumn({
+        admin,
+        onBuy: (rec) => openBuy([rec]),
+        onPromote: setPromoting,
+        onDismiss: setDismissing,
+      }),
+    ],
+    [admin, openBuy]
   );
+  const afterAction = () => {
+    void reloadRecommendations();
+    void reloadRun();
+  };
   const selectedBuyable = recommendations.filter(
     (rec) => selectedIds.includes(rec.id) && isBuyable(rec)
   );
@@ -770,6 +838,32 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
             setDetailId(null);
             openBuy([rec]);
           }}
+          onPromote={
+            admin
+              ? (rec) => {
+                  setDetailId(null);
+                  setPromoting(rec);
+                }
+              : undefined
+          }
+          onDismiss={(rec) => {
+            setDetailId(null);
+            setDismissing(rec);
+          }}
+        />
+        <ApplyPromotionDialog
+          recommendation={promoting}
+          onOpenChange={(open) => {
+            if (!open) setPromoting(null);
+          }}
+          onDone={afterAction}
+        />
+        <DismissRecommendationDialog
+          recommendation={dismissing}
+          onOpenChange={(open) => {
+            if (!open) setDismissing(null);
+          }}
+          onDone={afterAction}
         />
         <ApplyPurchaseDialog
           open={buying.length > 0}
@@ -777,10 +871,7 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
             if (!open) setBuying([]);
           }}
           recommendations={buying}
-          onApplied={() => {
-            void reloadRecommendations();
-            void reloadRun();
-          }}
+          onApplied={afterAction}
         />
       </CardContent>
     </Card>

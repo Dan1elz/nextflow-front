@@ -1,111 +1,195 @@
-import { useState } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ButtonLoader } from "@/components/ui/button-loader";
-import { useForecast } from "@/hooks/use-forecast";
-import type { IForecastRecommendation } from "@/interfaces/legacy-forecast.interface";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { useApiForm } from "@/hooks/use-api-form";
+import { useAuth } from "@/hooks/use-auth";
+import type { IForecastRecommendationListItem } from "@/interfaces/forecast.interface";
+import {
+  dismissSchema,
+  NO_REASON,
+  type DismissFormData,
+} from "@/schemas/forecast-actions.schema";
+import { forecastRunService } from "@/services/forecast-run.service";
+import {
+  DISMISS_REASON_LABELS,
+  TDismissReason,
+  type TDismissReason as DismissReason,
+} from "@/types/enums";
+import { handleSuccess } from "@/utils/toast.helpers";
 
 type DismissRecommendationDialogProps = {
-  open: boolean;
+  /** Recomendação a descartar; `null` fecha o dialog. */
+  recommendation: IForecastRecommendationListItem | null;
   onOpenChange: (open: boolean) => void;
-  recommendation: IForecastRecommendation | null;
-  onSuccess?: (updated: IForecastRecommendation) => void;
+  onDone?: (updated: IForecastRecommendationListItem) => void;
 };
 
-function DismissContent({
+const REASONS: { value: string; label: string }[] = [
+  { value: NO_REASON, label: "Sem motivo" },
+  ...(Object.entries(DISMISS_REASON_LABELS) as [DismissReason, string][]).map(
+    ([value, label]) => ({ value, label })
+  ),
+];
+
+function DismissForm({
   recommendation,
   onClose,
-  onSuccess,
+  onDone,
 }: {
-  recommendation: IForecastRecommendation;
+  recommendation: IForecastRecommendationListItem;
   onClose: () => void;
-  onSuccess?: (updated: IForecastRecommendation) => void;
+  onDone?: (updated: IForecastRecommendationListItem) => void;
 }) {
-  const { dismissRecommendation } = useForecast();
-  const [reason, setReason] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleConfirm = async () => {
-    try {
-      setIsLoading(true);
-      const updated = await dismissRecommendation(recommendation.id, reason);
-      handleSuccess("Recomendação descartada.");
-      onSuccess?.(updated);
-      onClose();
-    } catch (error) {
-      handleError(error, "Erro ao descartar a recomendação");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { token } = useAuth();
+  const form = useForm<DismissFormData>({
+    resolver: zodResolver(dismissSchema),
+    defaultValues: { reasonCode: NO_REASON, note: "" },
+  });
+  const { submit, handleSubmit, confirmWarning } = useApiForm(form);
+  const { isSubmitting } = form.formState;
+  const reasonCode = useWatch({ control: form.control, name: "reasonCode" });
+  const isOther = reasonCode === TDismissReason.Other;
 
   return (
-    <>
-      <AlertDialogHeader className="text-left">
-        <AlertDialogTitle>Descartar recomendação?</AlertDialogTitle>
-        <AlertDialogDescription>
-          A recomendação para <strong>{recommendation.product.name}</strong>{" "}
-          será marcada como descartada e não aparecerá mais como pendente.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <div className="grid gap-2">
-        <Label htmlFor="dismiss-reason">Motivo (opcional)</Label>
-        <Input
-          id="dismiss-reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Ex.: já negociado com o fornecedor"
-          maxLength={255}
-          disabled={isLoading}
+    <form
+      noValidate
+      onSubmit={handleSubmit(async (data) => {
+        let updated: IForecastRecommendationListItem | null = null;
+        const ok = await submit(async () => {
+          updated = await forecastRunService.dismiss(
+            recommendation.id,
+            {
+              reasonCode: (data.reasonCode || null) as DismissReason | null,
+              note: data.note.trim() || null,
+            },
+            token ?? undefined
+          );
+        });
+        if (!ok || !updated) return;
+        handleSuccess("Recomendação descartada.");
+        onDone?.(updated);
+        onClose();
+      })}
+      className="flex flex-col gap-6"
+    >
+      <DialogHeader className="text-left">
+        <DialogTitle>Descartar recomendação</DialogTitle>
+        <DialogDescription>
+          {recommendation.productName} sai das pendentes. O motivo ajuda a
+          entender onde a previsão erra.
+        </DialogDescription>
+      </DialogHeader>
+
+      <FieldGroup>
+        <Controller
+          control={form.control}
+          name="reasonCode"
+          render={({ field }) => (
+            <FieldSet>
+              <FieldLegend variant="label">Motivo</FieldLegend>
+              <RadioGroup
+                value={field.value}
+                onValueChange={field.onChange}
+                disabled={isSubmitting}
+              >
+                {REASONS.map((reason) => (
+                  <Field key={reason.value || "none"} orientation="horizontal">
+                    <RadioGroupItem
+                      id={`dismiss-reason-${reason.value || "none"}`}
+                      value={reason.value}
+                    />
+                    <FieldLabel
+                      htmlFor={`dismiss-reason-${reason.value || "none"}`}
+                      className="font-normal"
+                    >
+                      {reason.label}
+                    </FieldLabel>
+                  </Field>
+                ))}
+              </RadioGroup>
+            </FieldSet>
+          )}
         />
-      </div>
-      <AlertDialogFooter>
-        <AlertDialogCancel disabled={isLoading}>Voltar</AlertDialogCancel>
+        <Controller
+          control={form.control}
+          name="note"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="dismiss-note">
+                {isOther ? "Descreva o motivo" : "Descreva o motivo (opcional)"}
+              </FieldLabel>
+              <Textarea
+                id="dismiss-note"
+                {...field}
+                aria-invalid={fieldState.invalid}
+                maxLength={255}
+                disabled={isSubmitting}
+                placeholder="Ex.: já negociado com o fornecedor"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+      </FieldGroup>
+
+      <DialogFooter className="gap-2">
         <Button
-          variant="destructive"
-          onClick={handleConfirm}
-          disabled={isLoading}
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={isSubmitting}
         >
-          <ButtonLoader isLoading={isLoading} loadingText="Descartando...">
-            Descartar
-          </ButtonLoader>
+          Voltar
         </Button>
-      </AlertDialogFooter>
-    </>
+        <Button type="submit" variant="destructive" disabled={isSubmitting}>
+          {isSubmitting && <Spinner data-icon="inline-start" />}
+          Descartar
+        </Button>
+      </DialogFooter>
+      <ConfirmWarningDialog state={confirmWarning} />
+    </form>
   );
 }
 
-/** Confirmação de "Descartar" → POST /forecasts/recommendations/{id}/dismiss */
+/** Descartar (T-DF8) → `POST /forecasts/recommendations/{id}/dismiss`; "Outro" exige o texto. */
 export function DismissRecommendationDialog({
-  open,
-  onOpenChange,
   recommendation,
-  onSuccess,
+  onOpenChange,
+  onDone,
 }: DismissRecommendationDialogProps) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        {open && recommendation && (
-          <DismissContent
+    <Dialog open={recommendation !== null} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        {recommendation && (
+          <DismissForm
             key={recommendation.id}
             recommendation={recommendation}
             onClose={() => onOpenChange(false)}
-            onSuccess={onSuccess}
+            onDone={onDone}
           />
         )}
-      </AlertDialogContent>
-    </AlertDialog>
+      </DialogContent>
+    </Dialog>
   );
 }

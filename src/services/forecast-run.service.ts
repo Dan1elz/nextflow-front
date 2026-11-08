@@ -2,8 +2,11 @@ import { ApiService } from "./api.service";
 import { BaseService } from "./base.service";
 import type { IIndexParams, PaginationDto } from "@/interfaces/api.interface";
 import type {
+  IApplyPromotionRequest,
+  IApplyPromotionResult,
   IApplyPurchaseRequest,
   IApplyPurchaseResult,
+  IDismissRecommendationRequest,
   IForecastRecommendationDetail,
   IForecastRecommendationListItem,
   IForecastRunProgress,
@@ -88,6 +91,32 @@ export const forecastRunService = {
   ): Promise<IApplyPurchaseResult> {
     return apiService.post<IApplyPurchaseResult>(
       "forecasts/recommendations/purchase",
+      request,
+      token
+    );
+  },
+
+  /** POST /api/forecasts/recommendations/{id}/promotion (T-DF6, Admin); 422 `confirm` abaixo do custo. */
+  applyPromotion(
+    id: string,
+    request: IApplyPromotionRequest,
+    token?: string
+  ): Promise<IApplyPromotionResult> {
+    return apiService.post<IApplyPromotionResult>(
+      `forecasts/recommendations/${id}/promotion`,
+      request,
+      token
+    );
+  },
+
+  /** POST /api/forecasts/recommendations/{id}/dismiss (T-DF8): exige corpo, mesmo vazio; devolve a linha. */
+  dismiss(
+    id: string,
+    request: IDismissRecommendationRequest,
+    token?: string
+  ): Promise<IForecastRecommendationListItem> {
+    return apiService.post<IForecastRecommendationListItem>(
+      `forecasts/recommendations/${id}/dismiss`,
       request,
       token
     );
