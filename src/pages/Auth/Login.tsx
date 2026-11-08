@@ -66,7 +66,7 @@ function BrandPanel() {
           </h2>
         </Reveal>
         <Stagger
-          className="mt-10 space-y-4"
+          className="mt-10 flex flex-col gap-4"
           transition={{ delayChildren: 0.4 }}
         >
           {highlights.map(({ icon: Icon, text }) => (

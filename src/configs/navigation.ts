@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import type { SidebarMenuGroup } from "@/interfaces/general.interface";
 
-/** Fonte única da navegação: sidebar e paleta de comandos leem daqui. */
+/** Fonte única da navegação: a sidebar lê daqui. */
 export const navigation: SidebarMenuGroup[] = [
   {
     title: "Geral",

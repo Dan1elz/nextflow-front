@@ -117,7 +117,6 @@
     0 1px 2px oklch(0.2 0.02 285 / 4%), 0 4px 16px oklch(0.2 0.02 285 / 6%);
   --shadow-3:
     0 2px 4px oklch(0.2 0.02 285 / 4%), 0 12px 40px oklch(0.2 0.02 285 / 12%);
-  --glass: var(--background);
 }
 
 .dark {
@@ -163,7 +162,6 @@
   --shadow-1: 0 1px 2px oklch(0 0 0 / 30%);
   --shadow-2: 0 1px 2px oklch(0 0 0 / 30%), 0 4px 16px oklch(0 0 0 / 30%);
   --shadow-3: 0 2px 4px oklch(0 0 0 / 30%), 0 16px 48px oklch(0 0 0 / 50%);
-  --glass: var(--background);
 }
 
 @layer base {
@@ -196,14 +194,6 @@
 }
 
 @layer utilities {
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
-  .glass {
-    background: var(--glass);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-  }
   .app-glow {
     background:
       radial-gradient(

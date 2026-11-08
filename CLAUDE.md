@@ -27,6 +27,9 @@ React Hook Form + Zod, React Router 6, TanStack Table, Recharts 2, Sonner, date-
 ## UI e design
 - Reutilize os componentes de `src/components/ui` (shadcn) e os tokens/classes Tailwind existentes antes de criar algo novo.
   Componente shadcn que ainda não existe: adicione com `npx shadcn@latest add <nome>` (o MCP do shadcn ajuda a achar).
+- Num ERP, consistência vale mais que originalidade: novas telas devem parecer irmãs das existentes
+  (mesmo layout de página, espaçamentos, tipografia e padrão de botões). Ao usar a skill `frontend-design`, aplique-a
+  dentro dessa identidade visual, sem trocar fontes, paleta ou estilo geral.
 - Identidade visual (redesign estilo Apple): tokens em `src/index.css` (Geist, neutros, raio 1rem, sombras em camadas, violeta só como destaque).
   Sem barras coloridas laterais nem fundos translúcidos nos cards. Animações via `motion` em `components/motion/` (`Reveal`, `Stagger`, `CountUp`,
   `PageTransition`) com a curva `ease-apple`; respeite `prefers-reduced-motion`. Navegação em `configs/navigation.ts`.

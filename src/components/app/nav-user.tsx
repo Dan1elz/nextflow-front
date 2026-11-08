@@ -33,7 +33,7 @@ export function NavUser() {
               tooltip={user ? `${user.name} ${user.lastName}` : "Usuário"}
               className="h-14 rounded-2xl hover:bg-card group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0"
             >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-900 text-xs font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/25%)]">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-900 text-xs font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/25%)]">
                 {initials}
               </div>
               <div className="grid min-w-0 flex-1 text-left leading-tight">

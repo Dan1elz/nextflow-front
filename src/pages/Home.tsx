@@ -205,7 +205,7 @@ function DashboardKpis({ stats }: { stats: IDashboardStats }) {
       {kpis.map(({ title, value, trend, note }) => (
         <StaggerItem key={title} className="xl:px-8 xl:first:pl-0 xl:last:pr-0">
           <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="tabular mt-3 text-[2.4rem] font-light leading-none tracking-tight">
+          <p className="mt-3 tabular-nums text-[2.4rem] font-light leading-none tracking-tight">
             <CountUp value={value} format={formatCurrency} />
           </p>
           <p className="mt-3 text-xs text-muted-foreground">{note}</p>
