@@ -555,7 +555,7 @@ export function SearchSelect<T extends Record<string, unknown>>({
               role="combobox"
               aria-expanded={open}
               disabled={disabled}
-              className="w-full justify-between h-auto min-h-9 py-1 pr-10"
+              className="w-full justify-between h-auto min-h-10 rounded-xl border-input bg-card px-3.5 py-1.5 pr-10 text-base font-normal shadow-xs hover:bg-card md:text-sm"
             >
               <div className="flex flex-wrap gap-1 flex-1 min-w-0 text-left">
                 {multiple &&

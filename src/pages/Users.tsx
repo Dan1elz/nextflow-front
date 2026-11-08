@@ -158,6 +158,7 @@ function Users() {
   return (
     <EntityIndexPage
       title="Usuários"
+      onRowOpen={handleView}
       selectedIds={selectedIds}
       onSelectionChange={setSelectedIds}
       toolbar={

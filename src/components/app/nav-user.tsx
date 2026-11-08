@@ -1,7 +1,6 @@
 import { ChevronsUpDown, LogOut, UserCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,19 +28,23 @@ export function NavUser() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton size="lg">
-              <Avatar className="rounded-lg">
-                <AvatarFallback className="rounded-lg">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
+            <SidebarMenuButton
+              size="lg"
+              tooltip={user ? `${user.name} ${user.lastName}` : "Usuário"}
+              className="h-14 rounded-2xl hover:bg-card group-data-[collapsible=icon]:!size-10 group-data-[collapsible=icon]:!p-0"
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-900 text-xs font-semibold text-primary-foreground shadow-[inset_0_1px_0_oklch(1_0_0/25%)]">
+                {initials}
+              </div>
+              <div className="grid min-w-0 flex-1 text-left leading-tight">
+                <span className="truncate text-sm font-semibold">
                   {user ? `${user.name} ${user.lastName}` : "Usuário"}
                 </span>
-                <span className="truncate text-xs">{user?.email}</span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {user?.email}
+                </span>
               </div>
-              <ChevronsUpDown className="ml-auto" />
+              <ChevronsUpDown className="ml-auto size-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">

@@ -1,3 +1,4 @@
+import React from "react";
 import { Outlet, Link } from "react-router-dom";
 import {
   SidebarInset,
@@ -6,7 +7,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/sidebar";
 import { StoreSelector } from "@/components/app/store-selector";
-import { Separator } from "@/components/ui/separator";
+import { PageTransition } from "@/components/motion/page-transition";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,7 +18,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useBreadcrumbPath } from "@/hooks/use-breadcrumb-path";
 import type { IBreadcrumb } from "@/types/general";
-import React from "react";
 import { ToggleTheme } from "./ToggleTheme";
 
 export default function PrivateLayout() {
@@ -25,16 +25,17 @@ export default function PrivateLayout() {
 
   return (
     <SidebarProvider>
+      <div
+        aria-hidden
+        className="app-glow pointer-events-none fixed inset-0 z-0 dark:opacity-80"
+      />
       <AppSidebar />
-      <SidebarInset className="min-w-0">
-        {/* flex-wrap: em tela pequena o seletor de loja desce para a linha de baixo em vez de cobrir o breadcrumb. */}
-        <header className="flex shrink-0 flex-wrap items-center gap-y-2 p-4">
-          <SidebarTrigger />
-          <Separator
-            orientation="vertical"
-            className="mx-4 data-[orientation=vertical]:h-6"
-          />
-          <Breadcrumb>
+      <SidebarInset className="relative z-10 min-w-0">
+        {/* flex-wrap: em tela estreita o seletor de loja desce para a linha de baixo em vez de cobrir o breadcrumb. */}
+        <header className="relative z-30 flex min-h-16 flex-wrap items-center gap-3 gap-y-2 px-4 py-3 md:px-8">
+          {/* No desktop a sidebar expande ao passar o mouse; o gatilho só serve no mobile */}
+          <SidebarTrigger className="-ml-1 rounded-lg md:hidden" />
+          <Breadcrumb className="hidden min-w-0 sm:block">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
@@ -70,10 +71,10 @@ export default function PrivateLayout() {
           </div>
         </header>
 
-        <main className="flex-1 w-full min-h-0 p-3">
-          <div className="w-full h-full">
+        <main className="w-full min-h-0 flex-1 p-4 md:p-8">
+          <PageTransition>
             <Outlet />
-          </div>
+          </PageTransition>
         </main>
       </SidebarInset>
     </SidebarProvider>

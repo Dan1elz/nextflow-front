@@ -1,11 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import {
-  TrendingUp,
-  DollarSign,
-  ShoppingBag,
-  ShoppingCart,
   AlertTriangle,
-  ArrowUpRight,
   Loader2,
   Calendar,
   CheckCircle2,
@@ -27,14 +22,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { DashboardProvider } from "@/providers/dashboard.provider";
 import { formatCurrency, formatDateOnly } from "@/utils/format.helpers";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import { easeApple } from "@/components/motion/tokens";
+import {
+  CountUp,
+  Reveal,
+  Stagger,
+  StaggerItem,
+} from "@/components/motion/primitives";
 import { AiRecommendationsCard } from "@/components/app/ai-recommendations-card";
 import type { IDashboardStats } from "@/interfaces/dashboard.interface";
 
@@ -78,11 +74,11 @@ function DashboardHome() {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+    <Reveal className="flex flex-col gap-6" y={8}>
       {/* Cabeçalho de Boas-vindas */}
       <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight">
             Olá, {user?.name || "Usuário"}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -107,16 +103,16 @@ function DashboardHome() {
           </p>
         </div>
       ) : !stats ? (
-        <Card className="flex flex-col items-center justify-center p-8 text-center border-dashed">
-          <AlertTriangle className="h-10 w-10 text-amber-500 mb-4" />
-          <CardTitle className="text-lg mb-2">Sem dados</CardTitle>
-          <CardDescription className="mb-4">
+        <div className="flex flex-col items-center justify-center gap-1 border-y border-border/70 py-14 text-center">
+          <AlertTriangle className="mb-3 size-8 text-amber-500" />
+          <h2 className="text-lg font-semibold tracking-tight">Sem dados</h2>
+          <p className="mb-4 text-sm text-muted-foreground">
             Não foi possível carregar as informações do painel.
-          </CardDescription>
+          </p>
           <Button onClick={() => void fetchStats()} size="sm">
             Recarregar
           </Button>
-        </Card>
+        </div>
       ) : (
         <DashboardKpis stats={stats} />
       )}
@@ -127,101 +123,96 @@ function DashboardHome() {
       {stats && !loading && (
         <DashboardDetails stats={stats} getStatusBadge={getStatusBadge} />
       )}
-    </div>
+    </Reveal>
+  );
+}
+
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const w = 120;
+  const h = 32;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const points = values.map((v, i) => [
+    (i / (values.length - 1)) * w,
+    h - 4 - ((v - min) / span) * (h - 8),
+  ]);
+  const d = points
+    .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`)
+    .join(" ");
+  const [lx, ly] = points[points.length - 1];
+
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      className="mt-4 h-8 w-28 overflow-visible text-primary"
+      aria-hidden
+    >
+      <motion.path
+        d={d}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 1.2, ease: easeApple, delay: 0.3 }}
+      />
+      <motion.circle
+        cx={lx}
+        cy={ly}
+        r={3}
+        fill="currentColor"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.3 }}
+      />
+    </svg>
   );
 }
 
 function DashboardKpis({ stats }: { stats: IDashboardStats }) {
+  const chart = stats.salesChartData ?? [];
+  const kpis = [
+    {
+      title: "Faturamento geral",
+      value: stats.totalSalesRevenue,
+      trend: chart.map((p) => p.totalSales),
+      note: `${stats.totalSalesCount} vendas finalizadas`,
+    },
+    {
+      title: "Minhas vendas",
+      value: stats.mySalesRevenue,
+      trend: chart.map((p) => p.mySales),
+      note: `${stats.mySalesCount} vendas suas`,
+    },
+    {
+      title: "Ticket médio geral",
+      value: stats.avgSaleValue,
+      note: "Valor médio por venda",
+    },
+    {
+      title: "Meu ticket médio",
+      value: stats.myAvgSaleValue,
+      note: "Valor médio das suas vendas",
+    },
+  ];
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {/* KPI 1: Faturamento Geral */}
-      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-primary bg-card/65 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Faturamento Geral
-          </CardTitle>
-          <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:scale-110 transition-transform duration-300">
-            <DollarSign className="h-4 w-4" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-xl font-bold md:text-2xl">
-            {formatCurrency(stats.totalSalesRevenue)}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Reflete{" "}
-            <span className="font-semibold text-foreground">
-              {stats.totalSalesCount}
-            </span>{" "}
-            vendas finalizadas.
+    <Stagger className="grid grid-cols-1 gap-y-10 border-y border-border/70 py-9 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-border/70">
+      {kpis.map(({ title, value, trend, note }) => (
+        <StaggerItem key={title} className="xl:px-8 xl:first:pl-0 xl:last:pr-0">
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <p className="mt-3 tabular-nums text-[2.4rem] font-light leading-none tracking-tight">
+            <CountUp value={value} format={formatCurrency} />
           </p>
-        </CardContent>
-      </Card>
-
-      {/* KPI 2: Meu Faturamento */}
-      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-emerald-500 bg-card/65 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Minhas Vendas
-          </CardTitle>
-          <div className="rounded-full bg-emerald-500/10 p-2 text-emerald-500 group-hover:scale-110 transition-transform duration-300">
-            <TrendingUp className="h-4 w-4" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-xl font-bold md:text-2xl text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(stats.mySalesRevenue)}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Seu faturamento em{" "}
-            <span className="font-semibold text-foreground">
-              {stats.mySalesCount}
-            </span>{" "}
-            vendas.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* KPI 3: Ticket Médio Geral */}
-      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-sky-500 bg-card/65 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Ticket Médio Geral
-          </CardTitle>
-          <div className="rounded-full bg-sky-500/10 p-2 text-sky-500 group-hover:scale-110 transition-transform duration-300">
-            <ShoppingBag className="h-4 w-4" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-xl font-bold md:text-2xl">
-            {formatCurrency(stats.avgSaleValue)}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Valor médio por venda geral.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* KPI 4: Meu Ticket Médio */}
-      <Card className="relative overflow-hidden group hover:shadow-md transition-all duration-300 border-l-4 border-l-indigo-500 bg-card/65 backdrop-blur-sm">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Meu Ticket Médio
-          </CardTitle>
-          <div className="rounded-full bg-indigo-500/10 p-2 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
-            <ShoppingCart className="h-4 w-4" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-xl font-bold md:text-2xl text-indigo-600 dark:text-indigo-400">
-            {formatCurrency(stats.myAvgSaleValue)}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Valor médio das suas vendas.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+          <p className="mt-3 text-xs text-muted-foreground">{note}</p>
+          {trend && <Sparkline values={trend} />}
+        </StaggerItem>
+      ))}
+    </Stagger>
   );
 }
 
@@ -235,17 +226,19 @@ function DashboardDetails({
   return (
     <>
       {/* Seção Gráfica Central */}
-      <Card className="bg-card/65 backdrop-blur-sm">
-        <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <section className="pt-2">
+        <div className="mb-6 flex flex-col gap-1">
           <div>
-            <CardTitle>Histórico de Faturamento Diário</CardTitle>
-            <CardDescription>
+            <h2 className="text-lg font-semibold tracking-tight">
+              Histórico de Faturamento Diário
+            </h2>
+            <p className="text-sm text-muted-foreground">
               Comparativo do faturamento geral em relação às suas vendas nos
               últimos 7 dias.
-            </CardDescription>
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="h-[300px] w-full pt-4 pr-4">
+        </div>
+        <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={stats.salesChartData}>
               <defs>
@@ -262,28 +255,39 @@ function DashboardDetails({
                   />
                 </linearGradient>
                 <linearGradient id="myColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop
+                    offset="5%"
+                    stopColor="var(--chart-1)"
+                    stopOpacity={0.35}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--chart-1)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                className="stroke-muted/30"
-              />
+              <CartesianGrid vertical={false} stroke="var(--border)" />
               <XAxis
                 dataKey="dateLabel"
+                tickLine={false}
+                axisLine={false}
                 className="text-xs text-muted-foreground"
               />
               <YAxis
+                tickLine={false}
+                axisLine={false}
                 className="text-xs text-muted-foreground"
                 tickFormatter={(value: number) => `R$ ${value}`}
               />
               <Tooltip
                 formatter={(value: number) => [formatCurrency(value), ""]}
                 contentStyle={{
-                  backgroundColor: "rgba(var(--background), 0.8)",
-                  borderRadius: "8px",
+                  backgroundColor: "var(--popover)",
+                  backdropFilter: "blur(16px)",
+                  borderRadius: "14px",
                   border: "1px solid var(--border)",
+                  boxShadow: "var(--shadow-3)",
                 }}
               />
               <Legend verticalAlign="top" height={36} />
@@ -292,7 +296,7 @@ function DashboardDetails({
                 type="monotone"
                 dataKey="totalSales"
                 stroke="var(--color-primary, #2563eb)"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#totalColor)"
               />
@@ -300,33 +304,34 @@ function DashboardDetails({
                 name="Minhas Vendas"
                 type="monotone"
                 dataKey="mySales"
-                stroke="#10b981"
-                strokeWidth={2}
+                stroke="var(--chart-1)"
+                strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#myColor)"
               />
             </AreaChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {/* Rodapé: Alertas de Estoque e Compras Recentes */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-10 border-t border-border/70 pt-8 md:grid-cols-2 md:gap-0 md:divide-x md:divide-border/70">
         {/* Lado Esquerdo: Alertas de Estoque */}
-        <Card className="bg-card/65 backdrop-blur-sm flex flex-col">
-          <CardHeader>
+        <section className="flex flex-col md:pr-8">
+          <div className="mb-5">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
               <div>
-                <CardTitle>Alertas de Estoque Baixo</CardTitle>
-                <CardDescription>
+                <h2 className="text-lg font-semibold tracking-tight">
+                  Alertas de Estoque Baixo
+                </h2>
+                <p className="text-sm text-muted-foreground">
                   Produtos com saldo abaixo do estoque mínimo cadastrado (ou de
                   15 unidades, quando não definido).
-                </CardDescription>
+                </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="flex-1">
+          </div>
+          <div className="flex-1">
             {stats.stockAlerts.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center p-6 text-muted-foreground">
                 <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2" />
@@ -382,23 +387,24 @@ function DashboardDetails({
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
         {/* Lado Direito: Histórico de Compras */}
-        <Card className="bg-card/65 backdrop-blur-sm flex flex-col">
-          <CardHeader>
+        <section className="flex flex-col md:pl-8">
+          <div className="mb-5">
             <div className="flex items-center gap-2">
-              <ArrowUpRight className="h-5 w-5 text-indigo-500" />
               <div>
-                <CardTitle>Histórico Recente de Compras</CardTitle>
-                <CardDescription>
+                <h2 className="text-lg font-semibold tracking-tight">
+                  Histórico Recente de Compras
+                </h2>
+                <p className="text-sm text-muted-foreground">
                   Os 5 últimos pedidos de compras registrados no sistema.
-                </CardDescription>
+                </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="flex-1">
+          </div>
+          <div className="flex-1">
             {stats.recentPurchases.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center p-6 text-muted-foreground">
                 <Calendar className="h-8 w-8 mb-2" />
@@ -431,8 +437,8 @@ function DashboardDetails({
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     </>
   );

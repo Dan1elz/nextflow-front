@@ -351,6 +351,7 @@ function Products() {
   return (
     <EntityIndexPage
       title="Produtos"
+      onRowOpen={(product) => navigate(`/products/${product.id}/view`)}
       selectedIds={selectedIds}
       onSelectionChange={setSelectedIds}
       toolbar={

@@ -1,23 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useCallback } from "react";
-import {
-  Home,
-  Users,
-  UserCircle,
-  ChevronDown,
-  Tag,
-  Layers,
-  CalendarDays,
-  Package,
-  Activity,
-  ScanBarcode,
-  History,
-  ShoppingBag,
-  SlidersHorizontal,
-  Store,
-  Sparkles,
-  BadgePercent,
-} from "lucide-react";
+import { ChevronDown, Pin, PinOff } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -39,7 +22,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,70 +36,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NavUser } from "./nav-user";
-import { NextflowLogo } from "./NextflowLogo";
-import type {
-  SidebarMenuGroup,
-  SidebarSubItem,
-} from "@/interfaces/general.interface";
+import { NextflowLogo, NextflowMark } from "./NextflowLogo";
+import { navigation } from "@/configs/navigation";
+import type { SidebarSubItem } from "@/interfaces/general.interface";
 
-const items: SidebarMenuGroup[] = [
-  {
-    title: "GERAL",
-    items: [
-      { name: "Dashboard", url: "/", icon: Home },
-      { name: "Previsão (IA)", url: "/forecast", icon: Sparkles },
-    ],
-  },
-  {
-    title: "COMERCIAL",
-    items: [
-      { name: "Venda rápida", url: "/sales/quick", icon: ScanBarcode },
-      { name: "Histórico de vendas", url: "/sales/history", icon: History },
-      { name: "Pedidos de Compra", url: "/purchase-orders", icon: ShoppingBag },
-      { name: "Promoções", url: "/promotions", icon: BadgePercent },
-    ],
-  },
-  {
-    title: "GESTÃO DE ESTOQUE",
-    items: [
-      { name: "Produtos", url: "/products", icon: Package },
-      { name: "Categorias", url: "/categories", icon: Tag },
-      { name: "Coleções", url: "/collections", icon: Layers },
-      { name: "Calendário", url: "/calendar-events", icon: CalendarDays },
-      { name: "Movimentações", url: "/stock-movements", icon: Activity },
-    ],
-  },
-  {
-    title: "CADASTROS",
-    items: [
-      {
-        name: "Pessoas",
-        icon: UserCircle,
-        items: [
-          { name: "Clientes", url: "/clients" },
-          { name: "Fornecedores", url: "/suppliers" },
-        ],
-      },
-      { name: "Usuários", url: "/users", icon: Users },
-    ],
-  },
-  {
-    title: "CONFIGURAÇÕES",
-    items: [
-      { name: "Lojas e locais", url: "/settings/stores", icon: Store },
-      {
-        name: "Política de estoque",
-        url: "/settings/stock-policy",
-        icon: SlidersHorizontal,
-      },
-    ],
-  },
-];
+const items = navigation;
 
 export function AppSidebar() {
   const location = useLocation();
-  const { state } = useSidebar();
-  const isCollapsed = state === "collapsed";
+  const { state, pinned, toggleSidebar, isMobile } = useSidebar();
+  // No celular a barra abre como gaveta e sempre mostra o menu completo.
+  const isCollapsed = !isMobile && state === "collapsed";
 
   // Manage which group is currently open (Accordion behavior)
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -150,28 +86,64 @@ export function AppSidebar() {
     <TooltipProvider delayDuration={0}>
       <Sidebar collapsible="icon" variant="inset">
         {/* Header */}
-        <SidebarHeader
-          className="border-b"
-          style={{ borderBottomColor: "rgba(255, 255, 255, 0.3)" }}
-        >
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <NavLink
-                  to="/"
-                  className="w-full flex justify-center items-center gap-2"
-                >
-                  <NextflowLogo className="h-8 w-auto" />
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+        <SidebarHeader className="px-3 pt-5 pb-3">
+          <div
+            className={cn(
+              "flex h-10 items-center",
+              isCollapsed ? "justify-center" : "justify-between gap-2 pl-1"
+            )}
+          >
+            <NavLink
+              to="/"
+              aria-label="Nextflow"
+              className="flex h-10 items-center justify-center transition-transform duration-300 ease-apple hover:scale-[1.03]"
+            >
+              {isCollapsed ? (
+                <NextflowMark className="h-7 w-auto" />
+              ) : (
+                <NextflowLogo className="h-8 w-auto" />
+              )}
+            </NavLink>
+            {!isCollapsed && !isMobile && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={toggleSidebar}
+                    aria-label={
+                      pinned ? "Soltar barra lateral" : "Fixar barra lateral"
+                    }
+                    aria-pressed={pinned}
+                    className={cn(
+                      "flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color,transform] duration-200 ease-apple hover:bg-sidebar-accent hover:text-foreground active:scale-90 animate-in fade-in zoom-in-90 duration-300",
+                      pinned && "bg-primary/10 text-primary hover:text-primary"
+                    )}
+                  >
+                    {pinned ? (
+                      <PinOff className="size-4" />
+                    ) : (
+                      <Pin className="size-4" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" sideOffset={8}>
+                  {pinned ? "Soltar barra lateral" : "Fixar barra lateral"}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </SidebarHeader>
 
         {/* Content */}
         <SidebarContent>
           {items.map((menu, index) => (
             <SidebarGroup key={index}>
+              {index > 0 && (
+                <div
+                  aria-hidden
+                  className="mx-auto mb-1 hidden h-px w-6 rounded-full bg-sidebar-foreground/20 group-data-[collapsible=icon]:block"
+                />
+              )}
               <SidebarGroupLabel>{menu.title}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -290,10 +262,7 @@ export function AppSidebar() {
           ))}
         </SidebarContent>
 
-        <SidebarFooter
-          className="border-t"
-          style={{ borderTopColor: "rgba(255, 255, 255, 0.3)" }}
-        >
+        <SidebarFooter className="p-3">
           <NavUser />
         </SidebarFooter>
       </Sidebar>
