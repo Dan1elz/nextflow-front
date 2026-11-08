@@ -1,4 +1,4 @@
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, ShoppingCart } from "lucide-react";
 
 import { ForecastDetailView } from "@/components/app/forecast-detail";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,17 +14,22 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRecommendationDetail } from "@/hooks/use-forecast-detail";
+import type { IForecastRecommendationListItem } from "@/interfaces/forecast.interface";
+import { TRecommendationAction, TRecommendationStatus } from "@/types/enums";
 
 type RecommendationDetailSheetProps = {
   /** Recomendação aberta; `null` fecha o painel. */
   recommendationId: string | null;
   onClose: () => void;
+  /** "Comprar" pendente abre o dialog T-DF4. */
+  onBuy?: (recommendation: IForecastRecommendationListItem) => void;
 };
 
 /** Drawer lateral com o detalhe da recomendação (T-DF3). */
 export function RecommendationDetailSheet({
   recommendationId,
   onClose,
+  onBuy,
 }: RecommendationDetailSheetProps) {
   const { data, error, loading, reload } =
     useRecommendationDetail(recommendationId);
@@ -73,6 +78,15 @@ export function RecommendationDetailSheet({
           <SheetClose asChild>
             <Button variant="outline">Fechar</Button>
           </SheetClose>
+          {onBuy &&
+            data &&
+            data.action === TRecommendationAction.Buy &&
+            data.status === TRecommendationStatus.Pending && (
+              <Button onClick={() => onBuy(data)}>
+                <ShoppingCart data-icon="inline-start" />
+                Comprar
+              </Button>
+            )}
         </SheetFooter>
       </SheetContent>
     </Sheet>

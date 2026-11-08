@@ -267,3 +267,40 @@ export const recommendationDetail: IForecastRecommendationDetail = {
   ],
   product: productForecast,
 };
+
+/** Compra sem fornecedor preferido (T-DF4 "Escolha o fornecedor"): produto sem grade. */
+export const recommendationNoSupplier: IForecastRecommendationListItem = {
+  ...baseItem,
+  id: "rec-3",
+  productId: "prod-3",
+  productName: "Bombom de Coco",
+  categoryPath: "Chocolates > Bombons",
+  suggestedQuantity: 50,
+  preferredSupplierId: null,
+  preferredSupplierName: null,
+  aiAdjusted: false,
+};
+
+export const recommendationNoSupplierDetail: IForecastRecommendationDetail = {
+  ...recommendationDetail,
+  ...recommendationNoSupplier,
+  calculation: {
+    ...recommendationDetail.calculation,
+    minOrderQty: null,
+    orderMultiple: null,
+  },
+  variantSplit: [
+    {
+      variantId: "var-3",
+      variantLabel: null,
+      sharePercent: 100,
+      suggestedQuantity: 50,
+      availableByLocation: [],
+    },
+  ],
+  product: {
+    ...productForecast,
+    productId: "prod-3",
+    productName: "Bombom de Coco",
+  },
+};

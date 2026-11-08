@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, Info, Trash2, Truck } from "lucide-react";
+import { AlertTriangle, CalendarClock, Truck } from "lucide-react";
 
+import { SearchSelect } from "@/components/app/search-select";
+import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,146 +13,363 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { ButtonLoader } from "@/components/ui/button-loader";
-import { useForecast } from "@/hooks/use-forecast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  useApplyPurchase,
+  type PurchaseRecommendationView,
+} from "@/hooks/use-apply-purchase";
+import type { IOption } from "@/interfaces/api.interface";
 import type {
   IApplyPurchaseResult,
-  IForecastRecommendation,
-} from "@/interfaces/legacy-forecast.interface";
+  IForecastRecommendationListItem,
+} from "@/interfaces/forecast.interface";
+import type { LocationOptionDto } from "@/interfaces/store.interface";
+import { supplierService } from "@/services/supplier.service";
+import {
+  getLineWarnings,
+  lineKey,
+  parseDecimal,
+  type PurchaseLine,
+} from "@/utils/apply-purchase.helpers";
+import {
+  formatCurrency,
+  formatDateOnly,
+  formatNumber,
+} from "@/utils/format.helpers";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import { formatCurrency, formatDateOnly } from "@/utils/format.helpers";
-import { formatQuantity, getUnitShortLabel } from "@/utils/forecast.helpers";
-import { cn } from "@/lib/utils";
 
 type ApplyPurchaseDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Recomendações de compra (Action = Buy, Status = Pending). Pode ser 1 ou várias. */
-  recommendations: IForecastRecommendation[];
-  onSuccess?: (result: IApplyPurchaseResult) => void;
+  /** Recomendações Comprar pendentes: uma ou várias (T-DF4). */
+  recommendations: IForecastRecommendationListItem[];
+  onApplied?: (result: IApplyPurchaseResult) => void;
 };
 
-type PurchaseRow = {
-  recommendation: IForecastRecommendation;
-  quantity: string;
-  costPrice: string;
-};
+type Hook = ReturnType<typeof useApplyPurchase>;
 
-function toNumber(value: string): number {
-  if (!value) return NaN;
-  return Number(value.replace(",", "."));
+function lineTotal(line: PurchaseLine) {
+  const quantity = parseDecimal(line.quantity);
+  const cost = parseDecimal(line.unitCost);
+  return quantity > 0 && cost >= 0 ? quantity * cost : 0;
+}
+
+function viewTotal(items: PurchaseRecommendationView[]) {
+  return items.reduce(
+    (sum, item) =>
+      sum + item.lines.reduce((acc, line) => acc + lineTotal(line), 0),
+    0
+  );
+}
+
+function LineRow({
+  line,
+  item,
+  hook,
+}: {
+  line: PurchaseLine;
+  item: PurchaseRecommendationView;
+  hook: Hook;
+}) {
+  const { detail } = item;
+  const unit = detail.saleUnit;
+  const decimals = detail.decimalPlaces;
+  const qtyError = hook.lineError(line, "quantity");
+  const costError = hook.lineError(line, "unitCost");
+  const warnings = getLineWarnings(
+    parseDecimal(line.quantity),
+    detail.calculation
+  );
+  const variantLabel =
+    detail.variantSplit.find((s) => s.variantId === line.variantId)
+      ?.variantLabel ?? null;
+  const id = `purchase-${line.recommendationId}-${line.variantId}`;
+  const offMultiple = warnings.offMultiple;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_8rem_8rem_6rem] sm:items-start">
+        <span className="col-span-2 text-sm font-medium sm:col-span-1 sm:pt-2">
+          {variantLabel ?? "Quantidade e custo"}
+        </span>
+        <Field data-invalid={!!qtyError}>
+          <FieldLabel htmlFor={`${id}-qty`} className="text-xs sm:sr-only">
+            Quantidade ({unit})
+          </FieldLabel>
+          <Input
+            id={`${id}-qty`}
+            type="number"
+            min={0}
+            step="any"
+            inputMode="decimal"
+            aria-label={`Quantidade de ${line.name}`}
+            aria-invalid={!!qtyError}
+            value={line.quantity}
+            disabled={hook.submitting}
+            onChange={(e) => hook.setLine(line, { quantity: e.target.value })}
+          />
+          {qtyError && <FieldError>{qtyError}</FieldError>}
+        </Field>
+        <Field data-invalid={!!costError}>
+          <FieldLabel htmlFor={`${id}-cost`} className="text-xs sm:sr-only">
+            Custo unitário (R$)
+          </FieldLabel>
+          <Input
+            id={`${id}-cost`}
+            type="number"
+            min={0}
+            step="0.01"
+            inputMode="decimal"
+            placeholder="0,00"
+            aria-label={`Custo unitário de ${line.name}`}
+            aria-invalid={!!costError}
+            value={line.unitCost}
+            disabled={hook.submitting}
+            onChange={(e) => hook.setLine(line, { unitCost: e.target.value })}
+          />
+          {costError && <FieldError>{costError}</FieldError>}
+          {!costError &&
+            line.unitCost === "" &&
+            hook.missingCost.has(lineKey(line)) && (
+              <FieldDescription className="text-xs">
+                Sem custo anterior: informe o da cotação.
+              </FieldDescription>
+            )}
+        </Field>
+        <span className="col-span-2 text-right text-sm font-semibold tabular-nums sm:col-span-1 sm:pt-2">
+          {formatCurrency(lineTotal(line))}
+        </span>
+      </div>
+      {(warnings.belowMinimum !== null || offMultiple) && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {warnings.belowMinimum !== null && (
+            <span className="inline-flex items-center gap-1">
+              <AlertTriangle className="size-3 text-warning" />
+              Abaixo do pedido mínimo de{" "}
+              {formatNumber(warnings.belowMinimum, decimals)} {unit}.
+            </span>
+          )}
+          {offMultiple && (
+            <span className="inline-flex items-center gap-1">
+              <AlertTriangle className="size-3 text-warning" />
+              Fora do múltiplo de {formatNumber(
+                offMultiple.multiple,
+                decimals
+              )}{" "}
+              {unit}.
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                disabled={hook.submitting}
+                onClick={() =>
+                  hook.setLine(line, { quantity: String(offMultiple.rounded) })
+                }
+              >
+                Arredondar para {formatNumber(offMultiple.rounded, decimals)}
+              </Button>
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductHeader({ rec }: { rec: IForecastRecommendationListItem }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="truncate text-sm font-semibold">{rec.productName}</span>
+      <span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+        <span>
+          Sugerido:{" "}
+          <span className="font-medium text-foreground">
+            {formatNumber(rec.suggestedQuantity ?? 0, rec.decimalPlaces)}{" "}
+            {rec.saleUnit}
+          </span>
+        </span>
+        {rec.deadline && (
+          <span className="inline-flex items-center gap-1">
+            <CalendarClock className="size-3" />
+            comprar até {formatDateOnly(rec.deadline)}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function Lines({
+  item,
+  hook,
+}: {
+  item: PurchaseRecommendationView;
+  hook: Hook;
+}) {
+  if (item.lines.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground">
+        Sem variação no rateio desta recomendação.
+      </p>
+    );
+  return item.lines.map((line) => (
+    <LineRow key={line.variantId} line={line} item={item} hook={hook} />
+  ));
+}
+
+function LocationField({
+  supplierId,
+  value,
+  locations,
+  hook,
+}: {
+  supplierId: string;
+  value: string;
+  locations: LocationOptionDto[];
+  hook: Hook;
+}) {
+  const error = hook.errors[`group:${supplierId}:receiveLocationId`];
+  const id = `purchase-location-${supplierId}`;
+  return (
+    <Field data-invalid={!!error}>
+      <FieldLabel htmlFor={id}>Local de entrega</FieldLabel>
+      <Select
+        value={value}
+        onValueChange={(next) => hook.setLocation(supplierId, next)}
+        disabled={hook.submitting}
+      >
+        <SelectTrigger id={id} aria-invalid={!!error}>
+          <SelectValue placeholder="Escolha o local" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {locations.map((location) => (
+              <SelectItem key={location.id} value={location.id}>
+                {location.storeName} · {location.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      {error && <FieldError>{error}</FieldError>}
+    </Field>
+  );
+}
+
+function ChooseSupplierSection({ hook }: { hook: Hook }) {
+  const { token } = useAuth();
+  const [options, setOptions] = useState<IOption[]>([]);
+  const search = async (term: string) => {
+    const found = (await supplierService.options(
+      term,
+      token ?? undefined
+    )) as IOption[];
+    setOptions(found);
+    return found;
+  };
+
+  return (
+    <section
+      aria-labelledby="purchase-choose-supplier"
+      className="rounded-lg border border-dashed"
+    >
+      <h3
+        id="purchase-choose-supplier"
+        className="border-b px-3 py-2 text-sm font-semibold"
+      >
+        Escolha o fornecedor
+      </h3>
+      <div className="flex flex-col divide-y">
+        {hook.unassigned.map((item) => {
+          const recId = item.recommendation.id;
+          const error = hook.errors[`supplier:${recId}`];
+          return (
+            <div key={recId} className="flex flex-col gap-3 p-3">
+              <ProductHeader rec={item.recommendation} />
+              <Field data-invalid={!!error}>
+                <SearchSelect<IOption>
+                  label="Fornecedor"
+                  data={options}
+                  onSearch={search}
+                  placeholder="Digite para buscar"
+                  disabled={hook.submitting}
+                  // Ao escolher, o produto sai desta seção e entra no grupo do fornecedor.
+                  field={{
+                    value: undefined,
+                    onChange: (value) => {
+                      const picked = options.find(
+                        (o) => o.value === String(value)
+                      );
+                      if (picked?.value)
+                        hook.chooseSupplier(recId, {
+                          id: String(picked.value),
+                          name: String(picked.label ?? ""),
+                        });
+                    },
+                  }}
+                />
+                {error && <FieldError>{error}</FieldError>}
+              </Field>
+              <Lines item={item} hook={hook} />
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 function ApplyPurchaseContent({
   recommendations,
   onClose,
-  onSuccess,
+  onApplied,
 }: {
-  recommendations: IForecastRecommendation[];
+  recommendations: IForecastRecommendationListItem[];
   onClose: () => void;
-  onSuccess?: (result: IApplyPurchaseResult) => void;
+  onApplied?: (result: IApplyPurchaseResult) => void;
 }) {
   const navigate = useNavigate();
-  const { applyPurchase } = useForecast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [note, setNote] = useState("");
-  const [rows, setRows] = useState<PurchaseRow[]>(() =>
-    recommendations.map((rec) => ({
-      recommendation: rec,
-      quantity:
-        rec.suggestedQuantity !== undefined && rec.suggestedQuantity !== null
-          ? String(rec.suggestedQuantity)
-          : "",
-      costPrice:
-        rec.product.costPrice !== undefined && rec.product.costPrice !== null
-          ? String(rec.product.costPrice)
-          : "",
-    }))
-  );
-
-  const groups = useMemo(() => {
-    const map = new Map<
-      string,
-      { supplierId: string; supplierName: string; rows: PurchaseRow[] }
-    >();
-    for (const row of rows) {
-      const { supplierId, supplierName } = row.recommendation.product;
-      const key = supplierId || "sem-fornecedor";
-      if (!map.has(key))
-        map.set(key, {
-          supplierId: key,
-          supplierName: supplierName || "Fornecedor não informado",
-          rows: [],
-        });
-      map.get(key)!.rows.push(row);
-    }
-    return [...map.values()];
-  }, [rows]);
-
-  const rowErrors = (row: PurchaseRow) => {
-    const qty = toNumber(row.quantity);
-    const cost = toNumber(row.costPrice);
-    return {
-      quantity: !(qty > 0) ? "Informe uma quantidade maior que zero." : null,
-      costPrice: !(cost > 0) ? "Informe um custo maior que zero." : null,
-    };
-  };
-
-  const isValid = rows.every((row) => {
-    const errors = rowErrors(row);
-    return !errors.quantity && !errors.costPrice;
-  });
-
-  const total = rows.reduce((acc, row) => {
-    const qty = toNumber(row.quantity);
-    const cost = toNumber(row.costPrice);
-    return qty > 0 && cost > 0 ? acc + qty * cost : acc;
-  }, 0);
-
-  const updateRow = (id: string, patch: Partial<PurchaseRow>) => {
-    setRows((prev) =>
-      prev.map((row) =>
-        row.recommendation.id === id ? { ...row, ...patch } : row
-      )
-    );
-  };
-
-  const removeRow = (id: string) => {
-    setRows((prev) => prev.filter((row) => row.recommendation.id !== id));
-  };
+  const hook = useApplyPurchase(recommendations);
+  const { groups, unassigned } = hook;
+  const many = recommendations.length > 1;
+  const ordersCount = groups.length + (unassigned.length > 0 ? 1 : 0);
+  const total = groups.reduce((sum, g) => sum + viewTotal(g.items), 0);
 
   const handleSubmit = async () => {
-    setSubmitted(true);
-    if (!isValid || rows.length === 0) return;
-
     try {
-      setIsLoading(true);
-      const result = await applyPurchase({
-        items: rows.map((row) => ({
-          recommendationId: row.recommendation.id,
-          quantity: toNumber(row.quantity),
-          costPrice: toNumber(row.costPrice),
-        })),
-        note: note.trim() ? note.trim() : undefined,
-      });
-
-      const orders = result.purchaseOrders ?? [];
-      if (orders.length === 1 && orders[0].id) {
-        const order = orders[0];
+      const result = await hook.submit();
+      if (!result) return;
+      const orders = result.purchaseOrders;
+      if (orders.length === 1)
         handleSuccess("Pedido de compra criado como Orçamento.", {
-          description: `${order.supplier?.name ?? "Fornecedor"} · ${formatCurrency(Number(order.totalAmount ?? 0))}`,
+          description: `${orders[0].supplierName} · ${formatCurrency(orders[0].total)}`,
           action: {
             label: "Ver pedido",
-            onClick: () => navigate(`/purchase-orders/${order.id}/view`),
+            onClick: () => navigate(`/purchase-orders/${orders[0].id}/view`),
           },
         });
-      } else {
+      else
         handleSuccess(
           `${orders.length} pedidos de compra criados como Orçamento.`,
           {
@@ -160,14 +380,10 @@ function ApplyPurchaseContent({
             },
           }
         );
-      }
-
-      onSuccess?.(result);
+      onApplied?.(result);
       onClose();
     } catch (error) {
       handleError(error, "Erro ao gerar o pedido de compra");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -175,203 +391,104 @@ function ApplyPurchaseContent({
     <>
       <DialogHeader className="text-left">
         <DialogTitle>
-          {rows.length > 1
-            ? `Comprar ${rows.length} produtos`
+          {many
+            ? `Comprar ${recommendations.length} produtos`
             : "Gerar pedido de compra"}
         </DialogTitle>
         <DialogDescription>
-          Revise as quantidades e custos. Será criado um pedido de compra com
-          status <strong>Orçamento</strong> por fornecedor.
+          Um pedido em Orçamento por fornecedor. Os avisos não impedem gerar o
+          pedido.
         </DialogDescription>
       </DialogHeader>
 
-      {rows.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Nenhum item selecionado.
-        </p>
+      {hook.loadError ? (
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertTitle>{hook.loadError}</AlertTitle>
+        </Alert>
+      ) : !hook.loaded ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {groups.map((group) => {
-            const groupTotal = group.rows.reduce((acc, row) => {
-              const qty = toNumber(row.quantity);
-              const cost = toNumber(row.costPrice);
-              return qty > 0 && cost > 0 ? acc + qty * cost : acc;
-            }, 0);
-
-            return (
-              <div key={group.supplierId} className="rounded-lg border">
-                <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
-                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-                    <Truck className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{group.supplierName}</span>
-                  </span>
-                  <span className="whitespace-nowrap text-sm font-medium">
-                    {formatCurrency(groupTotal)}
-                  </span>
-                </div>
-
-                <div className="divide-y">
-                  {group.rows.map((row) => {
-                    const rec = row.recommendation;
-                    const errors = rowErrors(row);
-                    const unit = getUnitShortLabel(rec.product.unitType);
-                    const qtyId = `qty-${rec.id}`;
-                    const costId = `cost-${rec.id}`;
-
-                    return (
-                      <div key={rec.id} className="flex flex-col gap-3 p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold">
-                              {rec.product.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Cód. {rec.product.productCode}
-                              {rec.product.brand
-                                ? ` · ${rec.product.brand}`
-                                : ""}
-                              {" · "}Estoque:{" "}
-                              {formatQuantity(
-                                rec.currentStock,
-                                rec.product.unitType
-                              )}
-                            </p>
-                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                              <span>
-                                Sugerido:{" "}
-                                <span className="font-medium text-foreground">
-                                  {formatQuantity(
-                                    rec.suggestedQuantity,
-                                    rec.product.unitType
-                                  )}
-                                </span>
-                              </span>
-                              {rec.deadline && (
-                                <span className="inline-flex items-center gap-1">
-                                  <CalendarClock className="h-3 w-3" />
-                                  comprar até {formatDateOnly(rec.deadline)}
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                          {rows.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                              onClick={() => removeRow(rec.id)}
-                              aria-label="Remover item"
-                              disabled={isLoading}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                          <div className="grid gap-1.5">
-                            <Label htmlFor={qtyId} className="text-xs">
-                              Quantidade ({unit})
-                            </Label>
-                            <Input
-                              id={qtyId}
-                              type="number"
-                              min={0}
-                              step="any"
-                              value={row.quantity}
-                              disabled={isLoading}
-                              className={cn(
-                                submitted &&
-                                  errors.quantity &&
-                                  "border-destructive"
-                              )}
-                              onChange={(e) =>
-                                updateRow(rec.id, { quantity: e.target.value })
-                              }
-                            />
-                          </div>
-                          <div className="grid gap-1.5">
-                            <Label htmlFor={costId} className="text-xs">
-                              Custo unitário (R$)
-                            </Label>
-                            <Input
-                              id={costId}
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              placeholder="0,00"
-                              value={row.costPrice}
-                              disabled={isLoading}
-                              className={cn(
-                                submitted &&
-                                  errors.costPrice &&
-                                  "border-destructive"
-                              )}
-                              onChange={(e) =>
-                                updateRow(rec.id, {
-                                  costPrice: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="col-span-2 flex items-center justify-between text-sm sm:col-span-1 sm:block sm:pb-2 sm:text-right">
-                            <span className="text-xs text-muted-foreground sm:hidden">
-                              Subtotal
-                            </span>
-                            <span className="font-semibold">
-                              {formatCurrency(
-                                (toNumber(row.quantity) || 0) *
-                                  (toNumber(row.costPrice) || 0)
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        {submitted && (errors.quantity || errors.costPrice) && (
-                          <p className="text-xs text-destructive">
-                            {errors.quantity ?? errors.costPrice}
-                          </p>
-                        )}
-                        {!rec.product.costPrice && !row.costPrice && (
-                          <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Info className="h-3 w-3" />
-                            Produto sem custo cadastrado — informe o custo da
-                            cotação.
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+        <FieldGroup className="gap-4">
+          {groups.map((group) => (
+            <section
+              key={group.supplierId}
+              aria-label={group.supplierName}
+              className="rounded-lg border"
+            >
+              <div className="flex items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
+                <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                  <Truck className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{group.supplierName}</span>
+                </span>
+                <span className="whitespace-nowrap text-sm font-medium tabular-nums">
+                  {formatCurrency(viewTotal(group.items))}
+                </span>
               </div>
-            );
-          })}
+              <div className="p-3 pb-0">
+                <LocationField
+                  supplierId={group.supplierId}
+                  value={group.receiveLocationId}
+                  locations={hook.locations}
+                  hook={hook}
+                />
+              </div>
+              <div className="flex flex-col divide-y">
+                {group.items.map((item) => (
+                  <div
+                    key={item.recommendation.id}
+                    className="flex flex-col gap-3 p-3"
+                  >
+                    <ProductHeader rec={item.recommendation} />
+                    <Lines item={item} hook={hook} />
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 pt-0">
+                <Field>
+                  <FieldLabel htmlFor={`purchase-note-${group.supplierId}`}>
+                    Observação (opcional)
+                  </FieldLabel>
+                  <Textarea
+                    id={`purchase-note-${group.supplierId}`}
+                    value={group.note}
+                    onChange={(e) =>
+                      hook.setNote(group.supplierId, e.target.value)
+                    }
+                    placeholder="Vai para a nota do pedido de compra."
+                    className="min-h-[60px] resize-y"
+                    maxLength={500}
+                    disabled={hook.submitting}
+                  />
+                </Field>
+              </div>
+            </section>
+          ))}
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="purchase-note">Observação (opcional)</Label>
-            <Textarea
-              id="purchase-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Será adicionada à nota do pedido de compra."
-              className="min-h-[60px] resize-y"
-              maxLength={500}
-              disabled={isLoading}
-            />
-          </div>
+          {unassigned.length > 0 && <ChooseSupplierSection hook={hook} />}
+
+          {hook.formError && (
+            <Alert variant="destructive">
+              <AlertTriangle />
+              <AlertTitle>{hook.formError}</AlertTitle>
+            </Alert>
+          )}
 
           <Separator />
-
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">
-              {groups.length > 1
-                ? `${groups.length} pedidos de compra`
+              {ordersCount > 1
+                ? `${ordersCount} pedidos de compra`
                 : "Total do pedido"}
             </span>
-            <span className="text-lg font-bold">{formatCurrency(total)}</span>
+            <span className="text-lg font-bold tabular-nums">
+              {formatCurrency(total)}
+            </span>
           </div>
-        </div>
+        </FieldGroup>
       )}
 
       <DialogFooter className="gap-2">
@@ -379,42 +496,41 @@ function ApplyPurchaseContent({
           type="button"
           variant="outline"
           onClick={onClose}
-          disabled={isLoading}
+          disabled={hook.submitting}
         >
           Cancelar
         </Button>
         <Button
           type="button"
-          onClick={handleSubmit}
-          disabled={isLoading || rows.length === 0 || (submitted && !isValid)}
+          onClick={() => void handleSubmit()}
+          disabled={hook.submitting || !hook.loaded}
         >
-          <ButtonLoader isLoading={isLoading} loadingText="Gerando pedido...">
-            {groups.length > 1 ? "Gerar pedidos" : "Gerar pedido de compra"}
-          </ButtonLoader>
+          {hook.submitting && <Spinner data-icon="inline-start" />}
+          {many || ordersCount > 1 ? "Gerar pedidos" : "Gerar pedido de compra"}
         </Button>
       </DialogFooter>
     </>
   );
 }
 
-/** Dialog "Comprar" → POST /forecasts/recommendations/purchase (todos os itens em uma única requisição). */
+/** Dialog "Comprar" (T-DF4) → `POST /forecasts/recommendations/purchase`, um pedido por fornecedor. */
 export function ApplyPurchaseDialog({
   open,
   onOpenChange,
   recommendations,
-  onSuccess,
+  onApplied,
 }: ApplyPurchaseDialogProps) {
   const contentKey = recommendations.map((r) => r.id).join("|");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         {open && (
           <ApplyPurchaseContent
             key={contentKey}
             recommendations={recommendations}
             onClose={() => onOpenChange(false)}
-            onSuccess={onSuccess}
+            onApplied={onApplied}
           />
         )}
       </DialogContent>

@@ -20,6 +20,10 @@ import {
 
 const auth = vi.hoisted(() => ({ role: "Admin" }));
 
+vi.mock("@/hooks/use-current-store", () => ({
+  useCurrentStore: () => ({ storeId: "store-1" }),
+}));
+
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
     token: "token",
@@ -30,6 +34,7 @@ vi.mock("@/hooks/use-auth", () => ({
 /** Estado do "servidor" de cada teste. */
 let latest: IForecastRunSummary | null;
 let recommendationQueries: { runId: string; filters: Record<string, string> }[];
+let applied: boolean;
 
 function baseHandlers() {
   return [
@@ -43,6 +48,11 @@ function baseHandlers() {
           runId,
           filters: raw ? JSON.parse(raw) : {},
         });
+        if (applied)
+          return HttpResponse.json({
+            ...recommendationsRun1,
+            items: [{ ...recommendationsRun1.items[0], status: "Applied" }],
+          });
         return HttpResponse.json(
           runId === "run-2" ? recommendationsRun2 : recommendationsRun1
         );
@@ -65,6 +75,7 @@ beforeEach(() => {
   auth.role = "Admin";
   latest = runCompleted;
   recommendationQueries = [];
+  applied = false;
 });
 
 describe("Previsão: lista da análise (F3.8d, T-DF2)", () => {
@@ -138,6 +149,73 @@ describe("Previsão: lista da análise (F3.8d, T-DF2)", () => {
     expect(
       await within(sheet).findByRole("table", { name: "Rateio por variação" })
     ).toBeInTheDocument();
+  });
+
+  it("Comprar pela linha gera o pedido e a linha vira Aplicada (T-DF4)", async () => {
+    server.use(
+      ...baseHandlers(),
+      http.get(apiUrl("forecasts/recommendations/:id"), () =>
+        HttpResponse.json(recommendationDetail)
+      ),
+      http.get(apiUrl("stock-locations/options"), () =>
+        HttpResponse.json([
+          {
+            id: "loc-1",
+            name: "Recebimento",
+            storeId: "store-1",
+            storeName: "Loja Centro",
+            isSellable: false,
+          },
+        ])
+      ),
+      http.get(apiUrl("stores/:id"), () =>
+        HttpResponse.json({ id: "store-1", defaultReceiveLocationId: "loc-1" })
+      ),
+      http.get(apiUrl("purchase-orders/item-suggestion"), () =>
+        HttpResponse.json({ lastCostFromSupplier: 3.5, lastCost: 3 })
+      ),
+      http.post(apiUrl("forecasts/recommendations/purchase"), () => {
+        applied = true;
+        return HttpResponse.json({
+          purchaseOrders: [
+            { id: "po-1", number: 31, supplierName: "Cacau Sul", total: 840 },
+          ],
+          recommendations: [
+            { ...recommendationsRun1.items[0], status: "Applied" },
+          ],
+        });
+      })
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const [buy] = await screen.findAllByRole("button", {
+      name: "Comprar Trufa de Maracujá",
+    });
+    await user.click(buy);
+    const dialog = await screen.findByRole("dialog", {
+      name: "Gerar pedido de compra",
+    });
+    await within(dialog).findByRole("spinbutton", {
+      name: "Quantidade de Trufa de Maracujá (Caixa com 6)",
+    });
+    await waitFor(() =>
+      expect(
+        within(dialog).getByRole("spinbutton", {
+          name: "Custo unitário de Trufa de Maracujá (Caixa com 6)",
+        })
+      ).toHaveValue(3.5)
+    );
+    await user.click(
+      within(dialog).getByRole("button", { name: "Gerar pedido de compra" })
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Gerar pedido de compra" })
+      ).not.toBeInTheDocument()
+    );
+    expect((await screen.findAllByText("Aplicada")).length).toBeGreaterThan(0);
   });
 
   it("gerar mostra Em andamento, acompanha os lotes e recarrega ao terminar", async () => {

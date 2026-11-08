@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   AlertTriangle,
@@ -6,12 +13,14 @@ import {
   Package,
   RefreshCw,
   Search,
+  ShoppingCart,
   Sparkles,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -37,6 +46,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ApplyPurchaseDialog } from "@/components/app/apply-purchase-dialog";
 import { DataTable } from "@/components/app/data-table";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { RecommendationDetailSheet } from "@/components/app/recommendation-detail-sheet";
@@ -68,6 +78,7 @@ import {
   RECOMMENDATION_STATUS_LABELS,
   TForecastRunStatus,
   TRecommendationAction,
+  TRecommendationStatus,
 } from "@/types/enums";
 import { isAdmin } from "@/utils/auth.helpers";
 import { formatMonth } from "@/utils/date.helpers";
@@ -355,6 +366,60 @@ function ProductCell({ rec }: { rec: IForecastRecommendationListItem }) {
   );
 }
 
+/** Só "Comprar" pendente entra no dialog T-DF4. */
+function isBuyable(rec: IForecastRecommendationListItem) {
+  return (
+    rec.action === TRecommendationAction.Buy &&
+    rec.status === TRecommendationStatus.Pending
+  );
+}
+
+const selectColumn: ColumnDef<IForecastRecommendationListItem> = {
+  id: "select",
+  header: ({ table }) => {
+    const all = table.getIsAllPageRowsSelected();
+    const some = table.getIsSomePageRowsSelected();
+    return (
+      <Checkbox
+        checked={all}
+        indeterminate={some && !all}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Selecionar todas"
+      />
+    );
+  },
+  cell: ({ row }) => (
+    <Checkbox
+      checked={row.getIsSelected()}
+      disabled={!isBuyable(row.original)}
+      onCheckedChange={(value) => row.toggleSelected(!!value)}
+      aria-label={`Selecionar ${row.original.productName}`}
+    />
+  ),
+  enableSorting: false,
+};
+
+function actionsColumn(
+  onBuy: (rec: IForecastRecommendationListItem) => void
+): ColumnDef<IForecastRecommendationListItem> {
+  return {
+    id: "actions",
+    header: "",
+    cell: ({ row }) =>
+      isBuyable(row.original) ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onBuy(row.original)}
+          aria-label={`Comprar ${row.original.productName}`}
+        >
+          <ShoppingCart data-icon="inline-start" />
+          Comprar
+        </Button>
+      ) : null,
+  };
+}
+
 const columns: ColumnDef<IForecastRecommendationListItem>[] = [
   {
     id: "productName",
@@ -486,6 +551,7 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
     recommendationsLoading,
     recommendationsError,
     reloadRecommendations,
+    reloadRun,
     query,
     setFilters,
     setPage,
@@ -500,6 +566,19 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [buying, setBuying] = useState<IForecastRecommendationListItem[]>([]);
+  const openBuy = useCallback(
+    (recs: IForecastRecommendationListItem[]) => setBuying(recs),
+    []
+  );
+  const tableColumns = useMemo(
+    () => [selectColumn, ...columns, actionsColumn((rec) => openBuy([rec]))],
+    [openBuy]
+  );
+  const selectedBuyable = recommendations.filter(
+    (rec) => selectedIds.includes(rec.id) && isBuyable(rec)
+  );
   const [draft, setDraft] = useState(() => pickSheetFilters(query.filters));
 
   const running = run.status === TForecastRunStatus.Running;
@@ -661,21 +740,47 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
             ))}
           </div>
         ) : (
-          <DataTable
-            columns={columns}
-            data={recommendations}
-            page={query.page}
-            totalPages={Math.max(1, Math.ceil(total / query.perPage))}
-            total={total}
-            perPage={query.perPage}
-            onPageChange={setPage}
-            onPerPageChange={setPerPage}
-            onRowOpen={(rec) => setDetailId(rec.id)}
-          />
+          <div className="flex flex-col gap-3">
+            {selectedBuyable.length > 0 && (
+              <div className="flex justify-end">
+                <Button onClick={() => openBuy(selectedBuyable)}>
+                  <ShoppingCart data-icon="inline-start" />
+                  Comprar selecionados ({selectedBuyable.length})
+                </Button>
+              </div>
+            )}
+            <DataTable
+              columns={tableColumns}
+              data={recommendations}
+              page={query.page}
+              totalPages={Math.max(1, Math.ceil(total / query.perPage))}
+              total={total}
+              perPage={query.perPage}
+              onPageChange={setPage}
+              onPerPageChange={setPerPage}
+              onRowOpen={(rec) => setDetailId(rec.id)}
+              onSelectionChange={setSelectedIds}
+            />
+          </div>
         )}
         <RecommendationDetailSheet
           recommendationId={detailId}
           onClose={() => setDetailId(null)}
+          onBuy={(rec) => {
+            setDetailId(null);
+            openBuy([rec]);
+          }}
+        />
+        <ApplyPurchaseDialog
+          open={buying.length > 0}
+          onOpenChange={(open) => {
+            if (!open) setBuying([]);
+          }}
+          recommendations={buying}
+          onApplied={() => {
+            void reloadRecommendations();
+            void reloadRun();
+          }}
         />
       </CardContent>
     </Card>

@@ -2,6 +2,8 @@ import { ApiService } from "./api.service";
 import { BaseService } from "./base.service";
 import type { IIndexParams, PaginationDto } from "@/interfaces/api.interface";
 import type {
+  IApplyPurchaseRequest,
+  IApplyPurchaseResult,
   IForecastRecommendationDetail,
   IForecastRecommendationListItem,
   IForecastRunProgress,
@@ -75,6 +77,18 @@ export const forecastRunService = {
     return apiService.get<IProductForecast>(
       `forecasts/products/${productId}`,
       { months },
+      token
+    );
+  },
+
+  /** POST /api/forecasts/recommendations/purchase (T-DF4): um pedido em Orçamento por fornecedor. */
+  applyPurchase(
+    request: IApplyPurchaseRequest,
+    token?: string
+  ): Promise<IApplyPurchaseResult> {
+    return apiService.post<IApplyPurchaseResult>(
+      "forecasts/recommendations/purchase",
+      request,
       token
     );
   },
