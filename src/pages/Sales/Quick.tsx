@@ -3,7 +3,6 @@ import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import {
   CheckCircle2,
   Plus,
-  RefreshCw,
   ShoppingCart,
   Trash2,
   UserPlus,
@@ -44,7 +43,6 @@ import { useApiForm } from "@/hooks/use-api-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { useDebounce } from "@/hooks/use-debounce";
-import { cn } from "@/lib/utils";
 import type { ClientOptionDto } from "@/interfaces/client.interface";
 import type {
   OrderDetailDto,
@@ -54,8 +52,6 @@ import type {
 import type { VariantSaleOptionDto } from "@/interfaces/sale-option.interface";
 import { clientService } from "@/services/client.service";
 import { quickSaleService } from "@/services/quick-sale.service";
-import { saleOptionService } from "@/services/sale-option.service";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
 import {
   PAYMENT_METHOD_LABELS,
   TPaymentMethod,
@@ -129,6 +125,7 @@ function toDto(
 /**
  * Venda rápida de balcão (T-VD2, RN-VD15): bipa ou busca, ajusta quantidade e desconto, paga e conclui. Sem caixa, TEF,
  * cupom ou offline. Rodapé (preço efetivo, totais, falta pagar e troco) vem da prévia da API; a conclusão revalida tudo.
+ * Preço que mudou desde a busca aparece na linha (a prévia já usa o atual) e a API pede confirmação ao concluir.
  */
 export default function QuickSalePage() {
   const { token } = useAuth();
@@ -137,7 +134,6 @@ export default function QuickSalePage() {
     null
   );
   const [done, setDone] = useState<OrderDetailDto | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [newClientOpen, setNewClientOpen] = useState(false);
   // Cliente recém-cadastrado entra como opção do combo, para o rótulo aparecer sem nova busca.
   const [createdClients, setCreatedClients] = useState<ClientOption[]>([]);
@@ -255,39 +251,6 @@ export default function QuickSalePage() {
     });
   });
 
-  // Preço mudou desde a busca (aviso `confirm` da API): rebusca cada linha pelo SKU e grava o preço efetivo atual como o
-  // esperado, para o vendedor revisar o rodapé antes de concluir de novo.
-  const refreshPrices = async () => {
-    if (!storeId) return;
-    setRefreshing(true);
-    try {
-      const lines = form.getValues("items");
-      const found = await Promise.all(
-        lines.map((line) =>
-          saleOptionService.getVariantOptions(
-            { search: line.sku, storeId, limit: 5 },
-            token ?? undefined
-          )
-        )
-      );
-      lines.forEach((line, index) => {
-        const option = found[index].find(
-          (candidate) => candidate.variantId === line.variantId
-        );
-        if (option && option.effectivePrice !== line.expectedUnitPrice)
-          items.update(index, {
-            ...form.getValues(`items.${index}`),
-            expectedUnitPrice: option.effectivePrice,
-          });
-      });
-      handleSuccess("Preços atualizados. Revise o total e os pagamentos.");
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   const newSale = () => {
     form.reset(EMPTY_FORM);
     autoAmount.current = null;
@@ -341,16 +304,10 @@ export default function QuickSalePage() {
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle>Carrinho</CardTitle>
           {items.fields.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={refreshPrices}
-              disabled={refreshing || isSubmitting}
-            >
-              {refreshing ? <Spinner /> : <RefreshCw />}
-              Atualizar preços
-            </Button>
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {items.fields.length}{" "}
+              {items.fields.length === 1 ? "item" : "itens"}
+            </span>
           )}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -390,6 +347,14 @@ export default function QuickSalePage() {
                         {priced?.promotion &&
                           ` (−${priced.promotion.discountPercent}%)`}
                       </span>
+                      {priced &&
+                        priced.unitPrice !== line.expectedUnitPrice && (
+                          <span className="text-xs text-warning">
+                            Preço mudou desde a busca (era{" "}
+                            {formatCurrency(line.expectedUnitPrice)}); você
+                            confirma ao concluir.
+                          </span>
+                        )}
                     </div>
                     <Button
                       type="button"
@@ -606,41 +571,12 @@ export default function QuickSalePage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="flex flex-col gap-2">
-          <SummaryRow label="Subtotal" value={preview?.subtotal} />
-          <SummaryRow label="Descontos" value={preview?.discountTotal} />
-          <Separator />
-          <SummaryRow label="Total" value={preview?.total} strong />
-          {payments.fields.length > 1 && (
-            <SummaryRow label="Soma dos pagamentos" value={preview?.paid} />
-          )}
-          <div
-            className={cn(
-              "flex items-center justify-between rounded-md border px-3 py-2 text-lg font-semibold",
-              preview && preview.remaining > 0
-                ? "border-destructive/40 bg-destructive/10 text-destructive"
-                : "bg-muted"
-            )}
-          >
-            <span>Falta pagar</span>
-            <span className="tabular-nums">
-              {preview == null ? "—" : formatCurrency(preview.remaining)}
-            </span>
-          </div>
-          {preview?.change != null && (
-            <SummaryRow label="Troco" value={preview.change} />
-          )}
-          <Button
-            type="submit"
-            size="lg"
-            disabled={isSubmitting || !storeId || items.fields.length === 0}
-          >
-            {isSubmitting && <Spinner />}
-            Concluir venda
-          </Button>
-        </CardContent>
-      </Card>
+      <SaleSummary
+        preview={preview}
+        showPaid={payments.fields.length > 1}
+        canSubmit={!isSubmitting && !!storeId && items.fields.length > 0}
+        isSubmitting={isSubmitting}
+      />
 
       <ConfirmWarningDialog state={confirmWarning} />
       <ClientQuickCreateDialog
@@ -655,25 +591,107 @@ export default function QuickSalePage() {
   );
 }
 
+/**
+ * Rodapé da venda: detalhes em linhas discretas, total em destaque e a situação do pagamento ao lado (falta pagar,
+ * pago ou troco). Fica preso ao pé da tela para o botão de concluir estar sempre à mão com carrinho longo.
+ */
+function SaleSummary({
+  preview,
+  showPaid,
+  canSubmit,
+  isSubmitting,
+}: {
+  preview: QuickSalePreviewDto | null;
+  showPaid: boolean;
+  canSubmit: boolean;
+  isSubmitting: boolean;
+}) {
+  const hasDiscount = !!preview && preview.discountTotal > 0;
+  const hasChange = preview?.change != null && preview.change > 0;
+
+  return (
+    <Card className="sticky bottom-4 z-10 shadow-[var(--shadow-3)]">
+      <CardContent className="flex flex-col gap-4">
+        <dl className="flex flex-col gap-1.5 text-sm">
+          <SummaryRow label="Subtotal" value={preview?.subtotal} />
+          {hasDiscount && (
+            <SummaryRow
+              label="Descontos"
+              value={preview.discountTotal}
+              negative
+            />
+          )}
+          {showPaid && <SummaryRow label="Pago" value={preview?.paid} />}
+        </dl>
+
+        <div className="flex items-end justify-between gap-4 border-t pt-4">
+          <div className="flex flex-col">
+            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Total
+            </span>
+            <span className="text-3xl font-semibold tracking-tight tabular-nums">
+              {preview == null ? "—" : formatCurrency(preview.total)}
+            </span>
+          </div>
+          {preview != null && (
+            <div className="flex flex-col items-end text-right">
+              {preview.remaining > 0 ? (
+                <>
+                  <span className="text-xs text-muted-foreground">
+                    Falta pagar
+                  </span>
+                  <span className="text-lg font-semibold text-destructive tabular-nums">
+                    {formatCurrency(preview.remaining)}
+                  </span>
+                </>
+              ) : hasChange ? (
+                <>
+                  <span className="text-xs text-muted-foreground">Troco</span>
+                  <span className="text-lg font-semibold tabular-nums">
+                    {formatCurrency(preview.change!)}
+                  </span>
+                </>
+              ) : (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-success">
+                  <CheckCircle2 className="size-4" />
+                  Pagamento completo
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={!canSubmit}
+        >
+          {isSubmitting && <Spinner />}
+          Concluir venda
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SummaryRow({
   label,
   value,
-  strong,
+  negative,
 }: {
   label: string;
   value: number | undefined;
-  strong?: boolean;
+  negative?: boolean;
 }) {
   return (
-    <div
-      className={`flex items-center justify-between ${strong ? "text-lg font-semibold" : "text-sm"}`}
-    >
-      <span className={strong ? undefined : "text-muted-foreground"}>
-        {label}
-      </span>
-      <span className="tabular-nums">
-        {value == null ? "—" : formatCurrency(value)}
-      </span>
+    <div className="flex items-center justify-between">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="tabular-nums">
+        {value == null
+          ? "—"
+          : `${negative ? "− " : ""}${formatCurrency(value)}`}
+      </dd>
     </div>
   );
 }

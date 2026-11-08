@@ -41,8 +41,8 @@ export function ClientQuickCreateDialog({
         <DialogHeader>
           <DialogTitle>Novo cliente</DialogTitle>
           <DialogDescription>
-            Nome e telefone bastam para a venda; o resto do cadastro pode ser
-            completado depois em Clientes.
+            Nome e telefone bastam para a venda. O e-mail é opcional e serve
+            para avisar o cliente; o resto do cadastro fica para Clientes.
           </DialogDescription>
         </DialogHeader>
         {open && (
