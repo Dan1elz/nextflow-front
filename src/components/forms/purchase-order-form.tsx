@@ -151,6 +151,9 @@ export function PurchaseOrderForm({
   const [locations, setLocations] = useState<LocationOptionDto[]>(
     initialData?.options.locations ?? []
   );
+  const [defaultLocationId, setDefaultLocationId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (initialData) return;
@@ -160,6 +163,7 @@ export function PurchaseOrderForm({
     if (!storeId) return;
     getDefaultReceiveLocationId(storeId)
       .then((id) => {
+        setDefaultLocationId(id);
         if (id && !form.getValues("receiveLocationId"))
           form.setValue("receiveLocationId", id);
       })
@@ -171,6 +175,21 @@ export function PurchaseOrderForm({
     initialData,
     storeId,
   ]);
+
+  // Na criação o pedido nasce na loja do topo, como a venda rápida: só os locais dela, e o local de recebimento
+  // padrão fica travado. Sem padrão ativo, escolhe entre os locais da loja.
+  const isCreate = mode === "create";
+  const locationOptions = useMemo(
+    () =>
+      isCreate && storeId
+        ? locations.filter((location) => location.storeId === storeId)
+        : locations,
+    [isCreate, locations, storeId]
+  );
+  const locationLocked =
+    isCreate &&
+    defaultLocationId !== null &&
+    locationOptions.some((location) => location.id === defaultLocationId);
 
   const deliveryStoreId = useMemo(
     () => locations.find((l) => l.id === receiveLocationId)?.storeId ?? storeId,
@@ -288,7 +307,7 @@ export function PurchaseOrderForm({
               <Select
                 value={field.value}
                 onValueChange={field.onChange}
-                disabled={isSubmitting || fields.length > 0}
+                disabled={isSubmitting || fields.length > 0 || locationLocked}
               >
                 <SelectTrigger
                   id="receiveLocationId"
@@ -298,7 +317,7 @@ export function PurchaseOrderForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {locations.map((location) => (
+                    {locationOptions.map((location) => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.storeName} › {location.name}
                       </SelectItem>
@@ -306,6 +325,11 @@ export function PurchaseOrderForm({
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              {locationLocked && (
+                <FieldDescription>
+                  Local de recebimento padrão da loja selecionada no topo.
+                </FieldDescription>
+              )}
               {initialData && (
                 <FieldDescription>
                   Prazo de {initialData.leadTimeDays} dia(s)

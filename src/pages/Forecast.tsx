@@ -68,6 +68,7 @@ import {
   RunStatusPill,
 } from "@/components/app/recommendation-badges";
 import { useAuth } from "@/hooks/use-auth";
+import { useSelectedStoreId } from "@/hooks/use-selected-store-id";
 import { useForecastRun } from "@/hooks/use-forecast-run";
 import type { IOption } from "@/interfaces/api.interface";
 import type {
@@ -512,6 +513,13 @@ const columns: ColumnDef<IForecastRecommendationListItem>[] = [
               +{formatQty(rec, rec.incomingStock)} a chegar
             </span>
           )}
+          {rec.storeCurrentStock != null && (
+            <span className="text-xs text-muted-foreground">
+              {formatQty(rec, rec.storeCurrentStock)} nesta loja
+              {(rec.storeIncomingStock ?? 0) > 0 &&
+                ` · +${formatQty(rec, rec.storeIncomingStock ?? 0)}`}
+            </span>
+          )}
         </div>
       );
     },
@@ -911,6 +919,7 @@ export function ForecastContent() {
   const { user } = useAuth();
   const admin = isAdmin(user);
   const navigate = useNavigate();
+  const storeId = useSelectedStoreId();
   const {
     run,
     runLoaded,
@@ -986,6 +995,12 @@ export function ForecastContent() {
           <p className="text-sm text-muted-foreground">
             O sistema calcula, a IA interpreta e você decide.
           </p>
+          {storeId && (
+            <p className="text-xs text-muted-foreground">
+              A análise e as sugestões valem para todas as lojas; a coluna
+              Estoque mostra também o saldo da loja selecionada.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button

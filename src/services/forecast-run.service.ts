@@ -55,23 +55,25 @@ export const forecastRunService = {
   getRecommendations(
     runId: string,
     params?: IIndexParams,
-    token?: string
+    token?: string,
+    storeId?: string | null
   ): Promise<PaginationDto<IForecastRecommendationListItem>> {
     return apiService.get<PaginationDto<IForecastRecommendationListItem>>(
       `forecasts/${runId}/recommendations`,
-      BaseService.toQuery(params),
+      { ...BaseService.toQuery(params), ...(storeId ? { storeId } : {}) },
       token
     );
   },
 
-  /** GET /api/forecasts/recommendations/{id} (T-DF3) */
+  /** GET /api/forecasts/recommendations/{id}?storeId= (T-DF3) */
   getRecommendation(
     id: string,
-    token?: string
+    token?: string,
+    storeId?: string | null
   ): Promise<IForecastRecommendationDetail> {
     return apiService.get<IForecastRecommendationDetail>(
       `forecasts/recommendations/${id}`,
-      undefined,
+      storeId ? { storeId } : undefined,
       token
     );
   },

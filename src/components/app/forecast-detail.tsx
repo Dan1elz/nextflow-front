@@ -187,11 +187,27 @@ function CalculationSection({
     <Section
       id="forecast-detail-calculation"
       title="Números do cálculo"
-      description="Estoque somado de todas as lojas."
+      description={
+        detail.storeCurrentStock != null
+          ? "Cálculo e sugestão com o estoque somado de todas as lojas; ao lado, o da loja selecionada no topo."
+          : "Estoque somado de todas as lojas."
+      }
     >
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Detail label="Estoque atual" value={qty(detail.currentStock)} />
         <Detail label="A chegar" value={qty(detail.incomingStock)} />
+        {detail.storeCurrentStock != null && (
+          <>
+            <Detail
+              label="Estoque nesta loja"
+              value={qty(detail.storeCurrentStock)}
+            />
+            <Detail
+              label="A chegar nesta loja"
+              value={qty(detail.storeIncomingStock ?? 0)}
+            />
+          </>
+        )}
         <Detail label="Reservado" value={qty(calc.reservedStock)} />
         <Detail
           label="Cobertura"

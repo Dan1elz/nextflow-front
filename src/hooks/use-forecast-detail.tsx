@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useSelectedStoreId } from "@/hooks/use-selected-store-id";
 import type {
   IForecastRecommendationDetail,
   IProductForecast,
@@ -55,14 +56,17 @@ function useKeyedLoad<T>(
   };
 }
 
-const loadRecommendation = (id: string, token?: string) =>
-  forecastRunService.getRecommendation(id, token);
-
 const loadProductForecast = (productId: string, token?: string) =>
   forecastRunService.getProductForecast(productId, 24, token);
 
-/** `GET /forecasts/recommendations/{id}` (T-DF3). `null` não carrega nada. */
+/** `GET /forecasts/recommendations/{id}?storeId=` (T-DF3). `null` não carrega nada; trocar a loja do topo recarrega. */
 export function useRecommendationDetail(id: string | null) {
+  const storeId = useSelectedStoreId();
+  const loadRecommendation = useCallback(
+    (recommendationId: string, token?: string) =>
+      forecastRunService.getRecommendation(recommendationId, token, storeId),
+    [storeId]
+  );
   return useKeyedLoad<IForecastRecommendationDetail>(
     id,
     loadRecommendation,

@@ -12,6 +12,8 @@ type UseIndexSearchArgs<
   perPageInitial?: number;
   debounceMs?: number;
   onError?: (error: unknown) => void;
+  /** Quando muda (ex.: loja do topo), refaz a busca na página 1. */
+  refreshKey?: string | null;
 };
 
 export function useIndexSearch<
@@ -24,6 +26,7 @@ export function useIndexSearch<
   perPageInitial = 10,
   debounceMs = 400,
   onError,
+  refreshKey,
 }: UseIndexSearchArgs<TFilters, K>) {
   const [perPage, setPerPage] = useState(perPageInitial);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -31,6 +34,7 @@ export function useIndexSearch<
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const hasSearchedRef = useRef(false);
+  const lastRefreshKeyRef = useRef(refreshKey);
   const lastQuickSearchRef = useRef(initialFilters[quickSearchKey]);
 
   const searchRef = useRef(search);
@@ -99,6 +103,13 @@ export function useIndexSearch<
     hasSearchedRef.current = true;
     handleSearch(1);
   }, [perPage, handleSearch]);
+
+  // Troca da chave (loja do topo): o efeito que atualiza `searchRef` roda antes deste, então a busca já usa a loja nova.
+  useEffect(() => {
+    if (lastRefreshKeyRef.current === refreshKey) return;
+    lastRefreshKeyRef.current = refreshKey;
+    handleSearch(1);
+  }, [refreshKey, handleSearch]);
 
   // Pesquisa rápida (debounce) pelo campo configurado. Compara com o último valor em vez de pular só a primeira
   // execução: no StrictMode o efeito roda de novo na remontagem com o mesmo valor, e uma flag de "primeira vez" já

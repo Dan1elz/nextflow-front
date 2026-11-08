@@ -18,7 +18,13 @@ vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({ token: "token", user: { name: "Daniel", role: "Admin" } }),
 }));
 
+const currentStore = vi.hoisted(() => ({ storeId: null as string | null }));
+vi.mock("@/hooks/use-current-store", () => ({
+  useCurrentStore: () => currentStore,
+}));
+
 const requested: string[] = [];
+const requestedUrls: URL[] = [];
 
 function dashboardHandlers() {
   return [
@@ -51,8 +57,11 @@ function renderHome() {
 
 beforeEach(() => {
   requested.length = 0;
+  requestedUrls.length = 0;
+  currentStore.storeId = null;
   server.events.on("request:start", ({ request }) => {
     requested.push(new URL(request.url).pathname);
+    requestedUrls.push(new URL(request.url));
   });
   return () => server.events.removeAllListeners();
 });
@@ -96,6 +105,68 @@ describe("Painel inicial (F3.8b, T-DF1)", () => {
         "/api/forecasts/latest/top",
       ])
     );
+  });
+
+  it("vendas, estoque baixo e lotes seguem a loja selecionada no topo", async () => {
+    currentStore.storeId = "store-2";
+    server.use(...dashboardHandlers());
+    renderHome();
+
+    await screen.findByRole("region", { name: "Vendas do mês" });
+    const stock = screen.getByRole("region", { name: "Estoque baixo" });
+    await within(stock).findByText("Trufa de Maracujá");
+
+    const storeOf = (path: string) =>
+      requestedUrls
+        .find((url) => url.pathname === `/api/dashboard/${path}`)
+        ?.searchParams.get("storeId");
+    expect(storeOf("sales-kpis")).toBe("store-2");
+    expect(storeOf("sales-chart")).toBe("store-2");
+    expect(storeOf("low-stock")).toBe("store-2");
+    expect(storeOf("expiring-lots")).toBe("store-2");
+    expect(
+      requestedUrls
+        .find((url) => url.pathname === "/api/forecasts/latest/top")
+        ?.searchParams.get("storeId")
+    ).toBe("store-2");
+  });
+
+  it("com loja selecionada, o card de recomendações mostra o estoque dela", async () => {
+    currentStore.storeId = "store-2";
+    server.use(...dashboardHandlers());
+    server.use(
+      http.get(apiUrl("forecasts/latest/top"), () =>
+        HttpResponse.json({
+          ...forecastTop,
+          recommendations: forecastTop.recommendations.map((rec, index) =>
+            index === 0
+              ? { ...rec, storeCurrentStock: 3, storeIncomingStock: 0 }
+              : rec
+          ),
+        })
+      )
+    );
+    renderHome();
+
+    const recs = await screen.findByRole("region", {
+      name: "Recomendações da IA",
+    });
+    expect(
+      await within(recs).findByText(/\(3(,0+)? \S+ nesta loja\)/)
+    ).toBeInTheDocument();
+  });
+
+  it("em todas as lojas o painel não manda loja", async () => {
+    server.use(...dashboardHandlers());
+    renderHome();
+
+    const stock = await screen.findByRole("region", { name: "Estoque baixo" });
+    await within(stock).findByText("Trufa de Maracujá");
+
+    const lowStockUrl = requestedUrls.find(
+      (url) => url.pathname === "/api/dashboard/low-stock"
+    );
+    expect(lowStockUrl?.searchParams.has("storeId")).toBe(false);
   });
 
   it("um bloco que falha mostra o erro só nele e os outros carregam", async () => {
