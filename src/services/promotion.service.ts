@@ -5,7 +5,7 @@ import type {
   PromotionRequestDto,
 } from "@/interfaces/promotion.interface";
 
-/** Promoções (T-VD7). Cancelar é `POST /{id}/cancel`; não há editar nem reativar (RN-VD12). */
+/** Promoções (T-VD7). Cancelar é `POST /{id}/cancel`; editar (`PUT`) só a agendada; não há reativar (RN-VD12). */
 class PromotionService extends BaseService<
   PromotionListItemDto,
   PromotionRequestDto,

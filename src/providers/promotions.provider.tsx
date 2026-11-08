@@ -50,6 +50,12 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const updatePromotion = useCallback(
+    (id: string, dto: PromotionRequestDto) =>
+      promotionService.update(id, dto, auth),
+    [auth]
+  );
+
   const cancelPromotion = useCallback(
     (id: string) => promotionService.cancel(id, auth),
     [auth]
@@ -93,6 +99,7 @@ export function PromotionsProvider({ children }: { children: ReactNode }) {
         searchPromotions,
         previewPromotion,
         createPromotion,
+        updatePromotion,
         cancelPromotion,
         searchProductOptions,
         getVariantOptions,

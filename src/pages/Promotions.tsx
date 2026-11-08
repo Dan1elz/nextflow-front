@@ -5,6 +5,7 @@ import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { buildPromotionColumns } from "@/components/app/promotion-columns";
 import { PromotionCreateDialog } from "@/components/app/promotion-create-dialog";
+import { PromotionViewDialog } from "@/components/app/promotion-view-dialog";
 import { SearchSelect } from "@/components/app/search-select";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { useIndexSearch } from "@/hooks/use-index-search";
@@ -45,6 +46,8 @@ function Promotions() {
     searchProductOptions,
   } = usePromotions();
   const [isCreating, setIsCreating] = useState(false);
+  const [editing, setEditing] = useState<PromotionListItemDto | null>(null);
+  const [viewing, setViewing] = useState<PromotionListItemDto | null>(null);
   const {
     setPerPage,
     selectedIds,
@@ -79,7 +82,11 @@ function Promotions() {
   );
 
   const columns = useMemo(
-    () => buildPromotionColumns(handleCancel),
+    () =>
+      buildPromotionColumns(handleCancel, true, {
+        onView: setViewing,
+        onEdit: setEditing,
+      }),
     [handleCancel]
   );
 
@@ -92,6 +99,7 @@ function Promotions() {
     <>
       <EntityIndexPage
         title="Promoções"
+        onRowOpen={setViewing}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         toolbar={
@@ -162,9 +170,18 @@ function Promotions() {
       />
 
       <PromotionCreateDialog
-        open={isCreating}
-        onOpenChange={setIsCreating}
+        open={isCreating || editing != null}
+        onOpenChange={(open) => {
+          if (open) return;
+          setIsCreating(false);
+          setEditing(null);
+        }}
+        promotion={editing}
         onCreated={() => handleSearch(1)}
+      />
+      <PromotionViewDialog
+        promotion={viewing}
+        onClose={() => setViewing(null)}
       />
     </>
   );

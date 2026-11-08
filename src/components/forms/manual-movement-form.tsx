@@ -62,6 +62,8 @@ interface ManualMovementFormProps {
   ) => Promise<LotOptionDto[]>;
   onSubmit: (dto: ManualMovementDto) => Promise<void>;
   onCancel: () => void;
+  /** Campos já preenchidos (ex.: "Dar baixa" de um lote na aba Lotes). */
+  initialValues?: Partial<ManualMovementFormData>;
 }
 
 /** Sem escolha de lote na saída: a API baixa pelo lote que vence primeiro (FEFO, RN-CE15). */
@@ -111,6 +113,7 @@ export function ManualMovementForm({
   loadLotOptions,
   onSubmit,
   onCancel,
+  initialValues,
 }: ManualMovementFormProps) {
   const form = useForm<ManualMovementFormData>({
     resolver: zodResolver(manualMovementSchema),
@@ -124,6 +127,7 @@ export function ManualMovementForm({
       lotId: AUTO_LOT,
       newLot: { code: "", expiresOn: "" },
       note: "",
+      ...initialValues,
     },
   });
   const { submit } = useApiForm(form);

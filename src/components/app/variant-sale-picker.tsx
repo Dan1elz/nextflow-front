@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type Ref,
+} from "react";
 import { ImageIcon } from "lucide-react";
 
 import { StockShortageDialog } from "@/components/app/stock-shortage-dialog";
@@ -27,7 +34,15 @@ import {
 } from "@/utils/format.helpers";
 import { SALE_UNIT_SHORT } from "@/utils/product.helpers";
 
+/** Controle da tela sobre o seletor: foco na busca e leitura que chegou fora dela (leitor com o foco em outro lugar). */
+export interface VariantSalePickerHandle {
+  focus: () => void;
+  /** Como se o código tivesse sido lido na busca com Enter: código exato entra; sem correspondência, avisa. */
+  scan: (code: string) => void;
+}
+
 interface VariantSalePickerProps {
+  ref?: Ref<VariantSalePickerHandle>;
   /** Local de venda; sem ele, a API usa o local de venda padrão da loja do topo. */
   locationId?: string;
   /** Variação escolhida (a tela de venda soma 1 ao carrinho). */
@@ -44,13 +59,15 @@ const isExactCode = (option: VariantSaleOptionDto, term: string) => {
 };
 
 /**
- * Seletor de venda (T-VD1): busca por nome, SKU ou código de barras na loja do topo. O leitor digita o código e manda
- * Enter: código exato (SKU ou código de barras) escolhe direto e o foco fica na busca para o próximo. Sem código exato,
+ * Seletor de venda (T-VD1): busca por nome, SKU ou código de barras na loja do topo. Quando a busca responde e o termo é
+ * exatamente o SKU ou o código de barras de uma única opção, ela entra sozinha, sem Enter (leitor que não manda Enter).
+ * O leitor que manda Enter antes da busca responder também escolhe direto, e o foco fica na busca para o próximo. Sem código exato,
  * o Enter não pega o primeiro da lista: avisa e deixa o termo selecionado, para a próxima leitura substituir. Só depois
  * de navegar com as setas o Enter escolhe o item destacado. Opção sem disponível de produto que não permite negativo (RN-CE32) abre o aviso
  * de falta (T-VD1a) em vez de entrar no carrinho. Preço efetivo e disponível vêm da API.
  */
 export function VariantSalePicker({
+  ref,
   locationId,
   onSelect,
   disabled,
@@ -69,10 +86,31 @@ export function VariantSalePicker({
   const navigated = useRef(false);
   const [notFound, setNotFound] = useState<string | null>(null);
   const [shortage, setShortage] = useState<VariantSaleOptionDto | null>(null);
+  // Resposta da busca já usada pela escolha automática: cada resposta escolhe uma vez só (StrictMode roda o efeito duas vezes).
+  const autoHandled = useRef<VariantSaleOptionDto[] | null>(null);
   const { storeId, options, term, isLoading } = useVariantSaleOptions(
     search,
     locationId,
     open
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => inputRef.current?.focus(),
+      scan: (code: string) => {
+        const typed = code.trim();
+        if (!typed) return;
+        setSearch(typed);
+        setOpen(true);
+        setNotFound(null);
+        navigated.current = false;
+        autoHandled.current = null;
+        setPendingEnter({ term: typed });
+        inputRef.current?.focus();
+      },
+    }),
+    []
   );
 
   const choose = (option: VariantSaleOptionDto) => {
@@ -102,6 +140,20 @@ export function VariantSalePicker({
     // choose e warnNotFound são recriadas a cada render; o efeito só reage à chegada da busca do código pendente.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingEnter, isLoading, term, options]);
+
+  // Código digitado ou lido sem Enter: se a resposta da busca do termo atual tem uma única opção com SKU ou código de
+  // barras igual, ela entra no carrinho. Com Enter pendente quem decide é o efeito acima.
+  useEffect(() => {
+    const typed = search.trim();
+    if (!typed || isLoading || term !== typed || pendingEnter) return;
+    if (autoHandled.current === options) return;
+    const exact = options.filter((option) => isExactCode(option, typed));
+    if (exact.length !== 1) return;
+    autoHandled.current = options;
+    choose(exact[0]);
+    // choose é recriada a cada render; o efeito só reage à chegada da busca.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, isLoading, term, options, pendingEnter]);
 
   // Código sem correspondência exata: fecha a lista, avisa e seleciona o termo (a próxima leitura o substitui).
   const warnNotFound = (code: string) => {
@@ -146,6 +198,7 @@ export function VariantSalePicker({
                 value={search}
                 onValueChange={(value) => {
                   setSearch(value);
+                  autoHandled.current = null;
                   setOpen(true);
                   setNotFound(null);
                   navigated.current = false;

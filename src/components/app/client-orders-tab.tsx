@@ -1,23 +1,48 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { DataTable } from "@/components/app/data-table";
 import { OrderStatusBadge } from "@/components/app/order-status-badge";
+import { SaleDetailDialog } from "@/components/app/sale-detail-dialog";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import type { PaginationDto } from "@/interfaces/api.interface";
-import type { OrderListItemDto } from "@/interfaces/quick-sale.interface";
+import type {
+  OrderDetailDto,
+  OrderListItemDto,
+} from "@/interfaces/quick-sale.interface";
 import { salesHistoryService } from "@/services/sales-history.service";
 import { PAYMENT_METHOD_LABELS } from "@/types/enums";
 import { formatCurrency, formatDateTime } from "@/utils/format.helpers";
 import { handleError } from "@/utils/toast.helpers";
 
-/** Aba Compras do cliente: as vendas feitas para ele em todas as lojas, da mais nova à mais antiga. */
+/** Aba Compras do cliente: as vendas feitas para ele em todas as lojas, da mais nova à mais antiga; o nº abre o detalhe. */
 export function ClientOrdersTab({ clientId }: { clientId: string }) {
   const { token } = useAuth();
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [result, setResult] = useState<PaginationDto<OrderListItemDto> | null>(
     null
+  );
+
+  const [detail, setDetail] = useState<OrderDetailDto | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const openDetail = useCallback(
+    async (order: OrderListItemDto) => {
+      setLoadingId(order.id);
+      try {
+        setDetail(
+          await salesHistoryService.getById(order.id, token ?? undefined)
+        );
+      } catch (error) {
+        handleError(error, "Erro ao carregar a venda");
+      } finally {
+        setLoadingId(null);
+      }
+    },
+    [token]
   );
 
   useEffect(() => {
@@ -39,7 +64,22 @@ export function ClientOrdersTab({ clientId }: { clientId: string }) {
 
   const columns = useMemo<ColumnDef<OrderListItemDto>[]>(
     () => [
-      { accessorKey: "number", header: "Nº" },
+      {
+        accessorKey: "number",
+        header: "Nº",
+        cell: ({ row }) => (
+          <Button
+            variant="link"
+            className="h-auto gap-1.5 p-0 font-medium"
+            disabled={loadingId != null}
+            onClick={() => openDetail(row.original)}
+            aria-label={`Visualizar a venda nº ${row.original.number}`}
+          >
+            {row.original.number}
+            {loadingId === row.original.id && <Spinner />}
+          </Button>
+        ),
+      },
       {
         accessorKey: "createdAt",
         header: "Data",
@@ -69,23 +109,26 @@ export function ClientOrdersTab({ clientId }: { clientId: string }) {
         cell: ({ row }) => formatCurrency(row.original.total),
       },
     ],
-    []
+    [loadingId, openDetail]
   );
 
   const total = result?.total ?? 0;
   return (
-    <DataTable
-      columns={columns}
-      data={result?.items ?? []}
-      page={page}
-      totalPages={Math.max(1, Math.ceil(total / perPage))}
-      total={total}
-      perPage={perPage}
-      onPageChange={setPage}
-      onPerPageChange={(value) => {
-        setPerPage(value);
-        setPage(1);
-      }}
-    />
+    <>
+      <DataTable
+        columns={columns}
+        data={result?.items ?? []}
+        page={page}
+        totalPages={Math.max(1, Math.ceil(total / perPage))}
+        total={total}
+        perPage={perPage}
+        onPageChange={setPage}
+        onPerPageChange={(value) => {
+          setPerPage(value);
+          setPage(1);
+        }}
+      />
+      <SaleDetailDialog sale={detail} onClose={() => setDetail(null)} />
+    </>
   );
 }

@@ -14,6 +14,8 @@ const apiService = new ApiService();
 export const EXPIRING_LOTS_DAYS = 30;
 /** Janela das próximas datas comemorativas no painel. */
 export const UPCOMING_EVENTS_DAYS = 90;
+/** Itens do "ver mais" de estoque baixo e lotes vencendo (o painel mostra 5). */
+export const DASHBOARD_MORE_LIMIT = 200;
 /** Recomendações mostradas no card do painel. */
 export const FORECAST_TOP_LIMIT = 5;
 
@@ -44,11 +46,12 @@ export const dashboardService = {
   /** GET /api/dashboard/low-stock?storeId= */
   getLowStock(
     token?: string,
-    storeId?: string | null
+    storeId?: string | null,
+    limit?: number
   ): Promise<ILowStockSummary> {
     return apiService.get<ILowStockSummary>(
       "dashboard/low-stock",
-      storeQuery(storeId),
+      { ...storeQuery(storeId), ...(limit ? { limit } : {}) },
       token
     );
   },
@@ -56,11 +59,16 @@ export const dashboardService = {
   /** GET /api/dashboard/expiring-lots?days=30&storeId= */
   getExpiringLots(
     token?: string,
-    storeId?: string | null
+    storeId?: string | null,
+    limit?: number
   ): Promise<IExpiringLotsSummary> {
     return apiService.get<IExpiringLotsSummary>(
       "dashboard/expiring-lots",
-      { days: EXPIRING_LOTS_DAYS, ...storeQuery(storeId) },
+      {
+        days: EXPIRING_LOTS_DAYS,
+        ...storeQuery(storeId),
+        ...(limit ? { limit } : {}),
+      },
       token
     );
   },

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, CalendarClock, Truck } from "lucide-react";
+import { AlertTriangle, CalendarClock, Store, Truck } from "lucide-react";
 
 import { SearchSelect } from "@/components/app/search-select";
 import { Alert, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +22,12 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -32,6 +38,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -238,6 +245,121 @@ function Lines({
   ));
 }
 
+/**
+ * Dividir a compra entre lojas (RN-DF27): a API sugere quanto vai para cada loja pela falta dela; o Admin ajusta. Cada loja vira
+ * um pedido no local de recebimento dela.
+ */
+function StoreSplitSection({
+  item,
+  hook,
+}: {
+  item: PurchaseRecommendationView;
+  hook: Hook;
+}) {
+  const recId = item.recommendation.id;
+  const split = hook.splits[recId];
+  const loading = hook.splitLoading === recId;
+  const { detail } = item;
+  const label = (variantId: string) =>
+    detail.variantSplit.find((s) => s.variantId === variantId)?.variantLabel ??
+    null;
+  const switchId = `split-${recId}`;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Switch
+          id={switchId}
+          checked={split != null}
+          disabled={loading || hook.submitting}
+          onCheckedChange={(on) =>
+            on ? void hook.enableSplit(recId) : hook.disableSplit(recId)
+          }
+        />
+        <Label htmlFor={switchId} className="text-sm font-normal">
+          Dividir entre lojas
+        </Label>
+        {loading && <Spinner />}
+      </div>
+      {split && (
+        <div className="flex flex-col divide-y rounded-lg border">
+          {split.stores.map((store) => (
+            <div key={store.storeId} className="flex flex-col gap-2 p-3">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-sm font-medium">
+                  <Store className="size-4 text-muted-foreground" />
+                  {store.storeName}
+                  {store.receiveLocationName && (
+                    <span className="text-xs font-normal text-muted-foreground">
+                      › {store.receiveLocationName}
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {formatNumber(store.sharePercent, 0)}% das vendas · saldo{" "}
+                  {formatNumber(store.currentStock, detail.decimalPlaces)} · a
+                  caminho{" "}
+                  {formatNumber(store.incomingStock, detail.decimalPlaces)} ·
+                  falta {formatNumber(store.shortfall, detail.decimalPlaces)}
+                </span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {item.lines.map((line) => {
+                  const id = `split-${recId}-${store.storeId}-${line.variantId}`;
+                  const error =
+                    hook.errors[
+                      `split:${recId}:${store.storeId}:${line.variantId}`
+                    ];
+                  return (
+                    <Field key={line.variantId} data-invalid={!!error}>
+                      <FieldLabel
+                        htmlFor={id}
+                        className="text-xs text-muted-foreground"
+                      >
+                        {label(line.variantId) ?? "Quantidade"}
+                      </FieldLabel>
+                      <InputGroup>
+                        <InputGroupInput
+                          id={id}
+                          inputMode="decimal"
+                          className="tabular-nums"
+                          value={
+                            split.quantities[store.storeId]?.[line.variantId] ??
+                            ""
+                          }
+                          disabled={hook.submitting}
+                          aria-invalid={!!error}
+                          onChange={(e) =>
+                            hook.setSplitQuantity(
+                              recId,
+                              store.storeId,
+                              line.variantId,
+                              e.target.value
+                            )
+                          }
+                        />
+                        <InputGroupAddon align="inline-end">
+                          {detail.saleUnit}
+                        </InputGroupAddon>
+                      </InputGroup>
+                      {error && <FieldError>{error}</FieldError>}
+                    </Field>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          <p className="p-3 text-xs text-muted-foreground">
+            Sugestão pela falta de cada loja (parte dela na demanda menos saldo
+            e o que está a caminho). Cada loja vira um pedido no local de
+            recebimento dela; a quantidade da linha acima é a soma.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LocationField({
   supplierId,
   value,
@@ -396,8 +518,8 @@ function ApplyPurchaseContent({
             : "Gerar pedido de compra"}
         </DialogTitle>
         <DialogDescription>
-          Um pedido em Orçamento por fornecedor. Os avisos não impedem gerar o
-          pedido.
+          Um pedido em Orçamento por fornecedor (e por loja, se dividir). Os
+          avisos não impedem gerar o pedido.
         </DialogDescription>
       </DialogHeader>
 
@@ -429,12 +551,19 @@ function ApplyPurchaseContent({
                 </span>
               </div>
               <div className="p-3 pb-0">
-                <LocationField
-                  supplierId={group.supplierId}
-                  value={group.receiveLocationId}
-                  locations={hook.locations}
-                  hook={hook}
-                />
+                {group.needsLocation ? (
+                  <LocationField
+                    supplierId={group.supplierId}
+                    value={group.receiveLocationId}
+                    locations={hook.locations}
+                    hook={hook}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Dividido por loja: cada loja recebe no próprio local de
+                    recebimento.
+                  </p>
+                )}
               </div>
               <div className="flex flex-col divide-y">
                 {group.items.map((item) => (
@@ -444,6 +573,7 @@ function ApplyPurchaseContent({
                   >
                     <ProductHeader rec={item.recommendation} />
                     <Lines item={item} hook={hook} />
+                    <StoreSplitSection item={item} hook={hook} />
                   </div>
                 ))}
               </div>

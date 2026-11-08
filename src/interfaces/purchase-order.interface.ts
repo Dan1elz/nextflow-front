@@ -70,6 +70,10 @@ export interface PurchaseVariantOptionDto {
   variantLabel: string;
   sku: string;
   isLinked: boolean;
+  barcode: string | null;
+  imageUrl: string | null;
+  /** Custo médio da variação; nulo sem entrada com custo. */
+  averageCost: number | null;
 }
 
 export interface PurchaseOrderFormItemDto extends PurchaseItemSuggestionDto {

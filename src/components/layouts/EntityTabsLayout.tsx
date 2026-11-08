@@ -135,16 +135,18 @@ export function EntityTabsLayout({
             <TabsList
               ref={tabsListRef}
               className={cn(
-                // As abas ficam numa linha só e rolam na horizontal quando não
-                // cabem. Colunas iguais só no desktop e só até 5 abas: com mais,
-                // o grid de 5 colunas quebrava em 2 linhas dentro da altura fixa
-                // (h-9) e o overflow virava rolagem vertical.
-                "flex w-full max-w-full justify-start overflow-x-auto overflow-y-hidden",
-                tabs.length <= 5 && "md:grid",
-                tabs.length === 2 && "md:grid-cols-2",
-                tabs.length === 3 && "md:grid-cols-3",
-                tabs.length === 4 && "md:grid-cols-4",
-                tabs.length === 5 && "md:grid-cols-5"
+                // Celular: as abas quebram em linhas (grade de 3), sem rolagem. Desktop: até 5 abas em colunas
+                // iguais; com mais, uma linha só alinhada à esquerda.
+                "grid h-auto w-full gap-1",
+                tabs.length === 2 ? "grid-cols-2" : "grid-cols-3",
+                tabs.length <= 5
+                  ? [
+                      "md:h-10",
+                      tabs.length === 3 && "md:grid-cols-3",
+                      tabs.length === 4 && "md:grid-cols-4",
+                      tabs.length === 5 && "md:grid-cols-5",
+                    ]
+                  : "md:flex md:h-10 md:justify-start"
               )}
             >
               {tabs.map((tab) => (
@@ -152,7 +154,7 @@ export function EntityTabsLayout({
                   key={tab.value}
                   value={tab.value}
                   disabled={disabledTabs.includes(tab.value)}
-                  className="shrink-0"
+                  className="min-w-0 md:shrink-0"
                 >
                   {tab.label}
                 </TabsTrigger>

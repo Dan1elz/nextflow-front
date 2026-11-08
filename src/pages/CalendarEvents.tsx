@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
+import { CalendarEventViewDialog } from "@/components/app/calendar-event-view-dialog";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
@@ -89,6 +90,7 @@ function CalendarEvents() {
     reactivateCalendarEvent,
   } = useCalendarEvents();
   const [dialog, setDialog] = useState<CalendarEventDialog>(null);
+  const [viewing, setViewing] = useState<CalendarEventResponseDto | null>(null);
   const {
     setPerPage,
     selectedIds,
@@ -190,7 +192,7 @@ function CalendarEvents() {
             onEdit={(event) => setDialog({ event })}
             onDelete={handleDelete}
             onReactivate={handleReactivate}
-            disableView
+            onView={setViewing}
             disableDelete={!row.original.isActive}
             disableEdit={!row.original.isActive}
             disableReactivate={row.original.isActive}
@@ -211,6 +213,7 @@ function CalendarEvents() {
     <>
       <EntityIndexPage
         title="Calendário de eventos"
+        onRowOpen={setViewing}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         toolbar={
@@ -302,6 +305,10 @@ function CalendarEvents() {
           )}
         </DialogContent>
       </Dialog>
+      <CalendarEventViewDialog
+        event={viewing}
+        onClose={() => setViewing(null)}
+      />
     </>
   );
 }

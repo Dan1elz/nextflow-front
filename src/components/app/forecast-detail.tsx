@@ -163,6 +163,8 @@ function RecommendationSection({
                   {detail.appliedLink.number !== null &&
                     ` nº ${detail.appliedLink.number}`}
                 </Link>
+              ) : detail.appliedLink.type === "Transfer" ? (
+                "Transferência de estoque"
               ) : (
                 "Promoção"
               )
@@ -324,6 +326,59 @@ function VariantSplitSection({
   );
 }
 
+function StoreSplitSection({
+  detail,
+}: {
+  detail: IForecastRecommendationDetail;
+}) {
+  const split = detail.storeSplit;
+  const total = split.reduce((sum, store) => sum + store.quantity, 0);
+  return (
+    <Section
+      id="forecast-detail-stores"
+      title="Divisão por loja"
+      description="Quanto da compra vai para cada loja, pela participação nas vendas e pela falta de cada uma."
+    >
+      <Table aria-label="Divisão por loja">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Loja</TableHead>
+            <TableHead className="text-right">Participação</TableHead>
+            <TableHead className="text-right">Falta</TableHead>
+            <TableHead className="text-right">Comprar</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {split.map((store) => (
+            <TableRow key={store.storeId}>
+              <TableCell className="font-medium">{store.storeName}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatPercent(store.sharePercent)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatQty(detail, store.shortfall)}
+              </TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">
+                {formatQty(detail, store.quantity)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell className="font-medium">Total</TableCell>
+            <TableCell />
+            <TableCell />
+            <TableCell className="text-right font-semibold tabular-nums">
+              {formatQty(detail, total)}
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </Section>
+  );
+}
+
 function EventsSection({ product }: { product: IProductForecast }) {
   return (
     <Section id="forecast-detail-events" title="Eventos do horizonte">
@@ -464,6 +519,12 @@ export function ForecastDetailView({
         <>
           <Separator />
           <VariantSplitSection detail={detail} />
+          {detail.storeSplit?.length > 1 && (
+            <>
+              <Separator />
+              <StoreSplitSection detail={detail} />
+            </>
+          )}
         </>
       )}
       <Separator />

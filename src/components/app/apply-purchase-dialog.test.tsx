@@ -103,6 +103,53 @@ function renderDialog(
   return onApplied;
 }
 
+const storeSplitResponse = {
+  recommendationId: "rec-1",
+  orderMultiple: 12,
+  stores: [
+    {
+      storeId: "store-1",
+      storeName: "Loja Centro",
+      receiveLocationId: "loc-1",
+      receiveLocationName: "Recebimento",
+      sharePercent: 60,
+      currentStock: 10,
+      incomingStock: 0,
+      shortfall: 120,
+      quantity: 144,
+    },
+    {
+      storeId: "store-2",
+      storeName: "Loja Shopping",
+      receiveLocationId: "loc-9",
+      receiveLocationName: "Depósito",
+      sharePercent: 40,
+      currentStock: 5,
+      incomingStock: 0,
+      shortfall: 80,
+      quantity: 96,
+    },
+  ],
+  items: [
+    {
+      variantId: "var-1",
+      quantity: 144,
+      byStore: [
+        { storeId: "store-1", quantity: 84 },
+        { storeId: "store-2", quantity: 60 },
+      ],
+    },
+    {
+      variantId: "var-2",
+      quantity: 96,
+      byStore: [
+        { storeId: "store-1", quantity: 60 },
+        { storeId: "store-2", quantity: 36 },
+      ],
+    },
+  ],
+};
+
 const qty = (name: string) =>
   screen.findByRole("spinbutton", { name: `Quantidade de ${name}` });
 const cost = (name: string) =>
@@ -235,5 +282,78 @@ describe("Comprar (F3.8f, T-DF4)", () => {
     await waitFor(() => expect(field).toHaveAttribute("aria-invalid", "true"));
     expect(screen.getByText("Variação inativa.")).toBeInTheDocument();
     expect(onApplied).not.toHaveBeenCalled();
+  });
+
+  it("divide entre lojas pela sugestão e gera um pedido por loja (RN-DF27)", async () => {
+    server.use(
+      http.get(apiUrl("forecasts/recommendations/:id/store-split"), () =>
+        HttpResponse.json(storeSplitResponse)
+      )
+    );
+    const onApplied = renderDialog([rec1]);
+    const user = userEvent.setup();
+    const dialog = await screen.findByRole("dialog", {
+      name: "Gerar pedido de compra",
+    });
+    await waitFor(async () =>
+      expect(await cost("Trufa de Maracujá (Caixa com 6)")).toHaveValue(3.5)
+    );
+
+    await user.click(
+      within(dialog).getByRole("switch", { name: "Dividir entre lojas" })
+    );
+    expect(
+      await within(dialog).findByText("Loja Shopping")
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(dialog).getByRole("button", { name: "Gerar pedido de compra" })
+    );
+
+    await waitFor(() => expect(onApplied).toHaveBeenCalled());
+    const groups = posted[0].groups;
+    expect(groups.map((g) => g.receiveLocationId)).toEqual(["loc-1", "loc-9"]);
+    expect(groups[0].items.map((i) => i.quantity)).toEqual([84, 60]);
+    expect(groups[1].items.map((i) => i.quantity)).toEqual([60, 36]);
+    expect(groups.every((g) => g.supplierId === "sup-1")).toBe(true);
+  });
+  it("abre já dividido quando a análise gravou a parte de cada loja", async () => {
+    server.use(
+      http.get(apiUrl("forecasts/recommendations/:id/store-split"), () =>
+        HttpResponse.json(storeSplitResponse)
+      )
+    );
+    renderDialog([
+      {
+        ...rec1,
+        storeSplit: [
+          {
+            storeId: "store-1",
+            storeName: "Loja Centro",
+            sharePercent: 60,
+            shortfall: 120,
+            quantity: 144,
+          },
+          {
+            storeId: "store-2",
+            storeName: "Loja Shopping",
+            sharePercent: 40,
+            shortfall: 80,
+            quantity: 96,
+          },
+        ],
+      },
+    ]);
+    const dialog = await screen.findByRole("dialog", {
+      name: "Gerar pedido de compra",
+    });
+    await waitFor(() =>
+      expect(
+        within(dialog).getByRole("switch", { name: "Dividir entre lojas" })
+      ).toBeChecked()
+    );
+    expect(
+      within(dialog).queryByLabelText("Local de entrega")
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import type { TRecommendationAction } from "@/types/enums";
 /**
  * Painel inicial (T-DF1, F3.5 no back): cada bloco vem de uma rota própria (`nextflow.Domain/Dtos/Dashboard`).
  * Meses chegam como "yyyy-MM" e `DateOnly` como "yyyy-MM-dd".
@@ -37,9 +38,16 @@ export interface ILowStockItem {
   productName: string;
   variantId: string;
   variantLabel: string | null;
+  locationId: string;
   locationName: string;
+  /** Loja do local: as ações do "ver mais" trocam a loja do topo para ela. */
+  storeId: string;
+  storeName: string;
   available: number;
   minQuantity: number;
+  /** Recomendação pendente da previsão para o produto (menos "Manter"); nula sem uma. */
+  recommendationId: string | null;
+  recommendationAction: TRecommendationAction | null;
 }
 
 /** `LowStockSummaryDto`: GET /api/dashboard/low-stock */
@@ -50,10 +58,19 @@ export interface ILowStockSummary {
 
 /** `ExpiringLotItemDto` */
 export interface IExpiringLotItem {
+  productId: string;
+  variantId: string;
   productName: string;
   variantLabel: string | null;
+  lotId: string;
   lotCode: string;
+  locationId: string;
   locationName: string;
+  /** Loja do local: as ações do "ver mais" trocam a loja do topo para ela. */
+  storeId: string;
+  storeName: string;
+  recommendationId: string | null;
+  recommendationAction: TRecommendationAction | null;
   expiresOn: string;
   daysToExpire: number;
   quantity: number;

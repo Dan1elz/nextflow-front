@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search } from "lucide-react";
 
+import { CollectionViewDialog } from "@/components/app/collection-view-dialog";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
 import { NavActionColumn } from "@/components/app/nav-action-column";
@@ -52,6 +53,7 @@ function Collections() {
     reactivateCollection,
   } = useCollections();
   const [dialog, setDialog] = useState<CollectionDialog>(null);
+  const [viewing, setViewing] = useState<CollectionResponseDto | null>(null);
   const {
     setPerPage,
     selectedIds,
@@ -149,7 +151,7 @@ function Collections() {
             onEdit={(collection) => setDialog({ collection })}
             onDelete={handleDelete}
             onReactivate={handleReactivate}
-            disableView
+            onView={setViewing}
             disableDelete={!row.original.isActive}
             disableEdit={!row.original.isActive}
             disableReactivate={row.original.isActive}
@@ -170,6 +172,7 @@ function Collections() {
     <>
       <EntityIndexPage
         title="Coleções"
+        onRowOpen={setViewing}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         toolbar={
@@ -248,6 +251,10 @@ function Collections() {
           )}
         </DialogContent>
       </Dialog>
+      <CollectionViewDialog
+        collection={viewing}
+        onClose={() => setViewing(null)}
+      />
     </>
   );
 }

@@ -115,6 +115,7 @@ const baseItem: IForecastRecommendationListItem = {
   suggestedDiscountPercent: null,
   suggestedPromotionDays: null,
   transfer: null,
+  storeSplit: [],
   deadline: "2026-11-20",
   preferredSupplierId: "sup-1",
   preferredSupplierName: "Cacau Sul",

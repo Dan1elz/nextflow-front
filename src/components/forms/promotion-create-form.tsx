@@ -40,6 +40,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { usePromotions } from "@/hooks/use-promotions";
 import type { IOption } from "@/interfaces/api.interface";
 import type {
+  PromotionListItemDto,
   PromotionPreviewDto,
   PromotionRequestDto,
 } from "@/interfaces/promotion.interface";
@@ -63,6 +64,8 @@ const formatPercentInput = (value: string) =>
 interface PromotionCreateFormProps {
   /** Produto já escolhido (aba Promoções do T3): o combo de produto some. */
   fixedProduct?: { id: string; name: string } | null;
+  /** Promoção agendada em edição: o produto fica fixo e os campos vêm preenchidos. */
+  editing?: PromotionListItemDto | null;
   onSubmit: (dto: PromotionRequestDto) => Promise<void>;
   onCancel: () => void;
 }
@@ -72,23 +75,36 @@ interface PromotionCreateFormProps {
  * promocional, custo médio e margem). Abaixo do custo, a API pede confirmação e o formulário reenvia (RN-VD13).
  */
 export function PromotionCreateForm({
-  fixedProduct,
+  fixedProduct: fixedProductProp,
+  editing,
   onSubmit,
   onCancel,
 }: PromotionCreateFormProps) {
   const { previewPromotion, searchProductOptions, getVariantOptions } =
     usePromotions();
   const today = getTodayDateOnly();
+  const fixedProduct = editing
+    ? { id: editing.productId, name: editing.productName }
+    : fixedProductProp;
   const form = useForm<PromotionCreateFormData>({
     resolver: zodResolver(promotionCreateSchema),
-    defaultValues: {
-      productId: fixedProduct?.id ?? "",
-      variantId: ALL_VARIANTS,
-      discountPercent: "",
-      startDate: today,
-      endDate: addDaysToDateOnly(today, 6),
-      reason: "",
-    },
+    defaultValues: editing
+      ? {
+          productId: editing.productId,
+          variantId: editing.variantId ?? ALL_VARIANTS,
+          discountPercent: String(editing.discountPercent).replace(".", ","),
+          startDate: editing.startDate,
+          endDate: editing.endDate,
+          reason: editing.reason ?? "",
+        }
+      : {
+          productId: fixedProduct?.id ?? "",
+          variantId: ALL_VARIANTS,
+          discountPercent: "",
+          startDate: today,
+          endDate: addDaysToDateOnly(today, 6),
+          reason: "",
+        },
   });
   const { submit, confirmWarning } = useApiForm(form);
   const { isSubmitting } = form.formState;
@@ -384,7 +400,7 @@ export function PromotionCreateForm({
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Spinner data-icon="inline-start" />}
-            Criar
+            {editing ? "Salvar" : "Criar"}
           </Button>
         </div>
       </FieldGroup>
