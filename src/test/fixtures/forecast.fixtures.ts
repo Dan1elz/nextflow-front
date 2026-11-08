@@ -1,8 +1,10 @@
 import type { PaginationDto } from "@/interfaces/api.interface";
 import type {
+  IForecastRecommendationDetail,
   IForecastRecommendationListItem,
   IForecastRunProgress,
   IForecastRunSummary,
+  IProductForecast,
 } from "@/interfaces/forecast.interface";
 
 /** Última análise concluída (T-DF2): semanal, 6 meses, 8 lotes. */
@@ -151,3 +153,117 @@ export const recommendationsRun2: PaginationDto<IForecastRecommendationListItem>
     ],
     total: 1,
   };
+
+/** Previsão do produto da rec-1 (T-DF5): 3 meses de histórico, 2 de projeção, Natal no horizonte. */
+export const productForecast: IProductForecast = {
+  productId: "prod-1",
+  productName: "Trufa de Maracujá",
+  saleUnit: "un",
+  decimalPlaces: 0,
+  history: [
+    {
+      month: "2026-08",
+      quantitySold: 100,
+      quantitySoldOnPromo: 10,
+      daysOutOfStock: 0,
+      lostDemandQty: 0,
+      avgPrice: 6.5,
+      revenue: 650,
+    },
+    {
+      month: "2026-09",
+      quantitySold: 80,
+      quantitySoldOnPromo: 0,
+      daysOutOfStock: 20,
+      lostDemandQty: 40,
+      avgPrice: 6.5,
+      revenue: 520,
+    },
+    {
+      month: "2026-10",
+      quantitySold: 120,
+      quantitySoldOnPromo: 0,
+      daysOutOfStock: 0,
+      lostDemandQty: 0,
+      avgPrice: 6.9,
+      revenue: 828,
+    },
+  ],
+  projection: [
+    { month: "2026-11", projectedQuantity: 140 },
+    { month: "2026-12", projectedQuantity: 180 },
+  ],
+  seasonality: Array.from({ length: 12 }, (_, index) => ({
+    month: index + 1,
+    productIndex: index === 11 ? 1.8 : 1,
+    categoryIndex: null,
+  })),
+  monthsOfHistory: 14,
+  events: [
+    {
+      name: "Natal",
+      date: "2026-12-25",
+      demandStartsOn: "2026-12-01",
+      linkedToProduct: true,
+    },
+    {
+      name: "Dia das Crianças",
+      date: "2027-10-12",
+      demandStartsOn: "2027-09-28",
+      linkedToProduct: false,
+    },
+  ],
+  currentStock: 12,
+  accuracy: [
+    { month: "2026-08", projected: 110, actual: 100, errorPercent: 10 },
+    { month: "2026-09", projected: 95, actual: 80, errorPercent: null },
+  ],
+  latestRecommendationId: "rec-1",
+};
+
+/** Detalhe da rec-1 (T-DF3): a IA subiu de 200 para 240; rateio 60/40 entre as variações. */
+export const recommendationDetail: IForecastRecommendationDetail = {
+  ...baseItem,
+  reasonAi: "Natal puxa as trufas; subi a compra para cobrir dezembro.",
+  reasonCalculated: "Cobertura de 6 dias abaixo do alvo de 15 dias.",
+  calculatedQuantity: 200,
+  dismissReasonCode: null,
+  dismissNote: null,
+  calculation: {
+    leadTimeDays: 7,
+    leadTimeSource: "History",
+    safetyStock: 20,
+    purchaseNeed: 200,
+    reservedStock: 3,
+    targetCoverageDays: 15,
+    shelfLifeDays: 90,
+    minOrderQty: 24,
+    orderMultiple: 12,
+    basedOnLastYear: false,
+    monthsOfHistory: 14,
+    nextMonthDemand: 140,
+    nextMonthSeasonalIndex: 1.2,
+  },
+  variantSplit: [
+    {
+      variantId: "var-1",
+      variantLabel: "Caixa com 6",
+      sharePercent: 60,
+      suggestedQuantity: 144,
+      availableByLocation: [
+        { locationId: "loc-1", locationName: "Loja Centro", available: 5 },
+        { locationId: "loc-2", locationName: "Depósito", available: 2 },
+      ],
+    },
+    {
+      variantId: "var-2",
+      variantLabel: "Caixa com 12",
+      sharePercent: 40,
+      suggestedQuantity: 96,
+      availableByLocation: [
+        { locationId: "loc-1", locationName: "Loja Centro", available: 5 },
+      ],
+    },
+  ],
+  product: productForecast,
+};

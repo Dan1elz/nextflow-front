@@ -39,6 +39,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/app/data-table";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
+import { RecommendationDetailSheet } from "@/components/app/recommendation-detail-sheet";
 import { SearchSelect } from "@/components/app/search-select";
 import {
   ActionPill,
@@ -331,7 +332,7 @@ function Suggestion({ rec }: { rec: IForecastRecommendationListItem }) {
 
 function ProductCell({ rec }: { rec: IForecastRecommendationListItem }) {
   return (
-    <div className="flex min-w-[200px] items-center gap-3">
+    <span className="flex min-w-[200px] items-center gap-3">
       {rec.imageUrl ? (
         <img
           src={rec.imageUrl}
@@ -339,18 +340,18 @@ function ProductCell({ rec }: { rec: IForecastRecommendationListItem }) {
           className="size-10 shrink-0 rounded-lg border object-cover"
         />
       ) : (
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
           <Package className="size-4" />
-        </div>
+        </span>
       )}
-      <div className="flex min-w-0 flex-col">
+      <span className="flex min-w-0 flex-col">
         <span className="font-medium">{rec.productName}</span>
         <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           {rec.categoryPath ?? "Sem categoria"}
           {rec.abcClass && <Badge variant="outline">{rec.abcClass}</Badge>}
         </span>
-      </div>
-    </div>
+      </span>
+    </span>
   );
 }
 
@@ -498,6 +499,7 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
   useEffect(() => () => window.clearTimeout(searchTimer.current), []);
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [draft, setDraft] = useState(() => pickSheetFilters(query.filters));
 
   const running = run.status === TForecastRunStatus.Running;
@@ -668,8 +670,13 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
             perPage={query.perPage}
             onPageChange={setPage}
             onPerPageChange={setPerPage}
+            onRowOpen={(rec) => setDetailId(rec.id)}
           />
         )}
+        <RecommendationDetailSheet
+          recommendationId={detailId}
+          onClose={() => setDetailId(null)}
+        />
       </CardContent>
     </Card>
   );

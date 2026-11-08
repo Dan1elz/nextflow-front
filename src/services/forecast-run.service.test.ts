@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 import { forecastRunService } from "@/services/forecast-run.service";
 import { apiUrl, server } from "@/test/server";
 import {
+  productForecast,
   progress,
+  recommendationDetail,
   recommendationsRun1,
   runCompleted,
   runRunning,
@@ -79,5 +81,37 @@ describe("forecastRunService (T-DF2)", () => {
       action: "Buy",
       status: "Pending",
     });
+  });
+
+  it("lê o detalhe da recomendação (T-DF3)", async () => {
+    let path = "";
+    server.use(
+      http.get(apiUrl("forecasts/recommendations/:id"), ({ request }) => {
+        path = new URL(request.url).pathname;
+        return HttpResponse.json(recommendationDetail);
+      })
+    );
+
+    await expect(
+      forecastRunService.getRecommendation("rec-1")
+    ).resolves.toEqual(recommendationDetail);
+    expect(path).toBe("/api/forecasts/recommendations/rec-1");
+  });
+
+  it("lê a previsão do produto com 24 meses (T-DF5)", async () => {
+    let url: URL | null = null;
+    server.use(
+      http.get(apiUrl("forecasts/products/:productId"), ({ request }) => {
+        url = new URL(request.url);
+        return HttpResponse.json(productForecast);
+      })
+    );
+
+    await expect(
+      forecastRunService.getProductForecast("prod-1")
+    ).resolves.toEqual(productForecast);
+    const called = url as unknown as URL;
+    expect(called.pathname).toBe("/api/forecasts/products/prod-1");
+    expect(called.searchParams.get("months")).toBe("24");
   });
 });

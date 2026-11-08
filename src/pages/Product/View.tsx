@@ -4,6 +4,7 @@ import { History, ImageOff, PackagePlus, Pencil } from "lucide-react";
 
 import { ManualMovementDrawer } from "@/components/app/manual-movement-drawer";
 import { ProductLotsTab } from "@/components/app/product-lots-tab";
+import { ProductForecastTab } from "@/components/app/product-forecast-tab";
 import { ProductPromotionsTab } from "@/components/app/product-promotions-tab";
 import { EntityTabsLayout } from "@/components/layouts/EntityTabsLayout";
 import { Badge } from "@/components/ui/badge";
@@ -588,6 +589,11 @@ function ViewProduct() {
                 onChanged={reloadAfterMovement}
               />
             ),
+          },
+          {
+            value: "forecast",
+            label: "Previsão",
+            content: <ProductForecastTab productId={product.id} />,
           },
         ]}
       />

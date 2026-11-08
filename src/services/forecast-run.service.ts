@@ -2,14 +2,16 @@ import { ApiService } from "./api.service";
 import { BaseService } from "./base.service";
 import type { IIndexParams, PaginationDto } from "@/interfaces/api.interface";
 import type {
+  IForecastRecommendationDetail,
   IForecastRecommendationListItem,
   IForecastRunProgress,
   IForecastRunSummary,
+  IProductForecast,
 } from "@/interfaces/forecast.interface";
 
 const apiService = new ApiService();
 
-/** Análise da previsão e a lista de recomendações (T-DF2). */
+/** Análise da previsão, a lista de recomendações (T-DF2) e o detalhe (T-DF3, T-DF5). */
 export const forecastRunService = {
   /** GET /api/forecasts/latest: `null` quando nunca houve análise. */
   async getLatest(token?: string): Promise<IForecastRunSummary | null> {
@@ -48,6 +50,31 @@ export const forecastRunService = {
     return apiService.get<PaginationDto<IForecastRecommendationListItem>>(
       `forecasts/${runId}/recommendations`,
       BaseService.toQuery(params),
+      token
+    );
+  },
+
+  /** GET /api/forecasts/recommendations/{id} (T-DF3) */
+  getRecommendation(
+    id: string,
+    token?: string
+  ): Promise<IForecastRecommendationDetail> {
+    return apiService.get<IForecastRecommendationDetail>(
+      `forecasts/recommendations/${id}`,
+      undefined,
+      token
+    );
+  },
+
+  /** GET /api/forecasts/products/{productId}?months=24 (T-DF5): não exige recomendação. */
+  getProductForecast(
+    productId: string,
+    months = 24,
+    token?: string
+  ): Promise<IProductForecast> {
+    return apiService.get<IProductForecast>(
+      `forecasts/products/${productId}`,
+      { months },
       token
     );
   },

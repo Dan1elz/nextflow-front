@@ -10,6 +10,7 @@ import { ForecastRunProvider } from "@/providers/forecast-run.provider";
 import { apiUrl, server } from "@/test/server";
 import {
   progress,
+  recommendationDetail,
   recommendationsRun1,
   recommendationsRun2,
   runCompleted,
@@ -114,6 +115,29 @@ describe("Previsão: lista da análise (F3.8d, T-DF2)", () => {
         }),
       { timeout: 2000 }
     );
+  });
+
+  it("abre o detalhe da recomendação pelo nome do produto (T-DF3)", async () => {
+    server.use(
+      ...baseHandlers(),
+      http.get(apiUrl("forecasts/recommendations/:id"), () =>
+        HttpResponse.json(recommendationDetail)
+      )
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const [open] = await screen.findAllByRole("button", {
+      name: /Trufa de Maracujá/,
+    });
+    await user.click(open);
+
+    const sheet = await screen.findByRole("dialog", {
+      name: "Trufa de Maracujá",
+    });
+    expect(
+      await within(sheet).findByRole("table", { name: "Rateio por variação" })
+    ).toBeInTheDocument();
   });
 
   it("gerar mostra Em andamento, acompanha os lotes e recarrega ao terminar", async () => {
