@@ -44,8 +44,9 @@ const items = navigation;
 
 export function AppSidebar() {
   const location = useLocation();
-  const { state, pinned, toggleSidebar } = useSidebar();
-  const isCollapsed = state === "collapsed";
+  const { state, pinned, toggleSidebar, isMobile } = useSidebar();
+  // No celular a barra abre como gaveta e sempre mostra o menu completo.
+  const isCollapsed = !isMobile && state === "collapsed";
 
   // Manage which group is currently open (Accordion behavior)
   const [openGroup, setOpenGroup] = useState<string | null>(null);
@@ -103,7 +104,7 @@ export function AppSidebar() {
                 <NextflowLogo className="h-8 w-auto" />
               )}
             </NavLink>
-            {!isCollapsed && (
+            {!isCollapsed && !isMobile && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button

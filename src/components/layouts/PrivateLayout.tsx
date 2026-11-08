@@ -31,7 +31,8 @@ export default function PrivateLayout() {
       />
       <AppSidebar />
       <SidebarInset className="relative z-10 min-w-0">
-        <header className="relative z-30 flex h-16 items-center gap-3 px-4 md:px-8">
+        {/* flex-wrap: em tela estreita o seletor de loja desce para a linha de baixo em vez de cobrir o breadcrumb. */}
+        <header className="relative z-30 flex min-h-16 flex-wrap items-center gap-3 gap-y-2 px-4 py-3 md:px-8">
           {/* No desktop a sidebar expande ao passar o mouse; o gatilho só serve no mobile */}
           <SidebarTrigger className="-ml-1 rounded-lg md:hidden" />
           <Breadcrumb className="hidden min-w-0 sm:block">
