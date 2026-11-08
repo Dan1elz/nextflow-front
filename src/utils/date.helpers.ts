@@ -43,3 +43,19 @@ export function addDaysToDateOnly(value: string, days: number): string {
 export function diffDateOnlyInDays(start: string, end: string): number {
   return differenceInCalendarDays(parseDateOnly(end), parseDateOnly(start));
 }
+
+/** Mês "yyyy-MM" em pt-BR: "nov/26" (curto) ou "novembro de 2026" (longo). */
+export function formatMonth(
+  month: string,
+  style: "short" | "long" = "short"
+): string {
+  const [year, monthNumber] = month.split("-").map(Number);
+  if (!year || !monthNumber) return month;
+  const date = new Date(year, monthNumber - 1, 1);
+  if (style === "long")
+    return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const name = date
+    .toLocaleDateString("pt-BR", { month: "short" })
+    .replace(".", "");
+  return `${name}/${String(year).slice(-2)}`;
+}

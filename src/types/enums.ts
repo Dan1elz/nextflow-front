@@ -361,6 +361,33 @@ export const FORECAST_CONFIDENCE_LABELS: Record<TForecastConfidence, string> = {
   High: "Alta",
 };
 
+/** Origem do lead time usado no cálculo (memória do cálculo, T-DF3). */
+export const TLeadTimeSource = {
+  History: "History",
+  ProductSupplier: "ProductSupplier",
+  Supplier: "Supplier",
+} as const;
+export type TLeadTimeSource =
+  (typeof TLeadTimeSource)[keyof typeof TLeadTimeSource];
+export const LEAD_TIME_SOURCE_LABELS: Record<TLeadTimeSource, string> = {
+  History: "Média dos recebimentos",
+  ProductSupplier: "Vínculo do produto",
+  Supplier: "Cadastro do fornecedor",
+};
+
+/** Viés da previsão na precisão (T-DF10): passa de ±5% do erro com sinal. */
+export const TForecastBias = {
+  Under: "Under",
+  Over: "Over",
+  Balanced: "Balanced",
+} as const;
+export type TForecastBias = (typeof TForecastBias)[keyof typeof TForecastBias];
+export const FORECAST_BIAS_LABELS: Record<TForecastBias, string> = {
+  Under: "Subestima",
+  Over: "Superestima",
+  Balanced: "Equilibrada",
+};
+
 export const TRecommendationStatus = {
   Pending: "Pending",
   Applied: "Applied",

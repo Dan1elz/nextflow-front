@@ -10,6 +10,9 @@ import { Home } from "@/pages/Home";
 import Profile from "@/pages/Profile";
 import StoresSettingsPage from "@/pages/Settings/Stores";
 import StockPolicySettingsPage from "@/pages/Settings/StockPolicy";
+import ForecastSettingsPage from "@/pages/Settings/ForecastSettings";
+import ForecastHistoryPage from "@/pages/ForecastHistory";
+import ForecastAccuracyPage from "@/pages/ForecastAccuracy";
 import ViewUserPageWrapper from "@/pages/User/View";
 import ClientsPageWrapper from "@/pages/Clients";
 import CreateClientPageWrapper from "@/pages/Client/Create";
@@ -70,6 +73,7 @@ function AppRoutes() {
           path="settings/stock-policy"
           element={<StockPolicySettingsPage />}
         />
+        <Route path="settings/forecast" element={<ForecastSettingsPage />} />
         <Route path="users" element={<UsersPageWrapper />} />
         <Route path="users/create" element={<CreateUserPageWrapper />} />
         <Route path="users/:id/edit" element={<EditUserPageWrapper />} />
@@ -125,6 +129,8 @@ function AppRoutes() {
         />
 
         <Route path="forecast" element={<ForecastPageWrapper />} />
+        <Route path="forecast/history" element={<ForecastHistoryPage />} />
+        <Route path="forecast/accuracy" element={<ForecastAccuracyPage />} />
         <Route path="promotions" element={<PromotionsPageWrapper />} />
       </Route>
 

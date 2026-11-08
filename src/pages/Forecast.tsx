@@ -1,21 +1,32 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
-  BadgePercent,
   BrainCircuit,
-  ExternalLink,
-  Loader2,
-  PackageSearch,
-  PauseCircle,
+  Package,
+  CalendarClock,
+  History,
+  Target,
   RefreshCw,
   Search,
   ShoppingCart,
-  Sparkles,
+  Tag,
   X,
-  XCircle,
+  Sparkles,
 } from "lucide-react";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -23,37 +34,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import {
   Empty,
   EmptyContent,
@@ -63,1167 +43,1016 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
-  ActionBadge,
-  ConfidenceBadge,
-  PriorityBadge,
-  RecommendationStatusBadge,
-  RecommendationSuggestion,
-  RunStatusBadge,
-} from "@/components/app/forecast-badges";
-import { ForecastChart } from "@/components/app/forecast-chart";
-import { ApplyPurchaseDialog } from "@/components/app/apply-purchase-dialog";
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApplyPromotionDialog } from "@/components/app/apply-promotion-dialog";
+import { ApplyPurchaseDialog } from "@/components/app/apply-purchase-dialog";
 import { DismissRecommendationDialog } from "@/components/app/dismiss-recommendation-dialog";
-
-import { ForecastProvider } from "@/providers/forecast.provider";
-import { useForecast } from "@/hooks/use-forecast";
-import { useAuth } from "@/hooks/use-auth";
-import { useProductForecast } from "@/hooks/use-product-forecast";
-import type { IForecastRecommendation } from "@/interfaces/forecast.interface";
+import { DataTable } from "@/components/app/data-table";
+import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
+import { RecommendationDetailSheet } from "@/components/app/recommendation-detail-sheet";
+import { SearchSelect } from "@/components/app/search-select";
 import {
-  TLegacyForecastRunStatus,
-  TLegacyRecommendationAction,
-  TLegacyRecommendationStatus,
+  ActionPill,
+  AiAdjustedPill,
+  ConfidencePill,
+  PriorityPill,
+  RecommendationStatusPill,
+  RunStatusPill,
+} from "@/components/app/recommendation-badges";
+import { useAuth } from "@/hooks/use-auth";
+import { useForecastRun } from "@/hooks/use-forecast-run";
+import type { IOption } from "@/interfaces/api.interface";
+import type {
+  IForecastRecommendationFilters,
+  IForecastRecommendationListItem,
+  IForecastRunProgress,
+  IForecastRunSummary,
+} from "@/interfaces/forecast.interface";
+import { ForecastRunProvider } from "@/providers/forecast-run.provider";
+import {
+  ABC_CLASS_LABELS,
+  FORECAST_CONFIDENCE_LABELS,
+  FORECAST_TRIGGER_LABELS,
+  RECOMMENDATION_ACTION_LABELS,
+  RECOMMENDATION_PRIORITY_LABELS,
+  RECOMMENDATION_STATUS_LABELS,
+  TForecastRunStatus,
+  TRecommendationAction,
+  TRecommendationStatus,
 } from "@/types/enums";
 import { isAdmin } from "@/utils/auth.helpers";
+import { formatMonth } from "@/utils/date.helpers";
 import {
-  formatCurrency,
   formatDateOnly,
   formatDateTime,
   formatNumber,
 } from "@/utils/format.helpers";
-import {
-  formatCoverageDays,
-  formatQuantity,
-  formatSeasonalIndex,
-} from "@/utils/forecast.helpers";
-import { handleError, handleSuccess } from "@/utils/toast.helpers";
-import { cn } from "@/lib/utils";
+import { formatCoverageDays, formatDiscount } from "@/utils/forecast.helpers";
 
-type ActionFilter = "all" | "buy" | "promote" | "hold";
-type StatusFilter = "pending" | "applied" | "dismissed" | "expired" | "all";
+// ---------- Formatação ----------
 
-const ACTION_FILTER_MAP: Record<Exclude<ActionFilter, "all">, number> = {
-  buy: TLegacyRecommendationAction.Buy,
-  promote: TLegacyRecommendationAction.Promote,
-  hold: TLegacyRecommendationAction.Hold,
-};
-
-const STATUS_FILTER_MAP: Record<Exclude<StatusFilter, "all">, number> = {
-  pending: TLegacyRecommendationStatus.Pending,
-  applied: TLegacyRecommendationStatus.Applied,
-  dismissed: TLegacyRecommendationStatus.Dismissed,
-  expired: TLegacyRecommendationStatus.Expired,
-};
-
-const EXPECTED_GENERATION_SECONDS = 60;
-
-function isSelectableForPurchase(rec: IForecastRecommendation) {
-  return (
-    rec.action === TLegacyRecommendationAction.Buy &&
-    rec.status === TLegacyRecommendationStatus.Pending
-  );
+function formatQty(rec: IForecastRecommendationListItem, value: number) {
+  return `${formatNumber(value, rec.decimalPlaces)} ${rec.saleUnit}`;
 }
 
-function StatTile({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-}) {
+function formatDuration(ms: number | null): string {
+  if (ms === null) return "—";
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return `${seconds} s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest ? `${minutes} min ${rest} s` : `${minutes} min`;
+}
+
+function plural(count: number, one: string, many: string) {
+  return `${formatNumber(count)} ${count === 1 ? one : many}`;
+}
+
+function toOptions<T extends string>(labels: Record<T, string>): IOption[] {
+  return (Object.entries(labels) as [T, string][]).map(([value, label]) => ({
+    value,
+    label,
+  }));
+}
+
+const STATUS_OPTIONS = toOptions(RECOMMENDATION_STATUS_LABELS);
+const PRIORITY_OPTIONS = toOptions(RECOMMENDATION_PRIORITY_LABELS);
+const CONFIDENCE_OPTIONS = toOptions(FORECAST_CONFIDENCE_LABELS);
+const ABC_OPTIONS = toOptions(ABC_CLASS_LABELS);
+const AI_ADJUSTED_OPTIONS: IOption[] = [
+  { value: "true", label: "Sim" },
+  { value: "false", label: "Não" },
+];
+
+/** Filtros do painel lateral (ação e busca ficam fora, na barra da tabela). */
+type SheetFilterKey = Exclude<
+  keyof IForecastRecommendationFilters,
+  "action" | "search"
+>;
+const SHEET_KEYS: SheetFilterKey[] = [
+  "status",
+  "priority",
+  "confidence",
+  "abcClass",
+  "categoryId",
+  "supplierId",
+  "eventId",
+  "aiAdjusted",
+];
+
+function pickSheetFilters(filters: IForecastRecommendationFilters) {
+  return Object.fromEntries(
+    SHEET_KEYS.map((key) => [key, filters[key] ?? ""])
+  ) as Record<SheetFilterKey, string>;
+}
+
+// ---------- Cabeçalho da análise ----------
+
+function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between rounded-2xl border border-border/60 bg-card p-4 shadow-[var(--shadow-1)]"
-      )}
-    >
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <p className="text-xl font-bold">{formatNumber(value)}</p>
-      </div>
-      <div className="text-muted-foreground [&_svg]:h-5 [&_svg]:w-5">
-        {icon}
-      </div>
+    <div className="flex flex-col gap-0.5 rounded-xl border bg-muted/30 p-3">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="text-lg font-semibold tabular-nums">{value}</span>
     </div>
   );
 }
 
-function Metric({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: React.ReactNode;
-  hint?: React.ReactNode;
-}) {
+function RunProgress({ progress }: { progress: IForecastRunProgress | null }) {
+  const batches = progress?.batches;
   return (
-    <div className="rounded-lg border bg-muted/20 p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-0.5 text-sm font-semibold">{value}</p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-type RecommendationActionsProps = {
-  rec: IForecastRecommendation;
-  admin: boolean;
-  onBuy: (rec: IForecastRecommendation) => void;
-  onPromote: (rec: IForecastRecommendation) => void;
-  onDismiss: (rec: IForecastRecommendation) => void;
-  compact?: boolean;
-};
-
-function RecommendationActions({
-  rec,
-  admin,
-  onBuy,
-  onPromote,
-  onDismiss,
-  compact = false,
-}: RecommendationActionsProps) {
-  if (rec.status !== TLegacyRecommendationStatus.Pending) return null;
-
-  const buttons: React.ReactNode[] = [];
-  if (rec.action === TLegacyRecommendationAction.Buy) {
-    buttons.push(
-      compact ? (
-        <Tooltip key="buy">
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              className="h-8 w-8"
-              aria-label="Comprar"
-              onClick={(e) => {
-                e.stopPropagation();
-                onBuy(rec);
-              }}
-            >
-              <ShoppingCart className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6}>Comprar</TooltipContent>
-        </Tooltip>
-      ) : (
-        <Button key="buy" size="sm" onClick={() => onBuy(rec)}>
-          <ShoppingCart className="h-4 w-4" />
-          Comprar
-        </Button>
-      )
-    );
-  }
-  if (rec.action === TLegacyRecommendationAction.Promote && admin) {
-    buttons.push(
-      compact ? (
-        <Tooltip key="promote">
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="h-8 w-8"
-              aria-label="Aplicar desconto"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPromote(rec);
-              }}
-            >
-              <BadgePercent className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent sideOffset={6}>Aplicar desconto</TooltipContent>
-        </Tooltip>
-      ) : (
-        <Button
-          key="promote"
-          size="sm"
-          variant="secondary"
-          onClick={() => onPromote(rec)}
-        >
-          <BadgePercent className="h-4 w-4" />
-          Aplicar desconto
-        </Button>
-      )
-    );
-  }
-  buttons.push(
-    compact ? (
-      <Tooltip key="dismiss">
-        <TooltipTrigger asChild>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-muted-foreground"
-            aria-label="Descartar"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDismiss(rec);
-            }}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent sideOffset={6}>Descartar</TooltipContent>
-      </Tooltip>
-    ) : (
-      <Button
-        key="dismiss"
-        size="sm"
-        variant="ghost"
-        className="text-muted-foreground"
-        onClick={() => onDismiss(rec)}
-      >
-        <X className="h-4 w-4" />
-        Descartar
-      </Button>
-    )
-  );
-
-  return <div className="flex items-center gap-1.5">{buttons}</div>;
-}
-
-type ProductDetailsProps = {
-  rec: IForecastRecommendation;
-  horizonMonths: number;
-} & Omit<RecommendationActionsProps, "rec" | "compact">;
-
-function ProductDetails({
-  rec,
-  horizonMonths,
-  ...actions
-}: ProductDetailsProps) {
-  const { data, loading, error, reload } = useProductForecast(rec.productId);
-  const unit = rec.product.unitType;
-
-  return (
-    <Card>
-      <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="min-w-0">
-          <CardTitle className="text-lg">{rec.product.name}</CardTitle>
-          <CardDescription>
-            Cód. {rec.product.productCode}
-            {rec.product.brand ? ` · ${rec.product.brand}` : ""} · Fornecedor:{" "}
-            {rec.product.supplierName || "—"}
-          </CardDescription>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <ActionBadge action={rec.action} />
-            <PriorityBadge priority={rec.priority} />
-            <ConfidenceBadge confidence={rec.confidence} withPrefix />
-            <RecommendationStatusBadge status={rec.status} />
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <RecommendationActions rec={rec} {...actions} />
-          <Button asChild size="sm" variant="outline">
-            <Link to={`/products/${rec.productId}/view?step=3`}>
-              <ExternalLink className="h-4 w-4" />
-              Abrir produto
-            </Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex items-start gap-2 rounded-lg border border-violet-200/60 bg-violet-50 p-3 text-sm text-violet-900 dark:border-violet-800/40 dark:bg-violet-950/30 dark:text-violet-200">
-          <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-          <p className="whitespace-pre-line">{rec.reason}</p>
-        </div>
-
-        {rec.status === TLegacyRecommendationStatus.Applied && (
-          <p className="text-sm text-muted-foreground">
-            Aplicada
-            {rec.appliedAt ? ` em ${formatDateTime(rec.appliedAt)}` : ""}.
-            {rec.purchaseOrderId && (
-              <>
-                {" "}
-                <Link
-                  to={`/purchase-orders/${rec.purchaseOrderId}/view`}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  Ver pedido de compra
-                </Link>
-              </>
-            )}
-            {rec.promotionId && (
-              <>
-                {" "}
-                <Link
-                  to="/promotions"
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  Ver promoções
-                </Link>
-              </>
-            )}
-          </p>
+    <div className="flex flex-col gap-2 rounded-xl border bg-muted/30 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+        <span className="flex items-center gap-2 font-medium">
+          <Spinner />
+          {batches && batches.total > 0
+            ? `Lote ${batches.completed} de ${batches.total}`
+            : "Preparando a análise"}
+        </span>
+        {batches && batches.failed > 0 && (
+          <Badge variant="destructive">
+            {plural(batches.failed, "lote falhou", "lotes falharam")}
+          </Badge>
         )}
-        {rec.status === TLegacyRecommendationStatus.Dismissed &&
-          rec.dismissReason && (
-            <p className="text-sm text-muted-foreground">
-              Motivo do descarte: {rec.dismissReason}
-            </p>
-          )}
+      </div>
+      <Progress
+        value={progress?.percent ?? 0}
+        aria-label="Progresso da análise"
+      />
+      <p className="text-xs text-muted-foreground">
+        A análise roda em segundo plano. Pode sair desta tela: o sino avisa
+        quando terminar.
+      </p>
+    </div>
+  );
+}
 
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Metric
-            label="Estoque atual"
-            value={formatQuantity(rec.currentStock, unit)}
-            hint={
-              rec.incomingStock > 0
-                ? `+${formatQuantity(rec.incomingStock, unit)} a caminho`
-                : "Nada a caminho"
-            }
-          />
-          <Metric
-            label="Demanda próximo mês"
-            value={formatQuantity(rec.nextMonthDemand, unit)}
-            hint={`Índice sazonal ${formatSeasonalIndex(rec.nextMonthSeasonalIndex)}`}
-          />
-          <Metric
-            label={`Demanda em ${horizonMonths} ${horizonMonths === 1 ? "mês" : "meses"}`}
-            value={formatQuantity(rec.projectedDemand, unit)}
-          />
-          <Metric
-            label="Cobertura"
-            value={formatCoverageDays(rec.coverageDays)}
-            hint="Dias que o estoque atual cobre"
-          />
-          <Metric
-            label="Sugestão"
-            value={<RecommendationSuggestion recommendation={rec} />}
-          />
-          <Metric
-            label="Prazo para comprar"
-            value={rec.deadline ? formatDateOnly(rec.deadline) : "—"}
-            hint={rec.deadline ? "Considera o prazo de entrega" : undefined}
-          />
-          <Metric
-            label="Preço de venda"
-            value={formatCurrency(Number(rec.product.effectivePrice))}
-            hint={
-              Number(rec.product.effectivePrice) < Number(rec.product.price)
-                ? `De ${formatCurrency(Number(rec.product.price))} (em promoção)`
-                : undefined
-            }
-          />
-          <Metric
-            label="Custo"
-            value={
-              rec.product.costPrice !== undefined &&
-              rec.product.costPrice !== null
-                ? formatCurrency(Number(rec.product.costPrice))
-                : "Não informado"
-            }
-          />
+function RunHeader({
+  run,
+  progress,
+}: {
+  run: IForecastRunSummary;
+  progress: IForecastRunProgress | null;
+}) {
+  const running = run.status === TForecastRunStatus.Running;
+  const trigger = FORECAST_TRIGGER_LABELS[run.trigger] ?? run.trigger;
+  const period =
+    run.horizonStart && run.horizonEnd
+      ? `${formatMonth(run.horizonStart)} a ${formatMonth(run.horizonEnd)}`
+      : null;
+  const { counts, batches } = run;
+
+  return (
+    <Card role="region" aria-label="Última análise">
+      <CardHeader className="gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle className="text-lg">Última análise</CardTitle>
+          <RunStatusPill status={run.status} />
         </div>
+        <CardDescription className="flex flex-wrap gap-x-2 gap-y-1">
+          <span>{formatDateTime(run.createdAt)}</span>
+          <span aria-hidden>·</span>
+          <span>
+            {trigger}
+            {run.requestedByName ? ` por ${run.requestedByName}` : ""}
+          </span>
+          {period && (
+            <>
+              <span aria-hidden>·</span>
+              <span>
+                Horizonte de {plural(run.horizonMonths, "mês", "meses")} (
+                {period})
+              </span>
+            </>
+          )}
+        </CardDescription>
+      </CardHeader>
 
-        <div>
-          <p className="mb-2 text-sm font-semibold">
-            Histórico de vendas e projeção
-          </p>
-          {loading ? (
-            <Skeleton className="h-[300px] w-full" />
-          ) : error ? (
-            <div className="flex h-[200px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-center">
-              <AlertTriangle className="h-6 w-6 text-amber-500" />
-              <p className="text-sm text-muted-foreground">{error}</p>
-              <Button size="sm" variant="outline" onClick={reload}>
-                <RefreshCw className="h-4 w-4" />
-                Tentar novamente
-              </Button>
-            </div>
-          ) : (
-            <ForecastChart
-              history={data?.history ?? []}
-              projection={data?.projection ?? []}
-              currentStock={rec.currentStock}
-              unitType={unit}
+      <CardContent className="flex flex-col gap-4">
+        {running && <RunProgress progress={progress} />}
+
+        {run.status === TForecastRunStatus.Failed && (
+          <Alert variant="destructive">
+            <AlertTriangle />
+            <AlertTitle>A análise falhou</AlertTitle>
+            <AlertDescription>
+              {run.errorMessage ?? "Tente gerar de novo."}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {run.status === TForecastRunStatus.CompletedWithoutAi && (
+          <Alert>
+            <AlertTriangle />
+            <AlertTitle>Concluída sem IA</AlertTitle>
+            <AlertDescription>
+              A IA não respondeu; as recomendações vêm só do cálculo.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!running && (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Stat
+              label="Produtos analisados"
+              value={formatNumber(run.productsAnalyzed)}
             />
-          )}
-        </div>
+            <Stat
+              label="Enviados à IA"
+              value={formatNumber(run.productsSentToAi)}
+            />
+            <Stat label="Duração" value={formatDuration(run.durationMs)} />
+            <Stat
+              label="Próxima análise"
+              value={
+                run.nextScheduledAt
+                  ? formatDateTime(run.nextScheduledAt)
+                  : "Sem agendamento"
+              }
+            />
+          </div>
+        )}
+
+        {!running && batches.failed > 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle />
+            <AlertTitle>
+              {plural(batches.failed, "lote falhou", "lotes falharam")} de{" "}
+              {formatNumber(batches.total)}
+            </AlertTitle>
+            <AlertDescription>
+              Os produtos desses lotes ficaram só com o cálculo, sem a revisão
+              da IA.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {run.summary && (
+          <div className="flex gap-3 rounded-xl border bg-muted/30 p-4">
+            <BrainCircuit className="mt-0.5 size-5 shrink-0 text-primary" />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                Resumo da IA
+              </span>
+              <p className="text-sm">{run.summary}</p>
+            </div>
+          </div>
+        )}
+
+        {!running && (
+          <>
+            <Separator />
+            <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              <span>{plural(counts.pending, "pendente", "pendentes")}</span>
+              <span>{plural(counts.applied, "aplicada", "aplicadas")}</span>
+              <span>
+                {plural(counts.dismissed, "descartada", "descartadas")}
+              </span>
+              <span>{plural(counts.expired, "expirada", "expiradas")}</span>
+            </p>
+          </>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function ForecastContent() {
-  const { user } = useAuth();
-  const admin = isAdmin(user);
+// ---------- Tabela ----------
+
+function Suggestion({ rec }: { rec: IForecastRecommendationListItem }) {
+  if (rec.action === TRecommendationAction.Buy && rec.suggestedQuantity)
+    return (
+      <span className="font-semibold tabular-nums">
+        {formatQty(rec, rec.suggestedQuantity)}
+      </span>
+    );
+  if (
+    rec.action === TRecommendationAction.Promote &&
+    rec.suggestedDiscountPercent
+  )
+    return (
+      <span className="font-semibold tabular-nums">
+        {formatDiscount(rec.suggestedDiscountPercent)}
+        {rec.suggestedPromotionDays
+          ? ` por ${plural(rec.suggestedPromotionDays, "dia", "dias")}`
+          : ""}
+      </span>
+    );
+  // Transferir (origem → destino) entra com a F3.4b; hoje `transfer` vem sempre nulo.
+  return <span className="text-muted-foreground">—</span>;
+}
+
+function ProductCell({ rec }: { rec: IForecastRecommendationListItem }) {
+  return (
+    <span className="flex min-w-[200px] items-center gap-3">
+      {rec.imageUrl ? (
+        <img
+          src={rec.imageUrl}
+          alt=""
+          className="size-10 shrink-0 rounded-lg border object-cover"
+        />
+      ) : (
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+          <Package className="size-4" />
+        </span>
+      )}
+      <span className="flex min-w-0 flex-col">
+        <span className="font-medium">{rec.productName}</span>
+        <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          {rec.categoryPath ?? "Sem categoria"}
+          {rec.abcClass && <Badge variant="outline">{rec.abcClass}</Badge>}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/** Só "Comprar" pendente entra no dialog T-DF4. */
+function isBuyable(rec: IForecastRecommendationListItem) {
+  return (
+    rec.action === TRecommendationAction.Buy &&
+    rec.status === TRecommendationStatus.Pending
+  );
+}
+
+const selectColumn: ColumnDef<IForecastRecommendationListItem> = {
+  id: "select",
+  header: ({ table }) => {
+    const all = table.getIsAllPageRowsSelected();
+    const some = table.getIsSomePageRowsSelected();
+    return (
+      <Checkbox
+        checked={all}
+        indeterminate={some && !all}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Selecionar todas"
+      />
+    );
+  },
+  cell: ({ row }) => (
+    <Checkbox
+      checked={row.getIsSelected()}
+      disabled={!isBuyable(row.original)}
+      onCheckedChange={(value) => row.toggleSelected(!!value)}
+      aria-label={`Selecionar ${row.original.productName}`}
+    />
+  ),
+  enableSorting: false,
+};
+
+type RowActions = {
+  admin: boolean;
+  onBuy: (rec: IForecastRecommendationListItem) => void;
+  onPromote: (rec: IForecastRecommendationListItem) => void;
+  onDismiss: (rec: IForecastRecommendationListItem) => void;
+};
+
+/** Promover é só do Admin (T-DF6); Descartar vale para qualquer pendente (T-DF8). */
+function isPromotable(rec: IForecastRecommendationListItem) {
+  return (
+    rec.action === TRecommendationAction.Promote &&
+    rec.status === TRecommendationStatus.Pending
+  );
+}
+
+function actionsColumn({
+  admin,
+  onBuy,
+  onPromote,
+  onDismiss,
+}: RowActions): ColumnDef<IForecastRecommendationListItem> {
+  return {
+    id: "actions",
+    header: "",
+    cell: ({ row }) => {
+      const rec = row.original;
+      if (rec.status !== TRecommendationStatus.Pending) return null;
+      return (
+        <div className="flex flex-wrap justify-end gap-1">
+          {isBuyable(rec) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onBuy(rec)}
+              aria-label={`Comprar ${rec.productName}`}
+            >
+              <ShoppingCart data-icon="inline-start" />
+              Comprar
+            </Button>
+          )}
+          {admin && isPromotable(rec) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPromote(rec)}
+              aria-label={`Promover ${rec.productName}`}
+            >
+              <Tag data-icon="inline-start" />
+              Promover
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDismiss(rec)}
+            aria-label={`Descartar ${rec.productName}`}
+          >
+            <X data-icon="inline-start" />
+            Descartar
+          </Button>
+        </div>
+      );
+    },
+  };
+}
+
+const columns: ColumnDef<IForecastRecommendationListItem>[] = [
+  {
+    id: "productName",
+    header: "Produto",
+    cell: ({ row }) => <ProductCell rec={row.original} />,
+  },
+  {
+    id: "action",
+    header: "Ação",
+    cell: ({ row }) => (
+      <div className="flex flex-wrap gap-1">
+        <ActionPill action={row.original.action} />
+        {row.original.aiAdjusted && <AiAdjustedPill />}
+      </div>
+    ),
+  },
+  {
+    id: "priority",
+    header: "Prioridade",
+    cell: ({ row }) => <PriorityPill priority={row.original.priority} />,
+  },
+  {
+    id: "confidence",
+    header: "Confiança",
+    cell: ({ row }) => <ConfidencePill confidence={row.original.confidence} />,
+  },
+  {
+    id: "stock",
+    header: "Estoque",
+    cell: ({ row }) => {
+      const rec = row.original;
+      return (
+        <div className="flex flex-col tabular-nums">
+          <span>{formatQty(rec, rec.currentStock)}</span>
+          {rec.incomingStock > 0 && (
+            <span className="text-xs text-muted-foreground">
+              +{formatQty(rec, rec.incomingStock)} a chegar
+            </span>
+          )}
+        </div>
+      );
+    },
+  },
+  {
+    id: "coverageDays",
+    header: "Cobertura",
+    cell: ({ row }) => formatCoverageDays(row.original.coverageDays),
+  },
+  {
+    id: "projectedDemand",
+    header: "Demanda no horizonte",
+    cell: ({ row }) => (
+      <span className="tabular-nums">
+        {formatQty(row.original, row.original.projectedDemand)}
+      </span>
+    ),
+  },
+  {
+    id: "suggestion",
+    header: "Sugestão",
+    cell: ({ row }) => <Suggestion rec={row.original} />,
+  },
+  {
+    id: "deadline",
+    header: "Comprar até",
+    cell: ({ row }) =>
+      row.original.deadline ? formatDateOnly(row.original.deadline) : "—",
+  },
+  {
+    id: "preferredSupplierName",
+    header: "Fornecedor",
+    cell: ({ row }) => row.original.preferredSupplierName ?? "—",
+  },
+  {
+    id: "reasonShort",
+    header: "Motivo",
+    cell: ({ row }) => (
+      <p className="line-clamp-2 max-w-[260px] text-sm text-muted-foreground">
+        {row.original.reasonShort}
+      </p>
+    ),
+  },
+  {
+    id: "status",
+    header: "Status",
+    cell: ({ row }) => (
+      <RecommendationStatusPill status={row.original.status} />
+    ),
+  },
+];
+
+const ACTION_TABS: {
+  value: string;
+  label: string;
+  count: (run: IForecastRunSummary) => number;
+}[] = [
+  {
+    value: "all",
+    label: "Todas",
+    count: ({ counts }) =>
+      counts.buy + counts.promote + counts.transfer + counts.hold,
+  },
+  {
+    value: TRecommendationAction.Buy,
+    label: RECOMMENDATION_ACTION_LABELS.Buy,
+    count: ({ counts }) => counts.buy,
+  },
+  {
+    value: TRecommendationAction.Promote,
+    label: RECOMMENDATION_ACTION_LABELS.Promote,
+    count: ({ counts }) => counts.promote,
+  },
+  {
+    value: TRecommendationAction.Transfer,
+    label: RECOMMENDATION_ACTION_LABELS.Transfer,
+    count: ({ counts }) => counts.transfer,
+  },
+  {
+    value: TRecommendationAction.Hold,
+    label: RECOMMENDATION_ACTION_LABELS.Hold,
+    count: ({ counts }) => counts.hold,
+  },
+];
+
+function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
   const {
-    latestRun,
-    latestLoaded,
-    loadingLatest,
-    latestError,
-    generating,
-    fetchLatest,
-    generateForecast,
-  } = useForecast();
+    recommendations,
+    total,
+    recommendationsLoading,
+    recommendationsError,
+    reloadRecommendations,
+    reloadRun,
+    readOnly,
+    query,
+    setFilters,
+    setPage,
+    setPerPage,
+    filterOptions,
+    loadFilterOptions,
+  } = useForecastRun();
 
-  const [horizon, setHorizon] = useState("3");
-  const [elapsed, setElapsed] = useState(0);
-  const [actionFilter, setActionFilter] = useState<ActionFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
-  const [search, setSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [focusedProductId, setFocusedProductId] = useState<string | null>(null);
-  const detailsRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState(query.filters.search ?? "");
+  const searchTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(searchTimer.current), []);
 
-  const [purchaseRecs, setPurchaseRecs] = useState<IForecastRecommendation[]>(
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [buying, setBuying] = useState<IForecastRecommendationListItem[]>([]);
+  const openBuy = useCallback(
+    (recs: IForecastRecommendationListItem[]) => setBuying(recs),
     []
   );
-  const [promotionRec, setPromotionRec] =
-    useState<IForecastRecommendation | null>(null);
-  const [dismissRec, setDismissRec] = useState<IForecastRecommendation | null>(
-    null
-  );
-
-  useEffect(() => {
-    void fetchLatest();
-  }, [fetchLatest]);
-
-  // Cronômetro durante a geração (pode levar até ~60s)
-  useEffect(() => {
-    if (!generating) return;
-    const startedAt = Date.now();
-    const timer = setInterval(() => {
-      setElapsed(Math.round((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [generating]);
-
-  const recommendations = useMemo(
-    () => latestRun?.recommendations ?? [],
-    [latestRun]
-  );
-
-  const statusFiltered = useMemo(
+  const { user } = useAuth();
+  const admin = isAdmin(user);
+  const [promoting, setPromoting] =
+    useState<IForecastRecommendationListItem | null>(null);
+  const [dismissing, setDismissing] =
+    useState<IForecastRecommendationListItem | null>(null);
+  const tableColumns = useMemo(
     () =>
-      statusFilter === "all"
-        ? recommendations
-        : recommendations.filter(
-            (r) => r.status === STATUS_FILTER_MAP[statusFilter]
-          ),
-    [recommendations, statusFilter]
+      readOnly
+        ? columns
+        : [
+            selectColumn,
+            ...columns,
+            actionsColumn({
+              admin,
+              onBuy: (rec) => openBuy([rec]),
+              onPromote: setPromoting,
+              onDismiss: setDismissing,
+            }),
+          ],
+    [admin, openBuy, readOnly]
   );
-
-  const actionCounts = useMemo(
-    () => ({
-      all: statusFiltered.length,
-      buy: statusFiltered.filter(
-        (r) => r.action === TLegacyRecommendationAction.Buy
-      ).length,
-      promote: statusFiltered.filter(
-        (r) => r.action === TLegacyRecommendationAction.Promote
-      ).length,
-      hold: statusFiltered.filter(
-        (r) => r.action === TLegacyRecommendationAction.Hold
-      ).length,
-    }),
-    [statusFiltered]
+  const afterAction = () => {
+    void reloadRecommendations();
+    void reloadRun();
+  };
+  const selectedBuyable = recommendations.filter(
+    (rec) => selectedIds.includes(rec.id) && isBuyable(rec)
   );
+  const [draft, setDraft] = useState(() => pickSheetFilters(query.filters));
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return statusFiltered.filter((r) => {
-      if (
-        actionFilter !== "all" &&
-        r.action !== ACTION_FILTER_MAP[actionFilter]
-      )
-        return false;
-      if (!term) return true;
-      return [
-        r.product.name,
-        r.product.productCode,
-        r.product.brand ?? "",
-        r.product.supplierName ?? "",
-      ].some((v) => v.toLowerCase().includes(term));
-    });
-  }, [statusFiltered, actionFilter, search]);
+  const running = run.status === TForecastRunStatus.Running;
 
-  const selectableInView = useMemo(
-    () => filtered.filter(isSelectableForPurchase),
-    [filtered]
-  );
-
-  const selectedRecs = useMemo(
-    () =>
-      recommendations.filter(
-        (r) => selectedIds.has(r.id) && isSelectableForPurchase(r)
-      ),
-    [recommendations, selectedIds]
-  );
-
-  const allInViewSelected =
-    selectableInView.length > 0 &&
-    selectableInView.every((r) => selectedIds.has(r.id));
-  const someInViewSelected = selectableInView.some((r) =>
-    selectedIds.has(r.id)
-  );
-
-  const focusedRec = useMemo(() => {
-    const byFocus = focusedProductId
-      ? recommendations.find((r) => r.productId === focusedProductId)
-      : undefined;
-    return byFocus ?? filtered[0] ?? null;
-  }, [recommendations, focusedProductId, filtered]);
-
-  const toggleSelected = (id: string, checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(id);
-      else next.delete(id);
-      return next;
-    });
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    window.clearTimeout(searchTimer.current);
+    searchTimer.current = window.setTimeout(() => {
+      setFilters({ search: value.trim() });
+    }, 400);
   };
 
-  const toggleAllInView = (checked: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const r of selectableInView) {
-        if (checked) next.add(r.id);
-        else next.delete(r.id);
-      }
-      return next;
-    });
-  };
-
-  const focusProduct = (productId: string) => {
-    setFocusedProductId(productId);
-    requestAnimationFrame(() =>
-      detailsRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      })
-    );
-  };
-
-  const handleGenerate = async () => {
-    setElapsed(0);
-    try {
-      const run = await generateForecast(Number(horizon));
-      setSelectedIds(new Set());
-      setFocusedProductId(null);
-      if (run.status === TLegacyForecastRunStatus.Failed) {
-        handleError(
-          new Error(run.errorMessage || "A análise de demanda falhou."),
-          "A análise de demanda falhou."
-        );
-      } else if (run.status === TLegacyForecastRunStatus.CompletedWithoutAi) {
-        handleSuccess(
-          "Análise gerada sem IA: recomendações baseadas apenas no cálculo estatístico."
-        );
-      } else {
-        handleSuccess("Análise de demanda gerada com sucesso.");
-      }
-    } catch (error) {
-      handleError(error, "Erro ao gerar a análise de demanda");
+  const handleSheetOpenChange = (open: boolean) => {
+    if (open) {
+      setDraft(pickSheetFilters(query.filters));
+      void loadFilterOptions();
     }
+    setSheetOpen(open);
   };
 
-  const actionHandlers = {
-    admin,
-    onBuy: (rec: IForecastRecommendation) => setPurchaseRecs([rec]),
-    onPromote: (rec: IForecastRecommendation) => setPromotionRec(rec),
-    onDismiss: (rec: IForecastRecommendation) => setDismissRec(rec),
-  };
-
-  const horizonSelector = (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <Select value={horizon} onValueChange={setHorizon} disabled={generating}>
-        <SelectTrigger className="w-full sm:w-[150px]" aria-label="Horizonte">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="1">Próximo mês</SelectItem>
-          <SelectItem value="2">Próximos 2 meses</SelectItem>
-          <SelectItem value="3">Próximos 3 meses</SelectItem>
-        </SelectContent>
-      </Select>
-      <Button onClick={() => void handleGenerate()} disabled={generating}>
-        {generating ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Sparkles className="h-4 w-4" />
-        )}
-        {generating
-          ? "Gerando..."
-          : latestRun
-            ? "Gerar nova análise"
-            : "Gerar análise"}
-      </Button>
-    </div>
+  const filterSelect = (
+    key: SheetFilterKey,
+    label: string,
+    data: IOption[]
+  ) => (
+    <SearchSelect<IOption>
+      field={{
+        value: draft[key],
+        onChange: (value) =>
+          setDraft((prev) => ({ ...prev, [key]: value ? String(value) : "" })),
+      }}
+      label={label}
+      data={data}
+      placeholder="Todos"
+    />
   );
 
-  const renderHeader = () => (
+  const activeSheetFilters = SHEET_KEYS.filter(
+    (key) => query.filters[key]
+  ).length;
+
+  return (
     <Card>
-      <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="rounded-full bg-violet-500/10 p-2 text-violet-500">
-            <BrainCircuit className="h-6 w-6" />
-          </div>
-          <div className="min-w-0">
-            <CardTitle className="flex flex-wrap items-center gap-2 text-xl">
-              Previsão de Demanda (IA)
-              {latestRun && <RunStatusBadge status={latestRun.status} />}
-            </CardTitle>
-            <CardDescription>
-              {latestRun ? (
-                <>
-                  Última análise em {formatDateTime(latestRun.createAt)}
-                  {latestRun.requestedByName
-                    ? ` por ${latestRun.requestedByName}`
-                    : ""}{" "}
-                  · horizonte de {latestRun.horizonMonths}{" "}
-                  {latestRun.horizonMonths === 1 ? "mês" : "meses"} ·{" "}
-                  {formatNumber(latestRun.productsAnalyzed)} produtos analisados
-                </>
-              ) : (
-                "O sistema calcula a demanda dos próximos meses a partir do histórico de vendas e a IA prioriza e explica as ações."
+      <CardHeader className="gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs
+            value={query.filters.action ?? "all"}
+            onValueChange={(value) =>
+              setFilters({ action: value === "all" ? "" : value })
+            }
+          >
+            <TabsList className="h-auto flex-wrap">
+              {ACTION_TABS.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value}>
+                  {tab.label}
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {formatNumber(tab.count(run))}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-2">
+            <InputGroup className="w-full lg:w-[280px]">
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
+              <InputGroupInput
+                value={search}
+                onChange={(event) => handleSearchChange(event.target.value)}
+                placeholder="Buscar produto..."
+                aria-label="Pesquisar produto"
+              />
+            </InputGroup>
+
+            <ListFiltersSheet
+              open={sheetOpen}
+              onOpenChange={handleSheetOpenChange}
+              description="Filtre as recomendações desta análise."
+              triggerAriaLabel={
+                activeSheetFilters
+                  ? `Filtros (${activeSheetFilters} ativos)`
+                  : "Filtros"
+              }
+              onApply={() => {
+                setFilters(draft);
+                setSheetOpen(false);
+              }}
+              onClear={() => {
+                setFilters({
+                  ...pickSheetFilters({}),
+                  status: "Pending",
+                });
+                setSheetOpen(false);
+              }}
+            >
+              {filterSelect("status", "Status", STATUS_OPTIONS)}
+              {filterSelect("priority", "Prioridade", PRIORITY_OPTIONS)}
+              {filterSelect("confidence", "Confiança", CONFIDENCE_OPTIONS)}
+              {filterSelect("abcClass", "Classe ABC", ABC_OPTIONS)}
+              {filterSelect(
+                "categoryId",
+                "Categoria",
+                filterOptions?.categories ?? []
               )}
-            </CardDescription>
+              {filterSelect(
+                "supplierId",
+                "Fornecedor preferido",
+                filterOptions?.suppliers ?? []
+              )}
+              {filterSelect(
+                "eventId",
+                "Evento do horizonte",
+                filterOptions?.events ?? []
+              )}
+              {filterSelect(
+                "aiAdjusted",
+                "Ajustada pela IA",
+                AI_ADJUSTED_OPTIONS
+              )}
+            </ListFiltersSheet>
           </div>
         </div>
-        {admin && horizonSelector}
       </CardHeader>
-      {generating && (
-        <CardContent className="pt-0">
-          <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              Analisando o histórico de vendas e consultando a IA... ({elapsed}
-              s)
-            </div>
-            <Progress
-              value={Math.min(
-                95,
-                (elapsed / EXPECTED_GENERATION_SECONDS) * 100
-              )}
-            />
-            <p className="text-xs text-muted-foreground">
-              Esse processo pode levar até cerca de 1 minuto. Não feche esta
-              página.
-            </p>
-          </div>
-        </CardContent>
-      )}
-    </Card>
-  );
 
-  if (!latestLoaded || (loadingLatest && !latestRun)) {
-    return (
-      <div className="flex flex-col gap-4">
-        {renderHeader()}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20" />
-          ))}
-        </div>
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (latestError && !latestRun) {
-    return (
-      <div className="flex flex-col gap-4">
-        {renderHeader()}
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <AlertTriangle className="h-10 w-10 text-amber-500" />
-            <div>
-              <p className="font-medium">
-                Não foi possível carregar a análise de demanda.
-              </p>
-              <p className="text-sm text-muted-foreground">{latestError}</p>
-            </div>
-            <Button variant="outline" onClick={() => void fetchLatest()}>
-              <RefreshCw className="h-4 w-4" />
-              Tentar novamente
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!latestRun) {
-    return (
-      <div className="flex flex-col gap-4">
-        {renderHeader()}
-        <Card>
+      <CardContent>
+        {running ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <Sparkles />
+                <Spinner />
               </EmptyMedia>
-              <EmptyTitle>Nenhuma análise gerada ainda</EmptyTitle>
+              <EmptyTitle>Análise em andamento</EmptyTitle>
               <EmptyDescription>
-                {admin
-                  ? "Escolha o horizonte e gere a primeira análise para receber recomendações de compra e promoção."
-                  : "Peça a um administrador para gerar a primeira análise de demanda."}
+                As recomendações aparecem aqui quando ela terminar.
               </EmptyDescription>
             </EmptyHeader>
-            {admin && !generating && (
-              <EmptyContent>{horizonSelector}</EmptyContent>
-            )}
           </Empty>
-        </Card>
-      </div>
+        ) : recommendationsError ? (
+          <Alert variant="destructive">
+            <AlertTriangle />
+            <AlertTitle>{recommendationsError}</AlertTitle>
+            <AlertDescription>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void reloadRecommendations()}
+              >
+                <RefreshCw />
+                Tentar novamente
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : recommendationsLoading && recommendations.length === 0 ? (
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 5 }, (_, index) => (
+              <Skeleton key={index} className="h-12 w-full" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {selectedBuyable.length > 0 && (
+              <div className="flex justify-end">
+                <Button onClick={() => openBuy(selectedBuyable)}>
+                  <ShoppingCart data-icon="inline-start" />
+                  Comprar selecionados ({selectedBuyable.length})
+                </Button>
+              </div>
+            )}
+            <DataTable
+              columns={tableColumns}
+              data={recommendations}
+              page={query.page}
+              totalPages={Math.max(1, Math.ceil(total / query.perPage))}
+              total={total}
+              perPage={query.perPage}
+              onPageChange={setPage}
+              onPerPageChange={setPerPage}
+              onRowOpen={(rec) => setDetailId(rec.id)}
+              onSelectionChange={setSelectedIds}
+            />
+          </div>
+        )}
+        <RecommendationDetailSheet
+          recommendationId={detailId}
+          onClose={() => setDetailId(null)}
+          onBuy={
+            readOnly
+              ? undefined
+              : (rec) => {
+                  setDetailId(null);
+                  openBuy([rec]);
+                }
+          }
+          onPromote={
+            admin && !readOnly
+              ? (rec) => {
+                  setDetailId(null);
+                  setPromoting(rec);
+                }
+              : undefined
+          }
+          onDismiss={
+            readOnly
+              ? undefined
+              : (rec) => {
+                  setDetailId(null);
+                  setDismissing(rec);
+                }
+          }
+        />
+        <ApplyPromotionDialog
+          recommendation={promoting}
+          onOpenChange={(open) => {
+            if (!open) setPromoting(null);
+          }}
+          onDone={afterAction}
+        />
+        <DismissRecommendationDialog
+          recommendation={dismissing}
+          onOpenChange={(open) => {
+            if (!open) setDismissing(null);
+          }}
+          onDone={afterAction}
+        />
+        <ApplyPurchaseDialog
+          open={buying.length > 0}
+          onOpenChange={(open) => {
+            if (!open) setBuying([]);
+          }}
+          recommendations={buying}
+          onApplied={afterAction}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------- Página ----------
+
+function GenerateButton() {
+  const { run, generating, generate } = useForecastRun();
+  const busy = generating || run?.status === TForecastRunStatus.Running;
+  return (
+    <Button onClick={() => void generate()} disabled={busy}>
+      {busy ? <Spinner /> : <Sparkles />}
+      {busy ? "Em andamento" : run ? "Gerar nova análise" : "Gerar análise"}
+    </Button>
+  );
+}
+
+export function ForecastContent() {
+  const { user } = useAuth();
+  const admin = isAdmin(user);
+  const navigate = useNavigate();
+  const {
+    run,
+    runLoaded,
+    runError,
+    reloadRun,
+    progress,
+    conflictMessage,
+    readOnly,
+  } = useForecastRun();
+
+  const body = useMemo(() => {
+    if (!runLoaded)
+      return (
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-96 w-full rounded-xl" />
+        </div>
+      );
+    if (runError && !run)
+      return (
+        <Alert variant="destructive">
+          <AlertTriangle />
+          <AlertTitle>{runError}</AlertTitle>
+          <AlertDescription>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void reloadRun()}
+            >
+              <RefreshCw />
+              Tentar novamente
+            </Button>
+          </AlertDescription>
+        </Alert>
+      );
+    if (!run)
+      return (
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <BrainCircuit />
+            </EmptyMedia>
+            <EmptyTitle>Nenhuma análise ainda</EmptyTitle>
+            <EmptyDescription>
+              A análise calcula a demanda dos próximos meses pelo histórico de
+              vendas e a IA prioriza e explica as ações.
+            </EmptyDescription>
+          </EmptyHeader>
+          {!admin && (
+            <EmptyContent>
+              <p className="text-sm text-muted-foreground">
+                Peça a um administrador para gerar a primeira.
+              </p>
+            </EmptyContent>
+          )}
+        </Empty>
+      );
+    return (
+      <>
+        <RunHeader run={run} progress={progress} />
+        <RecommendationsCard run={run} />
+      </>
     );
-  }
+  }, [admin, progress, reloadRun, run, runError, runLoaded]);
 
   return (
-    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
-      {renderHeader()}
-
-      {latestRun.status === TLegacyForecastRunStatus.CompletedWithoutAi && (
-        <Alert className="border-amber-300/60 bg-amber-50 text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Análise concluída sem IA</AlertTitle>
-          <AlertDescription className="text-amber-800 dark:text-amber-300">
-            As recomendações abaixo vêm apenas do cálculo estatístico.
-            {latestRun.errorMessage ? ` Motivo: ${latestRun.errorMessage}` : ""}
-          </AlertDescription>
-        </Alert>
-      )}
-      {latestRun.status === TLegacyForecastRunStatus.Failed && (
-        <Alert variant="destructive">
-          <XCircle className="h-4 w-4" />
-          <AlertTitle>A análise falhou</AlertTitle>
-          <AlertDescription>
-            {latestRun.errorMessage || "Tente gerar uma nova análise."}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Resumo */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile
-          label="Comprar"
-          value={latestRun.counts?.buy ?? 0}
-          icon={<ShoppingCart />}
-        />
-        <StatTile
-          label="Promover"
-          value={latestRun.counts?.promote ?? 0}
-          icon={<BadgePercent />}
-        />
-        <StatTile
-          label="Manter"
-          value={latestRun.counts?.hold ?? 0}
-          icon={<PauseCircle />}
-        />
-        <StatTile
-          label="Pendentes"
-          value={latestRun.counts?.pending ?? 0}
-          icon={<Sparkles />}
-        />
-      </div>
-
-      {latestRun.summary && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="h-4 w-4 text-violet-500" />
-              Resumo da análise
-            </CardTitle>
-            <CardDescription>
-              {latestRun.aiProvider
-                ? `Gerado por ${latestRun.aiProvider}${latestRun.aiModel ? ` (${latestRun.aiModel})` : ""}`
-                : "Gerado a partir do cálculo estatístico"}
-              {latestRun.durationMs
-                ? ` · ${formatNumber(latestRun.durationMs / 1000, 1)}s`
-                : ""}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-line text-sm leading-relaxed">
-              {latestRun.summary}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recomendações */}
-      <Card>
-        <CardHeader className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle>Recomendações</CardTitle>
-              <CardDescription>
-                Clique em um produto para ver o histórico e a projeção.
-              </CardDescription>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <InputGroup className="w-full sm:w-[240px]">
-                <InputGroupAddon>
-                  <Search className="h-4 w-4" />
-                </InputGroupAddon>
-                <InputGroupInput
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar produto..."
-                  aria-label="Buscar produto"
-                />
-              </InputGroup>
-              <Select
-                value={statusFilter}
-                onValueChange={(v) => setStatusFilter(v as StatusFilter)}
-              >
-                <SelectTrigger
-                  className="w-full sm:w-[160px]"
-                  aria-label="Status"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pendentes</SelectItem>
-                  <SelectItem value="applied">Aplicadas</SelectItem>
-                  <SelectItem value="dismissed">Descartadas</SelectItem>
-                  <SelectItem value="expired">Expiradas</SelectItem>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <Tabs
-              value={actionFilter}
-              onValueChange={(v) => setActionFilter(v as ActionFilter)}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Previsão de demanda
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            O sistema calcula, a IA interpreta e você decide.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/forecast/history")}
+          >
+            <History data-icon="inline-start" />
+            Histórico
+          </Button>
+          {admin && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/forecast/accuracy")}
             >
-              <TabsList className="flex h-auto w-full max-w-full justify-start overflow-x-auto overflow-y-hidden p-1 md:w-auto [&>*]:shrink-0">
-                <TabsTrigger value="all">
-                  Todas ({actionCounts.all})
-                </TabsTrigger>
-                <TabsTrigger value="buy">
-                  Comprar ({actionCounts.buy})
-                </TabsTrigger>
-                <TabsTrigger value="promote">
-                  Promover ({actionCounts.promote})
-                </TabsTrigger>
-                <TabsTrigger value="hold">
-                  Manter ({actionCounts.hold})
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {selectedRecs.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {selectedRecs.length} selecionado
-                  {selectedRecs.length > 1 ? "s" : ""}
-                </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setSelectedIds(new Set())}
-                >
-                  Limpar
-                </Button>
-                <Button size="sm" onClick={() => setPurchaseRecs(selectedRecs)}>
-                  <ShoppingCart className="h-4 w-4" />
-                  Comprar selecionados
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-              <PackageSearch className="h-8 w-8 opacity-50" />
-              <p className="text-sm">
-                Nenhuma recomendação encontrada com os filtros atuais.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Desktop */}
-              <div className="hidden md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-10">
-                        <Checkbox
-                          checked={allInViewSelected}
-                          indeterminate={
-                            someInViewSelected && !allInViewSelected
-                          }
-                          disabled={selectableInView.length === 0}
-                          onCheckedChange={(v) => toggleAllInView(!!v)}
-                          aria-label="Selecionar todas as compras pendentes"
-                        />
-                      </TableHead>
-                      <TableHead>Produto</TableHead>
-                      <TableHead>Recomendação</TableHead>
-                      <TableHead>Estoque</TableHead>
-                      <TableHead>Demanda prevista</TableHead>
-                      <TableHead>Cobertura</TableHead>
-                      <TableHead>Sugestão</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((rec) => {
-                      const unit = rec.product.unitType;
-                      const selectable = isSelectableForPurchase(rec);
-                      const isFocused = focusedRec?.id === rec.id;
-                      return (
-                        <TableRow
-                          key={rec.id}
-                          data-state={
-                            selectedIds.has(rec.id) ? "selected" : undefined
-                          }
-                          className={cn(
-                            "cursor-pointer align-top",
-                            isFocused && "bg-violet-500/5"
-                          )}
-                          onClick={() => focusProduct(rec.productId)}
-                        >
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={selectedIds.has(rec.id)}
-                              disabled={!selectable}
-                              onCheckedChange={(v) =>
-                                toggleSelected(rec.id, !!v)
-                              }
-                              aria-label="Selecionar para compra"
-                            />
-                          </TableCell>
-                          <TableCell className="max-w-[320px] whitespace-normal">
-                            <p className="font-medium">{rec.product.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Cód. {rec.product.productCode}
-                              {rec.product.brand
-                                ? ` · ${rec.product.brand}`
-                                : ""}
-                            </p>
-                            <p
-                              className="mt-1 line-clamp-2 text-xs text-muted-foreground"
-                              title={rec.reason}
-                            >
-                              {rec.reason}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col items-start gap-1">
-                              <ActionBadge action={rec.action} />
-                              <PriorityBadge priority={rec.priority} />
-                              <ConfidenceBadge confidence={rec.confidence} />
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <p className="text-sm font-medium">
-                              {formatQuantity(rec.currentStock, unit)}
-                            </p>
-                            {rec.incomingStock > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                +{formatQuantity(rec.incomingStock, unit)} a
-                                caminho
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <p className="text-sm">
-                              {formatQuantity(rec.nextMonthDemand, unit)}
-                              <span className="text-xs text-muted-foreground">
-                                {" "}
-                                próx. mês
-                              </span>
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatQuantity(rec.projectedDemand, unit)} no
-                              horizonte
-                            </p>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm">
-                            {formatCoverageDays(rec.coverageDays)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            <RecommendationSuggestion recommendation={rec} />
-                          </TableCell>
-                          <TableCell>
-                            <RecommendationStatusBadge status={rec.status} />
-                          </TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <div className="flex justify-end">
-                              <RecommendationActions
-                                rec={rec}
-                                compact
-                                {...actionHandlers}
-                              />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile */}
-              <div className="grid gap-3 md:hidden">
-                {selectableInView.length > 0 && (
-                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Checkbox
-                      checked={allInViewSelected}
-                      indeterminate={someInViewSelected && !allInViewSelected}
-                      onCheckedChange={(v) => toggleAllInView(!!v)}
-                    />
-                    Selecionar todas as compras pendentes
-                  </label>
-                )}
-                {filtered.map((rec) => {
-                  const unit = rec.product.unitType;
-                  const selectable = isSelectableForPurchase(rec);
-                  return (
-                    <div
-                      key={rec.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => focusProduct(rec.productId)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") focusProduct(rec.productId);
-                      }}
-                      className={cn(
-                        "flex flex-col gap-2 rounded-lg border p-3 text-left",
-                        focusedRec?.id === rec.id &&
-                          "border-violet-400/60 bg-violet-500/5"
-                      )}
-                    >
-                      <div className="flex items-start gap-2">
-                        {selectable && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <Checkbox
-                              checked={selectedIds.has(rec.id)}
-                              onCheckedChange={(v) =>
-                                toggleSelected(rec.id, !!v)
-                              }
-                              aria-label="Selecionar para compra"
-                              className="mt-0.5"
-                            />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium">{rec.product.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Cód. {rec.product.productCode}
-                          </p>
-                        </div>
-                        <RecommendationStatusBadge status={rec.status} />
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        <ActionBadge action={rec.action} />
-                        <PriorityBadge priority={rec.priority} />
-                        <ConfidenceBadge confidence={rec.confidence} />
-                      </div>
-                      <p className="line-clamp-2 text-xs text-muted-foreground">
-                        {rec.reason}
-                      </p>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <span>
-                          <span className="text-muted-foreground">
-                            Estoque:{" "}
-                          </span>
-                          {formatQuantity(rec.currentStock, unit)}
-                        </span>
-                        <span>
-                          <span className="text-muted-foreground">
-                            Cobertura:{" "}
-                          </span>
-                          {formatCoverageDays(rec.coverageDays)}
-                        </span>
-                        <span>
-                          <span className="text-muted-foreground">
-                            Próx. mês:{" "}
-                          </span>
-                          {formatQuantity(rec.nextMonthDemand, unit)}
-                        </span>
-                        <span>
-                          <span className="text-muted-foreground">
-                            Horizonte:{" "}
-                          </span>
-                          {formatQuantity(rec.projectedDemand, unit)}
-                        </span>
-                      </div>
-                      <div
-                        className="flex items-center justify-between gap-2"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <RecommendationSuggestion recommendation={rec} />
-                        <RecommendationActions
-                          rec={rec}
-                          compact
-                          {...actionHandlers}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+              <Target data-icon="inline-start" />
+              Precisão
+            </Button>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Detalhes do produto selecionado */}
-      <div ref={detailsRef} className="scroll-mt-4">
-        {focusedRec ? (
-          <ProductDetails
-            key={focusedRec.id}
-            rec={focusedRec}
-            horizonMonths={latestRun.horizonMonths}
-            {...actionHandlers}
-          />
-        ) : (
-          <Card className="border-dashed">
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Selecione um produto na tabela para ver o histórico de vendas e a
-              projeção.
-            </CardContent>
-          </Card>
-        )}
+          {admin && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/settings/forecast")}
+            >
+              <CalendarClock data-icon="inline-start" />
+              Agendamento
+            </Button>
+          )}
+          {admin && runLoaded && !readOnly && <GenerateButton />}
+        </div>
       </div>
 
-      <ApplyPurchaseDialog
-        open={purchaseRecs.length > 0}
-        onOpenChange={(open) => {
-          if (!open) setPurchaseRecs([]);
-        }}
-        recommendations={purchaseRecs}
-        onSuccess={() => setSelectedIds(new Set())}
-      />
-      <ApplyPromotionDialog
-        open={!!promotionRec}
-        onOpenChange={(open) => {
-          if (!open) setPromotionRec(null);
-        }}
-        recommendation={promotionRec}
-      />
-      <DismissRecommendationDialog
-        open={!!dismissRec}
-        onOpenChange={(open) => {
-          if (!open) setDismissRec(null);
-        }}
-        recommendation={dismissRec}
-      />
+      {readOnly && run && (
+        <Alert>
+          <History />
+          <AlertTitle>
+            Análise de {formatDateTime(run.createdAt)}, só leitura
+          </AlertTitle>
+          <AlertDescription>
+            <Button
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => navigate("/forecast")}
+            >
+              Ver a última análise
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {conflictMessage && (
+        <Alert>
+          <AlertTriangle />
+          <AlertTitle>{conflictMessage}</AlertTitle>
+        </Alert>
+      )}
+
+      {body}
     </div>
   );
 }
 
 export default function ForecastPageWrapper() {
+  const [searchParams] = useSearchParams();
+  const runId = searchParams.get("run");
   return (
-    <ForecastProvider>
+    <ForecastRunProvider key={runId ?? "latest"} runId={runId}>
       <ForecastContent />
-    </ForecastProvider>
+    </ForecastRunProvider>
   );
 }

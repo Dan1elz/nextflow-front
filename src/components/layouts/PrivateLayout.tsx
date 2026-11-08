@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app/sidebar";
 import { StoreSelector } from "@/components/app/store-selector";
+import { NotificationsBell } from "@/components/app/notifications-bell";
+import { NotificationsProvider } from "@/providers/notifications.provider";
 import { PageTransition } from "@/components/motion/page-transition";
 import {
   Breadcrumb,
@@ -67,6 +69,9 @@ export default function PrivateLayout() {
           </Breadcrumb>
           <div className="ml-auto flex items-center gap-2">
             <StoreSelector />
+            <NotificationsProvider>
+              <NotificationsBell />
+            </NotificationsProvider>
             <ToggleTheme />
           </div>
         </header>

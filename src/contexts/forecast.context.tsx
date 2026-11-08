@@ -6,7 +6,7 @@ import type {
   IForecastRecommendation,
   IForecastRun,
   IProductForecast,
-} from "@/interfaces/forecast.interface";
+} from "@/interfaces/legacy-forecast.interface";
 
 export type ForecastContextType = {
   /** Última análise (`null` quando nunca houve análise ou ainda não carregou). */

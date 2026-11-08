@@ -7,7 +7,7 @@ import type {
   IApplyPurchaseRequest,
   IForecastRecommendation,
   IForecastRun,
-} from "@/interfaces/forecast.interface";
+} from "@/interfaces/legacy-forecast.interface";
 import { mergeRecommendationsIntoRun } from "@/utils/forecast.helpers";
 
 export function ForecastProvider({ children }: { children: ReactNode }) {

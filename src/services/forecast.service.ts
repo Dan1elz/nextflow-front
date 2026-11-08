@@ -8,7 +8,7 @@ import type {
   IForecastRun,
   IForecastRunSummary,
   IProductForecast,
-} from "@/interfaces/forecast.interface";
+} from "@/interfaces/legacy-forecast.interface";
 
 const baseService = new BaseService<IForecastRunSummary>("forecasts");
 const apiService = new ApiService();
