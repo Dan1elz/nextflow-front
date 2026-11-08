@@ -45,7 +45,9 @@ const isExactCode = (option: VariantSaleOptionDto, term: string) => {
 
 /**
  * Seletor de venda (T-VD1): busca por nome, SKU ou código de barras na loja do topo. O leitor digita o código e manda
- * Enter: código exato escolhe direto. Opção sem disponível de produto que não permite negativo (RN-CE32) abre o aviso
+ * Enter: código exato (SKU ou código de barras) escolhe direto e o foco fica na busca para o próximo. Sem código exato,
+ * o Enter não pega o primeiro da lista: avisa e deixa o termo selecionado, para a próxima leitura substituir. Só depois
+ * de navegar com as setas o Enter escolhe o item destacado. Opção sem disponível de produto que não permite negativo (RN-CE32) abre o aviso
  * de falta (T-VD1a) em vez de entrar no carrinho. Preço efetivo e disponível vêm da API.
  */
 export function VariantSalePicker({
@@ -62,6 +64,10 @@ export function VariantSalePicker({
   );
   const handledEnter = useRef<{ term: string } | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Setas desde a última digitação: aí o Enter é do item destacado na lista, não de um código.
+  const navigated = useRef(false);
+  const [notFound, setNotFound] = useState<string | null>(null);
   const [shortage, setShortage] = useState<VariantSaleOptionDto | null>(null);
   const { storeId, options, term, isLoading } = useVariantSaleOptions(
     search,
@@ -73,6 +79,9 @@ export function VariantSalePicker({
     setOpen(false);
     setSearch("");
     setPendingEnter(null);
+    setNotFound(null);
+    navigated.current = false;
+    inputRef.current?.focus();
     if (option.availableQuantity <= 0 && !option.allowsNegative) {
       setShortage(option);
       return;
@@ -89,11 +98,23 @@ export function VariantSalePicker({
     setPendingEnter(null);
     const exact = options.find((option) => isExactCode(option, term));
     if (exact) choose(exact);
-    // choose é recriada a cada render; o efeito só reage à chegada da busca do código pendente.
+    else warnNotFound(term);
+    // choose e warnNotFound são recriadas a cada render; o efeito só reage à chegada da busca do código pendente.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingEnter, isLoading, term, options]);
 
+  // Código sem correspondência exata: fecha a lista, avisa e seleciona o termo (a próxima leitura o substitui).
+  const warnNotFound = (code: string) => {
+    setOpen(false);
+    setNotFound(code);
+    inputRef.current?.select();
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      navigated.current = true;
+      return;
+    }
     if (event.key !== "Enter") return;
     const typed = search.trim();
     if (!typed) return;
@@ -106,7 +127,12 @@ export function VariantSalePicker({
     if (exact) {
       event.preventDefault();
       choose(exact);
+      return;
     }
+    // Escolheu com as setas: o Command escolhe o destacado.
+    if (navigated.current && open && options.length > 0) return;
+    event.preventDefault();
+    warnNotFound(typed);
   };
 
   return (
@@ -116,10 +142,13 @@ export function VariantSalePicker({
           <PopoverAnchor asChild>
             <div ref={anchorRef} className="rounded-md border">
               <CommandInput
+                ref={inputRef}
                 value={search}
                 onValueChange={(value) => {
                   setSearch(value);
                   setOpen(true);
+                  setNotFound(null);
+                  navigated.current = false;
                 }}
                 onFocus={() => setOpen(true)}
                 onClick={() => setOpen(true)}
@@ -129,6 +158,9 @@ export function VariantSalePicker({
                 }
                 disabled={disabled || !storeId}
                 aria-label="Buscar produto para venda"
+                aria-describedby={
+                  notFound ? "sale-picker-not-found" : undefined
+                }
               />
             </div>
           </PopoverAnchor>
@@ -168,6 +200,16 @@ export function VariantSalePicker({
           </PopoverContent>
         </Popover>
       </Command>
+      {notFound && (
+        <p
+          id="sale-picker-not-found"
+          role="alert"
+          className="-mt-2 px-1 text-sm text-destructive"
+        >
+          Nenhum produto com o código {notFound}. Confira o código ou escolha na
+          lista.
+        </p>
+      )}
 
       <StockShortageDialog
         option={shortage}

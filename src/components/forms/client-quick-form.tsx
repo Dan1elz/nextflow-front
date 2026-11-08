@@ -23,11 +23,11 @@ interface ClientQuickFormProps {
   onCancel: () => void;
 }
 
-/** Cadastro rápido de cliente (T-CD4): nome e telefone, sem sair da venda. */
+/** Cadastro rápido de cliente (T-CD4): nome, telefone e e-mail opcional, sem sair da venda. */
 export function ClientQuickForm({ onSubmit, onCancel }: ClientQuickFormProps) {
   const form = useForm<QuickClientFormData>({
     resolver: zodResolver(quickClientSchema),
-    defaultValues: { name: "", phone: "" },
+    defaultValues: { name: "", phone: "", email: "" },
   });
   const { submit, handleSubmit } = useApiForm(form);
   const { isSubmitting } = form.formState;
@@ -43,6 +43,7 @@ export function ClientQuickForm({ onSubmit, onCancel }: ClientQuickFormProps) {
             onSubmit({
               name: data.name.trim(),
               phone: formatOnlyNumbers(data.phone),
+              email: data.email || null,
             })
           );
         })(event);
@@ -82,6 +83,28 @@ export function ClientQuickForm({ onSubmit, onCancel }: ClientQuickFormProps) {
                 onChange={(event) =>
                   field.onChange(formatPhone(event.target.value))
                 }
+                aria-invalid={fieldState.invalid}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          control={form.control}
+          name="email"
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="quick-client-email">
+                E-mail <span className="text-muted-foreground">(opcional)</span>
+              </FieldLabel>
+              <Input
+                {...field}
+                id="quick-client-email"
+                type="email"
+                inputMode="email"
+                autoComplete="off"
+                placeholder="cliente@exemplo.com"
+                maxLength={150}
                 aria-invalid={fieldState.invalid}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

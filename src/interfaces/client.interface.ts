@@ -11,6 +11,8 @@ export interface ClientRequestDto {
 export interface QuickCreateClientRequestDto {
   name: string;
   phone: string;
+  /** Opcional: vira contato de e-mail do cliente. */
+  email?: string | null;
 }
 
 export interface ClientOptionDto {
