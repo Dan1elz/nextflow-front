@@ -18,8 +18,6 @@ import {
   RefreshCw,
   Search,
   ShoppingCart,
-  Tag,
-  X,
   Sparkles,
 } from "lucide-react";
 
@@ -407,72 +405,6 @@ const selectColumn: ColumnDef<IForecastRecommendationListItem> = {
   enableSorting: false,
 };
 
-type RowActions = {
-  admin: boolean;
-  onBuy: (rec: IForecastRecommendationListItem) => void;
-  onPromote: (rec: IForecastRecommendationListItem) => void;
-  onDismiss: (rec: IForecastRecommendationListItem) => void;
-};
-
-/** Promover é só do Admin (T-DF6); Descartar vale para qualquer pendente (T-DF8). */
-function isPromotable(rec: IForecastRecommendationListItem) {
-  return (
-    rec.action === TRecommendationAction.Promote &&
-    rec.status === TRecommendationStatus.Pending
-  );
-}
-
-function actionsColumn({
-  admin,
-  onBuy,
-  onPromote,
-  onDismiss,
-}: RowActions): ColumnDef<IForecastRecommendationListItem> {
-  return {
-    id: "actions",
-    header: "",
-    cell: ({ row }) => {
-      const rec = row.original;
-      if (rec.status !== TRecommendationStatus.Pending) return null;
-      return (
-        <div className="flex flex-wrap justify-end gap-1">
-          {isBuyable(rec) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onBuy(rec)}
-              aria-label={`Comprar ${rec.productName}`}
-            >
-              <ShoppingCart data-icon="inline-start" />
-              Comprar
-            </Button>
-          )}
-          {admin && isPromotable(rec) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPromote(rec)}
-              aria-label={`Promover ${rec.productName}`}
-            >
-              <Tag data-icon="inline-start" />
-              Promover
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDismiss(rec)}
-            aria-label={`Descartar ${rec.productName}`}
-          >
-            <X data-icon="inline-start" />
-            Descartar
-          </Button>
-        </div>
-      );
-    },
-  };
-}
-
 const columns: ColumnDef<IForecastRecommendationListItem>[] = [
   {
     id: "productName",
@@ -632,21 +564,24 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
     useState<IForecastRecommendationListItem | null>(null);
   const [dismissing, setDismissing] =
     useState<IForecastRecommendationListItem | null>(null);
+  // As ações ficam no detalhe (nome do produto). Ao abrir um modal a partir
+  // dele, o detalhe some e volta quando o modal fecha.
+  const [returnToId, setReturnToId] = useState<string | null>(null);
+  const fromDetail =
+    (open: (rec: IForecastRecommendationListItem) => void) =>
+    (rec: IForecastRecommendationListItem) => {
+      setReturnToId(detailId);
+      setDetailId(null);
+      open(rec);
+    };
+  const backToDetail = () => {
+    if (!returnToId) return;
+    setDetailId(returnToId);
+    setReturnToId(null);
+  };
   const tableColumns = useMemo(
-    () =>
-      readOnly
-        ? columns
-        : [
-            selectColumn,
-            ...columns,
-            actionsColumn({
-              admin,
-              onBuy: (rec) => openBuy([rec]),
-              onPromote: setPromoting,
-              onDismiss: setDismissing,
-            }),
-          ],
-    [admin, openBuy, readOnly]
+    () => (readOnly ? columns : [selectColumn, ...columns]),
+    [readOnly]
   );
   const afterAction = () => {
     void reloadRecommendations();
@@ -706,11 +641,18 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
               setFilters({ action: value === "all" ? "" : value })
             }
           >
-            <TabsList className="h-auto flex-wrap">
+            <TabsList className="h-auto flex-wrap justify-start gap-1">
               {ACTION_TABS.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="group h-8 gap-2 pr-2"
+                >
                   {tab.label}
-                  <span className="text-xs text-muted-foreground tabular-nums">
+                  <span
+                    data-slot="tab-count"
+                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-background/70 px-1.5 text-[11px] leading-none font-semibold tabular-nums text-muted-foreground transition-colors group-data-[state=active]:bg-primary/10 group-data-[state=active]:text-primary"
+                  >
                     {formatNumber(tab.count(run))}
                   </span>
                 </TabsTrigger>
@@ -842,49 +784,34 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
         <RecommendationDetailSheet
           recommendationId={detailId}
           onClose={() => setDetailId(null)}
-          onBuy={
-            readOnly
-              ? undefined
-              : (rec) => {
-                  setDetailId(null);
-                  openBuy([rec]);
-                }
-          }
-          onPromote={
-            admin && !readOnly
-              ? (rec) => {
-                  setDetailId(null);
-                  setPromoting(rec);
-                }
-              : undefined
-          }
-          onDismiss={
-            readOnly
-              ? undefined
-              : (rec) => {
-                  setDetailId(null);
-                  setDismissing(rec);
-                }
-          }
+          onBuy={readOnly ? undefined : fromDetail((rec) => openBuy([rec]))}
+          onPromote={admin && !readOnly ? fromDetail(setPromoting) : undefined}
+          onDismiss={readOnly ? undefined : fromDetail(setDismissing)}
         />
         <ApplyPromotionDialog
           recommendation={promoting}
           onOpenChange={(open) => {
-            if (!open) setPromoting(null);
+            if (open) return;
+            setPromoting(null);
+            backToDetail();
           }}
           onDone={afterAction}
         />
         <DismissRecommendationDialog
           recommendation={dismissing}
           onOpenChange={(open) => {
-            if (!open) setDismissing(null);
+            if (open) return;
+            setDismissing(null);
+            backToDetail();
           }}
           onDone={afterAction}
         />
         <ApplyPurchaseDialog
           open={buying.length > 0}
           onOpenChange={(open) => {
-            if (!open) setBuying([]);
+            if (open) return;
+            setBuying([]);
+            backToDetail();
           }}
           recommendations={buying}
           onApplied={afterAction}

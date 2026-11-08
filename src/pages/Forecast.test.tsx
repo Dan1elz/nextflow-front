@@ -151,7 +151,57 @@ describe("Previsão: lista da análise (F3.8d, T-DF2)", () => {
     ).toBeInTheDocument();
   });
 
-  it("Comprar pela linha gera o pedido e a linha vira Aplicada (T-DF4)", async () => {
+  it("a linha não tem botões de ação; as abas mostram o contador", async () => {
+    server.use(...baseHandlers());
+    renderPage();
+    await screen.findAllByText("Trufa de Maracujá");
+
+    expect(
+      screen.queryByRole("button", { name: /^(Comprar|Promover|Descartar) / })
+    ).not.toBeInTheDocument();
+    const tab = screen.getByRole("tab", { name: /Comprar/ });
+    expect(tab.querySelector('[data-slot="tab-count"]')?.textContent).toMatch(
+      /^\d+$/
+    );
+  });
+
+  it("Descartar pelo detalhe e Voltar reabre o detalhe (T-DF8)", async () => {
+    server.use(
+      ...baseHandlers(),
+      http.get(apiUrl("forecasts/recommendations/:id"), () =>
+        HttpResponse.json(recommendationDetail)
+      )
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const [open] = await screen.findAllByRole("button", {
+      name: /Trufa de Maracujá/,
+    });
+    await user.click(open);
+    const sheet = await screen.findByRole("dialog", {
+      name: "Trufa de Maracujá",
+    });
+    await user.click(
+      await within(sheet).findByRole("button", { name: "Descartar" })
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Descartar recomendação",
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Trufa de Maracujá" })
+      ).not.toBeInTheDocument()
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Voltar" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Trufa de Maracujá" })
+    ).toBeInTheDocument();
+  });
+
+  it("Comprar pelo detalhe gera o pedido e a linha vira Aplicada (T-DF4)", async () => {
     server.use(
       ...baseHandlers(),
       http.get(apiUrl("forecasts/recommendations/:id"), () =>
@@ -189,10 +239,16 @@ describe("Previsão: lista da análise (F3.8d, T-DF2)", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const [buy] = await screen.findAllByRole("button", {
-      name: "Comprar Trufa de Maracujá",
+    const [open] = await screen.findAllByRole("button", {
+      name: /Trufa de Maracujá/,
     });
-    await user.click(buy);
+    await user.click(open);
+    const sheet = await screen.findByRole("dialog", {
+      name: "Trufa de Maracujá",
+    });
+    await user.click(
+      await within(sheet).findByRole("button", { name: "Comprar" })
+    );
     const dialog = await screen.findByRole("dialog", {
       name: "Gerar pedido de compra",
     });
