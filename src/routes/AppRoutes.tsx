@@ -12,6 +12,7 @@ import StoresSettingsPage from "@/pages/Settings/Stores";
 import StockPolicySettingsPage from "@/pages/Settings/StockPolicy";
 import ForecastSettingsPage from "@/pages/Settings/ForecastSettings";
 import ForecastHistoryPage from "@/pages/ForecastHistory";
+import ForecastAccuracyPage from "@/pages/ForecastAccuracy";
 import ViewUserPageWrapper from "@/pages/User/View";
 import ClientsPageWrapper from "@/pages/Clients";
 import CreateClientPageWrapper from "@/pages/Client/Create";
@@ -129,6 +130,7 @@ function AppRoutes() {
 
         <Route path="forecast" element={<ForecastPageWrapper />} />
         <Route path="forecast/history" element={<ForecastHistoryPage />} />
+        <Route path="forecast/accuracy" element={<ForecastAccuracyPage />} />
         <Route path="promotions" element={<PromotionsPageWrapper />} />
       </Route>
 

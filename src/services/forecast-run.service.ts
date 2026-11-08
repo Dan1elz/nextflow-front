@@ -3,6 +3,8 @@ import { BaseService } from "./base.service";
 import type { IIndexParams, PaginationDto } from "@/interfaces/api.interface";
 import type {
   IApplyPromotionRequest,
+  IForecastAccuracyProduct,
+  IForecastAccuracySummary,
   IForecastAiBatch,
   IForecastSettings,
   IForecastSettingsRequest,
@@ -172,6 +174,30 @@ export const forecastRunService = {
     return apiService.put<IForecastSettings>(
       "settings/forecast",
       request,
+      token
+    );
+  },
+
+  /** GET /api/forecasts/accuracy/summary?months=12 (T-DF10, Admin) */
+  getAccuracySummary(
+    months = 12,
+    token?: string
+  ): Promise<IForecastAccuracySummary> {
+    return apiService.get<IForecastAccuracySummary>(
+      "forecasts/accuracy/summary",
+      { months },
+      token
+    );
+  },
+
+  /** GET /api/forecasts/accuracy/products?offset&limit&filters (T-DF10, Admin): search, abcClass, bias. */
+  getAccuracyProducts(
+    params?: IIndexParams,
+    token?: string
+  ): Promise<PaginationDto<IForecastAccuracyProduct>> {
+    return apiService.get<PaginationDto<IForecastAccuracyProduct>>(
+      "forecasts/accuracy/products",
+      BaseService.toQuery(params),
       token
     );
   },

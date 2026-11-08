@@ -14,6 +14,7 @@ import {
   Package,
   CalendarClock,
   History,
+  Target,
   RefreshCw,
   Search,
   ShoppingCart,
@@ -994,6 +995,15 @@ export function ForecastContent() {
             <History data-icon="inline-start" />
             Histórico
           </Button>
+          {admin && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/forecast/accuracy")}
+            >
+              <Target data-icon="inline-start" />
+              Precisão
+            </Button>
+          )}
           {admin && (
             <Button
               variant="outline"
