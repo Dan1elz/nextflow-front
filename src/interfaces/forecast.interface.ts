@@ -70,6 +70,20 @@ export interface IForecastRunProgress {
 
 // ---------- Recomendações (T-DF2, T-DF3) ----------
 
+/** `filters` de `GET /forecasts/{runId}/recommendations` (nomes do back; vazio = sem filtro). */
+export interface IForecastRecommendationFilters {
+  action?: string;
+  priority?: string;
+  status?: string;
+  confidence?: string;
+  abcClass?: string;
+  categoryId?: string;
+  supplierId?: string;
+  eventId?: string;
+  aiAdjusted?: string;
+  search?: string;
+}
+
 /** `ForecastAppliedLinkDto`: documento gerado ao aplicar. */
 export interface IForecastAppliedLink {
   type: "PurchaseOrder" | "Promotion";

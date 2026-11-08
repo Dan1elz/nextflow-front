@@ -1,17 +1,9 @@
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowDown,
   ArrowRight,
-  ArrowUp,
-  BadgePercent,
   CheckCircle2,
-  Clock,
-  Minus,
-  PauseCircle,
-  ShoppingCart,
   Sparkles,
-  Truck,
 } from "lucide-react";
 
 import {
@@ -23,7 +15,11 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Pill } from "@/components/app/forecast-badges";
+import {
+  ActionPill,
+  PriorityPill,
+  RunStatusPill,
+} from "@/components/app/recommendation-badges";
 import {
   BlockEmpty,
   BlockError,
@@ -34,85 +30,9 @@ import type {
   IForecastRecommendationListItem,
   IForecastRunSummary,
 } from "@/interfaces/forecast.interface";
-import {
-  FORECAST_RUN_STATUS_LABELS,
-  RECOMMENDATION_ACTION_LABELS,
-  RECOMMENDATION_PRIORITY_LABELS,
-  TForecastRunStatus,
-  TRecommendationAction,
-  TRecommendationPriority,
-} from "@/types/enums";
+import { TForecastRunStatus, TRecommendationAction } from "@/types/enums";
 import { formatDateTime, formatNumber } from "@/utils/format.helpers";
 import { formatCoverageDays, formatDiscount } from "@/utils/forecast.helpers";
-
-function ActionPill({ action }: { action: TRecommendationAction }) {
-  const label = RECOMMENDATION_ACTION_LABELS[action] ?? action;
-  if (action === TRecommendationAction.Buy)
-    return (
-      <Pill tone="indigo" icon={<ShoppingCart />}>
-        {label}
-      </Pill>
-    );
-  if (action === TRecommendationAction.Promote)
-    return (
-      <Pill tone="violet" icon={<BadgePercent />}>
-        {label}
-      </Pill>
-    );
-  if (action === TRecommendationAction.Transfer)
-    return (
-      <Pill tone="sky" icon={<Truck />}>
-        {label}
-      </Pill>
-    );
-  return (
-    <Pill tone="slate" icon={<PauseCircle />}>
-      {label}
-    </Pill>
-  );
-}
-
-function PriorityPill({ priority }: { priority: TRecommendationPriority }) {
-  const label = RECOMMENDATION_PRIORITY_LABELS[priority] ?? priority;
-  if (priority === TRecommendationPriority.High)
-    return (
-      <Pill tone="rose" icon={<ArrowUp />}>
-        {label}
-      </Pill>
-    );
-  if (priority === TRecommendationPriority.Medium)
-    return (
-      <Pill tone="amber" icon={<Minus />}>
-        {label}
-      </Pill>
-    );
-  return (
-    <Pill tone="slate" icon={<ArrowDown />}>
-      {label}
-    </Pill>
-  );
-}
-
-function RunStatusPill({ status }: { status: TForecastRunStatus }) {
-  const label = FORECAST_RUN_STATUS_LABELS[status] ?? status;
-  if (status === TForecastRunStatus.Running)
-    return (
-      <Pill tone="sky" icon={<Clock />}>
-        {label}
-      </Pill>
-    );
-  if (status === TForecastRunStatus.Failed)
-    return (
-      <Pill tone="rose" icon={<AlertTriangle />}>
-        {label}
-      </Pill>
-    );
-  return (
-    <Pill tone="amber" icon={<Sparkles />}>
-      {label}
-    </Pill>
-  );
-}
 
 function formatQty(rec: IForecastRecommendationListItem, value: number) {
   return `${formatNumber(value, rec.decimalPlaces)} ${rec.saleUnit}`;
