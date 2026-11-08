@@ -3,6 +3,9 @@ import { BaseService } from "./base.service";
 import type { IIndexParams, PaginationDto } from "@/interfaces/api.interface";
 import type {
   IApplyPromotionRequest,
+  IForecastAiBatch,
+  IForecastSettings,
+  IForecastSettingsRequest,
   IApplyPromotionResult,
   IApplyPurchaseRequest,
   IApplyPurchaseResult,
@@ -117,6 +120,57 @@ export const forecastRunService = {
   ): Promise<IForecastRecommendationListItem> {
     return apiService.post<IForecastRecommendationListItem>(
       `forecasts/recommendations/${id}/dismiss`,
+      request,
+      token
+    );
+  },
+
+  /** GET /api/forecasts?offset&limit&filters (T-DF9): status, trigger, from, to. */
+  getAll(
+    params?: IIndexParams,
+    token?: string
+  ): Promise<PaginationDto<IForecastRunSummary>> {
+    return apiService.get<PaginationDto<IForecastRunSummary>>(
+      "forecasts",
+      BaseService.toQuery(params),
+      token
+    );
+  },
+
+  /** GET /api/forecasts/{runId} */
+  getById(runId: string, token?: string): Promise<IForecastRunSummary> {
+    return apiService.get<IForecastRunSummary>(
+      `forecasts/${runId}`,
+      undefined,
+      token
+    );
+  },
+
+  /** GET /api/forecasts/{runId}/batches */
+  getBatches(runId: string, token?: string): Promise<IForecastAiBatch[]> {
+    return apiService.get<IForecastAiBatch[]>(
+      `forecasts/${runId}/batches`,
+      undefined,
+      token
+    );
+  },
+
+  /** GET /api/settings/forecast (T-DF11) */
+  getSettings(token?: string): Promise<IForecastSettings> {
+    return apiService.get<IForecastSettings>(
+      "settings/forecast",
+      undefined,
+      token
+    );
+  },
+
+  /** PUT /api/settings/forecast: devolve o agendamento salvo com a próxima execução. */
+  updateSettings(
+    request: IForecastSettingsRequest,
+    token?: string
+  ): Promise<IForecastSettings> {
+    return apiService.put<IForecastSettings>(
+      "settings/forecast",
       request,
       token
     );

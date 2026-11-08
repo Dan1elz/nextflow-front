@@ -7,10 +7,13 @@ import {
   type ReactNode,
 } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   BrainCircuit,
   Package,
+  CalendarClock,
+  History,
   RefreshCw,
   Search,
   ShoppingCart,
@@ -601,6 +604,7 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
     recommendationsError,
     reloadRecommendations,
     reloadRun,
+    readOnly,
     query,
     setFilters,
     setPage,
@@ -628,17 +632,20 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
   const [dismissing, setDismissing] =
     useState<IForecastRecommendationListItem | null>(null);
   const tableColumns = useMemo(
-    () => [
-      selectColumn,
-      ...columns,
-      actionsColumn({
-        admin,
-        onBuy: (rec) => openBuy([rec]),
-        onPromote: setPromoting,
-        onDismiss: setDismissing,
-      }),
-    ],
-    [admin, openBuy]
+    () =>
+      readOnly
+        ? columns
+        : [
+            selectColumn,
+            ...columns,
+            actionsColumn({
+              admin,
+              onBuy: (rec) => openBuy([rec]),
+              onPromote: setPromoting,
+              onDismiss: setDismissing,
+            }),
+          ],
+    [admin, openBuy, readOnly]
   );
   const afterAction = () => {
     void reloadRecommendations();
@@ -834,22 +841,30 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
         <RecommendationDetailSheet
           recommendationId={detailId}
           onClose={() => setDetailId(null)}
-          onBuy={(rec) => {
-            setDetailId(null);
-            openBuy([rec]);
-          }}
+          onBuy={
+            readOnly
+              ? undefined
+              : (rec) => {
+                  setDetailId(null);
+                  openBuy([rec]);
+                }
+          }
           onPromote={
-            admin
+            admin && !readOnly
               ? (rec) => {
                   setDetailId(null);
                   setPromoting(rec);
                 }
               : undefined
           }
-          onDismiss={(rec) => {
-            setDetailId(null);
-            setDismissing(rec);
-          }}
+          onDismiss={
+            readOnly
+              ? undefined
+              : (rec) => {
+                  setDetailId(null);
+                  setDismissing(rec);
+                }
+          }
         />
         <ApplyPromotionDialog
           recommendation={promoting}
@@ -894,8 +909,16 @@ function GenerateButton() {
 export function ForecastContent() {
   const { user } = useAuth();
   const admin = isAdmin(user);
-  const { run, runLoaded, runError, reloadRun, progress, conflictMessage } =
-    useForecastRun();
+  const navigate = useNavigate();
+  const {
+    run,
+    runLoaded,
+    runError,
+    reloadRun,
+    progress,
+    conflictMessage,
+    readOnly,
+  } = useForecastRun();
 
   const body = useMemo(() => {
     if (!runLoaded)
@@ -963,8 +986,44 @@ export function ForecastContent() {
             O sistema calcula, a IA interpreta e você decide.
           </p>
         </div>
-        {admin && runLoaded && <GenerateButton />}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/forecast/history")}
+          >
+            <History data-icon="inline-start" />
+            Histórico
+          </Button>
+          {admin && (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/settings/forecast")}
+            >
+              <CalendarClock data-icon="inline-start" />
+              Agendamento
+            </Button>
+          )}
+          {admin && runLoaded && !readOnly && <GenerateButton />}
+        </div>
       </div>
+
+      {readOnly && run && (
+        <Alert>
+          <History />
+          <AlertTitle>
+            Análise de {formatDateTime(run.createdAt)}, só leitura
+          </AlertTitle>
+          <AlertDescription>
+            <Button
+              variant="link"
+              className="h-auto p-0"
+              onClick={() => navigate("/forecast")}
+            >
+              Ver a última análise
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {conflictMessage && (
         <Alert>
@@ -979,8 +1038,10 @@ export function ForecastContent() {
 }
 
 export default function ForecastPageWrapper() {
+  const [searchParams] = useSearchParams();
+  const runId = searchParams.get("run");
   return (
-    <ForecastRunProvider>
+    <ForecastRunProvider key={runId ?? "latest"} runId={runId}>
       <ForecastContent />
     </ForecastRunProvider>
   );

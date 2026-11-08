@@ -34,6 +34,14 @@ Object.defineProperty(window, "matchMedia", {
   }),
 });
 
+// O Select do Radix usa pointer capture e scrollIntoView, que o jsdom não implementa.
+Object.assign(Element.prototype, {
+  hasPointerCapture: () => false,
+  setPointerCapture: () => {},
+  releasePointerCapture: () => {},
+  scrollIntoView: () => {},
+});
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();

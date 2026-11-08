@@ -46,16 +46,20 @@ type ForecastRunProviderProps = {
   children: ReactNode;
   /** Só os testes encurtam o intervalo. */
   pollIntervalMs?: number;
+  /** Análise aberta pelo histórico; sem ela, a última. */
+  runId?: string | null;
 };
 
 export function ForecastRunProvider({
   children,
   pollIntervalMs = FORECAST_STATUS_POLL_MS,
+  runId = null,
 }: ForecastRunProviderProps) {
   const { token } = useAuth();
   const authToken = token ?? undefined;
 
   const [run, setRun] = useState<IForecastRunSummary | null>(null);
+  const [readOnly, setReadOnly] = useState(false);
   const [runLoaded, setRunLoaded] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
   const [progress, setProgress] = useState<IForecastRunProgress | null>(null);
@@ -72,14 +76,24 @@ export function ForecastRunProvider({
 
   const reloadRun = useCallback(async () => {
     try {
-      setRun(await forecastRunService.getLatest(authToken));
+      if (runId) {
+        const [opened, latest] = await Promise.all([
+          forecastRunService.getById(runId, authToken),
+          forecastRunService.getLatest(authToken),
+        ]);
+        setRun(opened);
+        setReadOnly(latest?.id !== opened.id);
+      } else {
+        setRun(await forecastRunService.getLatest(authToken));
+        setReadOnly(false);
+      }
       setRunError(null);
     } catch (error) {
       setRunError(errorMessage(error, RUN_ERROR));
     } finally {
       setRunLoaded(true);
     }
-  }, [authToken]);
+  }, [authToken, runId]);
 
   useEffect(() => {
     void reloadRun();
@@ -233,6 +247,7 @@ export function ForecastRunProvider({
   const value = useMemo(
     () => ({
       run,
+      readOnly,
       runLoaded,
       runError,
       reloadRun,
@@ -254,6 +269,7 @@ export function ForecastRunProvider({
     }),
     [
       run,
+      readOnly,
       runLoaded,
       runError,
       reloadRun,

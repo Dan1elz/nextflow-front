@@ -4,6 +4,7 @@
  * As telas antigas ainda usam `legacy-forecast.interface.ts` até a migração (F3.8b a F3.8i).
  */
 import type {
+  TAiBatchStatus,
   TDismissReason,
   TForecastBias,
   TForecastConfidence,
@@ -66,6 +67,15 @@ export interface IForecastRunProgress {
   status: TForecastRunStatus;
   batches: IForecastBatchProgress;
   percent: number;
+}
+
+/** `ForecastAiBatchDto`: lote enviado à IA (T-DF9). */
+export interface IForecastAiBatch {
+  batchNumber: number;
+  productsCount: number;
+  status: TAiBatchStatus;
+  errorMessage: string | null;
+  durationMs: number | null;
 }
 
 // ---------- Recomendações (T-DF2, T-DF3) ----------

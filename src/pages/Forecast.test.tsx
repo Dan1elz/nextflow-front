@@ -218,6 +218,30 @@ describe("Previsão: lista da análise (F3.8d, T-DF2)", () => {
     expect((await screen.findAllByText("Aplicada")).length).toBeGreaterThan(0);
   });
 
+  it("análise antiga aberta pelo histórico fica só leitura (T-DF9)", async () => {
+    server.use(
+      ...baseHandlers(),
+      http.get(apiUrl("forecasts/:runId"), () => HttpResponse.json(runFinished))
+    );
+    render(
+      <MemoryRouter>
+        <ForecastRunProvider runId="run-2" pollIntervalMs={20}>
+          <ForecastContent />
+        </ForecastRunProvider>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/só leitura/)).toBeInTheDocument();
+    await screen.findAllByText("Panetone Trufado");
+    expect(recommendationQueries[0].runId).toBe("run-2");
+    expect(
+      screen.queryByRole("button", { name: /Gerar/ })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Descartar/ })
+    ).not.toBeInTheDocument();
+  });
+
   it("gerar mostra Em andamento, acompanha os lotes e recarrega ao terminar", async () => {
     let generated = 0;
     let polls = 0;

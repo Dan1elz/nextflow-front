@@ -29,6 +29,8 @@ export type ForecastRunContextType = {
   runLoaded: boolean;
   runError: string | null;
   reloadRun: () => Promise<void>;
+  /** Análise antiga aberta pelo histórico (T-DF9): sem gerar e sem ações nas linhas. */
+  readOnly: boolean;
   /** Progresso da análise em andamento, pelo `/status` (nulo fora do `Running`). */
   progress: IForecastRunProgress | null;
   /** O `POST generate` está no ar. */

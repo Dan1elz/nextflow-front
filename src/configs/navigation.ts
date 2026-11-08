@@ -1,6 +1,7 @@
 import {
   Activity,
   BadgePercent,
+  CalendarClock,
   CalendarDays,
   Home,
   History,
@@ -67,6 +68,11 @@ export const navigation: SidebarMenuGroup[] = [
         name: "Política de estoque",
         url: "/settings/stock-policy",
         icon: SlidersHorizontal,
+      },
+      {
+        name: "Agendamento da previsão",
+        url: "/settings/forecast",
+        icon: CalendarClock,
       },
     ],
   },
