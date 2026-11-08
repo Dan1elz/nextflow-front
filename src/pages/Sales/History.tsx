@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Search } from "lucide-react";
+import { EyeIcon, Search } from "lucide-react";
 
 import { DatePicker } from "@/components/app/date-picker";
 import { EntityIndexPage } from "@/components/app/entity-index-page";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
-import { NavActionColumn } from "@/components/app/nav-action-column";
 import { OrderStatusBadge } from "@/components/app/order-status-badge";
 import { SearchSelect } from "@/components/app/search-select";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
@@ -61,6 +62,11 @@ type SalesHistoryFilters = {
   from: string;
   to: string;
   channel: string;
+  clientId: string;
+  userId: string;
+  productId: string;
+  minTotal: string;
+  maxTotal: string;
 };
 
 const statusOptions: IOption[] = Object.values(TOrderStatus).map((status) => ({
@@ -72,6 +78,9 @@ const paymentOptions: IOption[] = Object.values(TPaymentMethod).map(
   (method) => ({ value: method, label: PAYMENT_METHOD_LABELS[method] })
 );
 
+/** Lista inicial vazia e estável: as opções dos selects de busca vêm do servidor. */
+const NO_OPTIONS: IOption[] = [];
+
 const paymentLabels = (methods: TPaymentMethod[]) =>
   methods.length > 0
     ? methods.map((method) => PAYMENT_METHOD_LABELS[method]).join(", ")
@@ -79,7 +88,15 @@ const paymentLabels = (methods: TPaymentMethod[]) =>
 
 /** Histórico das vendas de balcão da loja selecionada no topo, com o detalhe da venda num diálogo. */
 function SalesHistory() {
-  const { sales, pagination, searchSales, getSale } = useSalesHistory();
+  const {
+    sales,
+    pagination,
+    searchSales,
+    getSale,
+    searchClientOptions,
+    searchUserOptions,
+    searchProductOptions,
+  } = useSalesHistory();
   const { storeId } = useCurrentStore();
   const [detail, setDetail] = useState<OrderDetailDto | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -103,6 +120,11 @@ function SalesHistory() {
       from: "",
       to: "",
       channel: TOrderChannel.Counter,
+      clientId: "",
+      userId: "",
+      productId: "",
+      minTotal: "",
+      maxTotal: "",
     },
     quickSearchKey: "search",
     perPageInitial: 10,
@@ -165,12 +187,17 @@ function SalesHistory() {
       {
         id: "actions",
         header: "Ações",
-        cell: ({ row }) =>
-          loadingId === row.original.id ? (
-            <Spinner />
-          ) : (
-            <NavActionColumn object={row.original} onView={openDetail} />
-          ),
+        cell: ({ row }) => (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={loadingId != null}
+            onClick={() => openDetail(row.original)}
+          >
+            {loadingId === row.original.id ? <Spinner /> : <EyeIcon />}
+            Visualizar
+          </Button>
+        ),
         enableSorting: false,
         enableHiding: false,
       },
@@ -227,6 +254,67 @@ function SalesHistory() {
                   onChange={(value) => setFilter("to", value)}
                   placeholder="Fim do período"
                 />
+              </div>
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.clientId,
+                  onChange: (value) =>
+                    setFilter("clientId", value ? String(value) : ""),
+                }}
+                label="Cliente"
+                data={NO_OPTIONS}
+                onSearch={searchClientOptions}
+                placeholder="Todos"
+              />
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.userId,
+                  onChange: (value) =>
+                    setFilter("userId", value ? String(value) : ""),
+                }}
+                label="Vendedor"
+                data={NO_OPTIONS}
+                onSearch={searchUserOptions}
+                placeholder="Todos"
+              />
+              <SearchSelect<IOption>
+                field={{
+                  value: filters.productId,
+                  onChange: (value) =>
+                    setFilter("productId", value ? String(value) : ""),
+                }}
+                label="Produto vendido"
+                data={NO_OPTIONS}
+                onSearch={searchProductOptions}
+                placeholder="Todos"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="sales-min-total">Valor mínimo</Label>
+                  <Input
+                    id="sales-min-total"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="R$ 0,00"
+                    value={filters.minTotal}
+                    onChange={(e) => setFilter("minTotal", e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="sales-max-total">Valor máximo</Label>
+                  <Input
+                    id="sales-max-total"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="Sem limite"
+                    value={filters.maxTotal}
+                    onChange={(e) => setFilter("maxTotal", e.target.value)}
+                  />
+                </div>
               </div>
               <SearchSelect<IOption>
                 field={{
