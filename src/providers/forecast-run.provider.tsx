@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useSelectedStoreId } from "@/hooks/use-selected-store-id";
 import {
   ForecastRunContext,
   type ForecastFilterOptions,
@@ -57,6 +58,8 @@ export function ForecastRunProvider({
 }: ForecastRunProviderProps) {
   const { token } = useAuth();
   const authToken = token ?? undefined;
+  // A análise é da empresa; a loja do topo só acrescenta o estoque dela em cada linha.
+  const storeId = useSelectedStoreId();
 
   const [run, setRun] = useState<IForecastRunSummary | null>(null);
   const [readOnly, setReadOnly] = useState(false);
@@ -177,7 +180,8 @@ export function ForecastRunProvider({
       const page = await forecastRunService.getRecommendations(
         listRunId,
         { page: query.page, perPage: query.perPage, filters },
-        authToken
+        authToken,
+        storeId
       );
       if (requestId !== requestRef.current) return;
       setItems(page.items);
@@ -189,7 +193,7 @@ export function ForecastRunProvider({
     } finally {
       if (requestId === requestRef.current) setRecommendationsLoading(false);
     }
-  }, [listRunId, query, authToken]);
+  }, [listRunId, query, authToken, storeId]);
 
   useEffect(() => {
     void reloadRecommendations();

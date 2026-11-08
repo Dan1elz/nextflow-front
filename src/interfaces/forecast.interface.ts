@@ -116,6 +116,10 @@ export interface IForecastRecommendationListItem {
   status: TRecommendationStatus;
   currentStock: number;
   incomingStock: number;
+  /** Saldo da loja do topo, lido na consulta; nulo em "todas as lojas" (a análise é da empresa inteira). */
+  storeCurrentStock?: number | null;
+  /** "A caminho" para a loja do topo; nulo em "todas as lojas". */
+  storeIncomingStock?: number | null;
   coverageDays: number | null;
   projectedDemand: number;
   saleUnit: string;

@@ -124,6 +124,36 @@ describe("Painel inicial (F3.8b, T-DF1)", () => {
     expect(storeOf("sales-chart")).toBe("store-2");
     expect(storeOf("low-stock")).toBe("store-2");
     expect(storeOf("expiring-lots")).toBe("store-2");
+    expect(
+      requestedUrls
+        .find((url) => url.pathname === "/api/forecasts/latest/top")
+        ?.searchParams.get("storeId")
+    ).toBe("store-2");
+  });
+
+  it("com loja selecionada, o card de recomendações mostra o estoque dela", async () => {
+    currentStore.storeId = "store-2";
+    server.use(...dashboardHandlers());
+    server.use(
+      http.get(apiUrl("forecasts/latest/top"), () =>
+        HttpResponse.json({
+          ...forecastTop,
+          recommendations: forecastTop.recommendations.map((rec, index) =>
+            index === 0
+              ? { ...rec, storeCurrentStock: 3, storeIncomingStock: 0 }
+              : rec
+          ),
+        })
+      )
+    );
+    renderHome();
+
+    const recs = await screen.findByRole("region", {
+      name: "Recomendações da IA",
+    });
+    expect(
+      await within(recs).findByText(/\(3(,0+)? \S+ nesta loja\)/)
+    ).toBeInTheDocument();
   });
 
   it("em todas as lojas o painel não manda loja", async () => {

@@ -151,8 +151,10 @@ function CardBody() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {rec.categoryPath ? `${rec.categoryPath} · ` : ""}
-                  Estoque: {formatQty(rec, rec.currentStock)} · Cobertura:{" "}
-                  {formatCoverageDays(rec.coverageDays)}
+                  Estoque: {formatQty(rec, rec.currentStock)}
+                  {rec.storeCurrentStock != null &&
+                    ` (${formatQty(rec, rec.storeCurrentStock)} nesta loja)`}{" "}
+                  · Cobertura: {formatCoverageDays(rec.coverageDays)}
                 </p>
                 <p
                   className="line-clamp-2 text-xs text-muted-foreground"

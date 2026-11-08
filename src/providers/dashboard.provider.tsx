@@ -73,7 +73,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   );
   const forecastTop = useDashboardBlock(
     dashboardService.getForecastTop,
-    authToken
+    authToken,
+    storeId
   );
 
   const loading = [

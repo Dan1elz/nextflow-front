@@ -74,11 +74,14 @@ export const dashboardService = {
     );
   },
 
-  /** GET /api/forecasts/latest/top?limit=5 */
-  getForecastTop(token?: string): Promise<IForecastTop> {
+  /** GET /api/forecasts/latest/top?limit=5&storeId= (a loja só acrescenta o estoque dela em cada linha) */
+  getForecastTop(
+    token?: string,
+    storeId?: string | null
+  ): Promise<IForecastTop> {
     return apiService.get<IForecastTop>(
       "forecasts/latest/top",
-      { limit: FORECAST_TOP_LIMIT },
+      { limit: FORECAST_TOP_LIMIT, ...storeQuery(storeId) },
       token
     );
   },
