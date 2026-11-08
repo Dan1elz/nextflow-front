@@ -203,18 +203,24 @@ export function DataTable<TData, TValue>({
             const cells = row
               .getVisibleCells()
               .filter((cell) => cell.column.id !== "select");
-            const firstCell = cells[0];
-            const actionCell = cells[cells.length - 1];
-            const otherCells = cells.slice(1, -1);
+            // Ações vão no canto do card; só existem quando a tela tem a coluna "actions".
+            const actionCell = cells.find(
+              (cell) => cell.column.id === "actions"
+            );
+            const dataCells = cells.filter((cell) => cell !== actionCell);
+            const firstCell = dataCells[0];
+            const otherCells = dataCells
+              .slice(1)
+              .filter((cell) => !cell.column.columnDef.meta?.hideOnMobile);
 
             return (
               <Card
                 key={row.id}
-                className="p-2 gap-2 max-w-full"
+                className="max-w-full gap-0 p-0"
                 data-state={row.getIsSelected() ? "selected" : undefined}
               >
-                <CardHeader className="flex flex-row items-center justify-between px-2 pb-0">
-                  <div className="font-medium text-lg text-left min-w-0 flex-1 break-all">
+                <CardHeader className="flex flex-row items-center justify-between gap-2 p-4 pb-2">
+                  <div className="min-w-0 flex-1 text-left font-semibold">
                     {onRowOpen ? (
                       <OpenLink onOpen={() => onRowOpen(row.original)}>
                         {flexRender(
@@ -229,24 +235,29 @@ export function DataTable<TData, TValue>({
                       )
                     )}
                   </div>
-                  <div>
-                    {flexRender(
-                      actionCell.column.columnDef.cell,
-                      actionCell.getContext()
-                    )}
-                  </div>
+                  {actionCell && (
+                    <div className="shrink-0">
+                      {flexRender(
+                        actionCell.column.columnDef.cell,
+                        actionCell.getContext()
+                      )}
+                    </div>
+                  )}
                 </CardHeader>
 
-                <CardContent className="space-y-1 text-sm px-2 pb-2 text-left">
+                <CardContent className="flex flex-col gap-1.5 px-4 pt-0 pb-4 text-sm">
                   {otherCells.map((cell) => (
-                    <div key={cell.id} className="flex flex-row flex-wrap">
-                      <span className="font-semibold">
-                        {typeof cell.column.columnDef.header === "string"
-                          ? cell.column.columnDef.header
-                          : cell.column.columnDef.id}
-                        :&nbsp;
+                    <div
+                      key={cell.id}
+                      className="flex items-start justify-between gap-4"
+                    >
+                      <span className="shrink-0 text-muted-foreground">
+                        {cell.column.columnDef.meta?.label ??
+                          (typeof cell.column.columnDef.header === "string"
+                            ? cell.column.columnDef.header
+                            : cell.column.id)}
                       </span>
-                      <span className="min-w-0 break-all">
+                      <span className="min-w-0 text-right break-words">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

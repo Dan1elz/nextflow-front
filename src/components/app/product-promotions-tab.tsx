@@ -4,6 +4,7 @@ import { Plus, TicketPercent } from "lucide-react";
 import { DataTable } from "@/components/app/data-table";
 import { buildPromotionColumns } from "@/components/app/promotion-columns";
 import { PromotionCreateDialog } from "@/components/app/promotion-create-dialog";
+import { PromotionViewDialog } from "@/components/app/promotion-view-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -29,6 +30,8 @@ function PromotionsTab({ product, onChanged }: ProductPromotionsTabProps) {
   const { promotions, pagination, searchPromotions, cancelPromotion } =
     usePromotions();
   const [isCreating, setIsCreating] = useState(false);
+  const [editing, setEditing] = useState<PromotionListItemDto | null>(null);
+  const [viewing, setViewing] = useState<PromotionListItemDto | null>(null);
 
   const load = useCallback(
     (page = 1) =>
@@ -59,7 +62,11 @@ function PromotionsTab({ product, onChanged }: ProductPromotionsTabProps) {
   );
 
   const columns = useMemo(
-    () => buildPromotionColumns(handleCancel, false),
+    () =>
+      buildPromotionColumns(handleCancel, false, {
+        onView: setViewing,
+        onEdit: setEditing,
+      }),
     [handleCancel]
   );
 
@@ -97,13 +104,22 @@ function PromotionsTab({ product, onChanged }: ProductPromotionsTabProps) {
         />
       )}
       <PromotionCreateDialog
-        open={isCreating}
-        onOpenChange={setIsCreating}
+        open={isCreating || editing != null}
+        onOpenChange={(open) => {
+          if (open) return;
+          setIsCreating(false);
+          setEditing(null);
+        }}
         fixedProduct={product}
+        promotion={editing}
         onCreated={() => {
           load();
           onChanged();
         }}
+      />
+      <PromotionViewDialog
+        promotion={viewing}
+        onClose={() => setViewing(null)}
       />
     </div>
   );

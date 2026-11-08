@@ -112,6 +112,71 @@ function Categories() {
     setDialog(null);
   };
 
+  const renderActions = (
+    category: CategoryNodeDto,
+    parent: CategoryNodeDto | null
+  ) => (
+    <NavActionColumn
+      object={category}
+      onEdit={() => setDialog({ category, parent })}
+      onDelete={handleInactivate}
+      onReactivate={() =>
+        run(
+          () => reactivateCategory(category.id),
+          "Categoria reativada com sucesso"
+        )
+      }
+      disableView
+      disableEdit={!category.isActive}
+      disableDelete={!category.isActive}
+      disableReactivate={category.isActive}
+      deleteLabel="Inativar"
+      deleteDialogTitle="Inativar esta categoria?"
+      deleteDialogDescription="A categoria sai dos combos. Você pode reativá-la depois."
+      deleteButtonLabel="Inativar"
+      // RN-CE23: subcategoria não tem filhas, então a ação só existe no nível 1.
+      extraActions={
+        parent
+          ? undefined
+          : [
+              {
+                label: "Nova subcategoria",
+                icon: <Plus />,
+                disabled: !category.isActive,
+                onClick: () => setDialog({ category: null, parent: category }),
+              },
+            ]
+      }
+    />
+  );
+
+  /** Linha do card no celular: nome, produtos e descrição embaixo, situação e ações à direita. */
+  const renderMobileRow = (
+    category: CategoryNodeDto,
+    parent: CategoryNodeDto | null
+  ) => (
+    <div key={category.id} className="flex items-center gap-3 p-3">
+      {parent && (
+        <CornerDownRight
+          aria-hidden
+          className="size-4 shrink-0 text-muted-foreground"
+        />
+      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className={parent ? "font-medium" : "font-semibold"}>
+          {category.name}
+        </span>
+        <span className="truncate text-xs text-muted-foreground">
+          {category.productCount}{" "}
+          {category.productCount === 1 ? "produto" : "produtos"}
+          {category.description ? ` · ${category.description}` : ""}
+        </span>
+      </div>
+      {!category.isActive && <Badge variant="secondary">Inativa</Badge>}
+      {renderActions(category, parent)}
+    </div>
+  );
+
   const renderRow = (
     category: CategoryNodeDto,
     parent: CategoryNodeDto | null
@@ -139,41 +204,7 @@ function Categories() {
           {category.isActive ? "Ativa" : "Inativa"}
         </Badge>
       </TableCell>
-      <TableCell className="max-md:sticky max-md:right-0 max-md:bg-card">
-        <NavActionColumn
-          object={category}
-          onEdit={() => setDialog({ category, parent })}
-          onDelete={handleInactivate}
-          onReactivate={() =>
-            run(
-              () => reactivateCategory(category.id),
-              "Categoria reativada com sucesso"
-            )
-          }
-          disableView
-          disableEdit={!category.isActive}
-          disableDelete={!category.isActive}
-          disableReactivate={category.isActive}
-          deleteLabel="Inativar"
-          deleteDialogTitle="Inativar esta categoria?"
-          deleteDialogDescription="A categoria sai dos combos. Você pode reativá-la depois."
-          deleteButtonLabel="Inativar"
-          // RN-CE23: subcategoria não tem filhas, então a ação só existe no nível 1.
-          extraActions={
-            parent
-              ? undefined
-              : [
-                  {
-                    label: "Nova subcategoria",
-                    icon: <Plus />,
-                    disabled: !category.isActive,
-                    onClick: () =>
-                      setDialog({ category: null, parent: category }),
-                  },
-                ]
-          }
-        />
-      </TableCell>
+      <TableCell>{renderActions(category, parent)}</TableCell>
     </TableRow>
   );
 
@@ -194,28 +225,42 @@ function Categories() {
         </CardHeader>
         {!loading && tree.length > 0 && (
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Produtos</TableHead>
-                  <TableHead>Status</TableHead>
-                  {/* No celular a tabela rola: as ações ficam fixas para não sumirem à direita. */}
-                  <TableHead className="w-16 max-md:sticky max-md:right-0 max-md:bg-card">
-                    Ações
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tree.map((root) => (
-                  <Fragment key={root.id}>
-                    {renderRow(root, null)}
-                    {root.children.map((child) => renderRow(child, root))}
-                  </Fragment>
-                ))}
-              </TableBody>
-            </Table>
+            {/* Celular: um card por categoria, com as subcategorias dentro. */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {tree.map((root) => (
+                <div key={root.id} className="rounded-xl border">
+                  {renderMobileRow(root, null)}
+                  {root.children.length > 0 && (
+                    <div className="divide-y border-t">
+                      {root.children.map((child) =>
+                        renderMobileRow(child, root)
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Produtos</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-16">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tree.map((root) => (
+                    <Fragment key={root.id}>
+                      {renderRow(root, null)}
+                      {root.children.map((child) => renderRow(child, root))}
+                    </Fragment>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         )}
       </Card>

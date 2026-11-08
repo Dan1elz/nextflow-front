@@ -95,13 +95,31 @@ export interface IForecastRecommendationFilters {
 }
 
 /** `ForecastAppliedLinkDto`: documento gerado ao aplicar. */
+/** `ForecastTransferDto`: "Transferir" (RN-DF16), de onde para onde e quanto (somando as variações). */
+export interface IForecastTransfer {
+  fromLocationId: string;
+  fromLocationName: string;
+  toLocationId: string;
+  toLocationName: string;
+  quantity: number;
+}
+
 export interface IForecastAppliedLink {
-  type: "PurchaseOrder" | "Promotion";
+  type: "PurchaseOrder" | "Promotion" | "Transfer";
   id: string;
   number: number | null;
 }
 
 /** `ForecastRecommendationListItemDto` */
+/** `ForecastStoreQuantityDto`: quanto da compra recomendada vai para cada loja (RN-DF27). */
+export interface IForecastStoreQuantity {
+  storeId: string;
+  storeName: string;
+  sharePercent: number;
+  shortfall: number;
+  quantity: number;
+}
+
 export interface IForecastRecommendationListItem {
   id: string;
   forecastRunId: string;
@@ -127,8 +145,10 @@ export interface IForecastRecommendationListItem {
   suggestedQuantity: number | null;
   suggestedDiscountPercent: number | null;
   suggestedPromotionDays: number | null;
-  /** Transferir (F3.4b) ainda não existe: sempre nulo. */
-  transfer: null;
+  /** Só na ação "Transferir" (F3.4b). */
+  transfer: IForecastTransfer | null;
+  /** Parte de cada loja no "Comprar", gravada pela análise (RN-DF27); vazio com uma loja só. */
+  storeSplit: IForecastStoreQuantity[];
   deadline: string | null;
   preferredSupplierId: string | null;
   preferredSupplierName: string | null;
@@ -382,4 +402,30 @@ export interface INotification {
 export interface INotificationList {
   unreadCount: number;
   items: INotification[];
+}
+
+/** `StoreSplitDto`: sugestão de divisão da compra entre lojas (RN-DF27, F3.9). */
+export interface IStoreSplitStore {
+  storeId: string;
+  storeName: string;
+  receiveLocationId: string | null;
+  receiveLocationName: string | null;
+  sharePercent: number;
+  currentStock: number;
+  incomingStock: number;
+  shortfall: number;
+  quantity: number;
+}
+
+export interface IStoreSplitItem {
+  variantId: string;
+  quantity: number;
+  byStore: { storeId: string; quantity: number }[];
+}
+
+export interface IStoreSplit {
+  recommendationId: string;
+  orderMultiple: number | null;
+  stores: IStoreSplitStore[];
+  items: IStoreSplitItem[];
 }

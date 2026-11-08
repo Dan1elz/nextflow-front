@@ -1,4 +1,11 @@
-import { AlertTriangle, RefreshCw, ShoppingCart, Tag, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  RefreshCw,
+  ShoppingCart,
+  Tag,
+  X,
+} from "lucide-react";
 
 import { ForecastDetailView } from "@/components/app/forecast-detail";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -26,6 +33,8 @@ type RecommendationDetailSheetProps = {
   /** Promover pendente (Admin): o pai só passa quando o usuário pode. */
   onPromote?: (recommendation: IForecastRecommendationListItem) => void;
   onDismiss?: (recommendation: IForecastRecommendationListItem) => void;
+  /** "Transferir" pendente (F3.4b) abre a confirmação. */
+  onTransfer?: (recommendation: IForecastRecommendationListItem) => void;
 };
 
 /** Drawer lateral com o detalhe da recomendação (T-DF3). */
@@ -35,6 +44,7 @@ export function RecommendationDetailSheet({
   onBuy,
   onPromote,
   onDismiss,
+  onTransfer,
 }: RecommendationDetailSheetProps) {
   const pending = (rec: IForecastRecommendationListItem | null) =>
     rec?.status === TRecommendationStatus.Pending;
@@ -101,6 +111,16 @@ export function RecommendationDetailSheet({
               <Button onClick={() => onPromote(data)}>
                 <Tag data-icon="inline-start" />
                 Promover
+              </Button>
+            )}
+          {onTransfer &&
+            data &&
+            pending(data) &&
+            data.action === TRecommendationAction.Transfer &&
+            data.transfer && (
+              <Button onClick={() => onTransfer(data)}>
+                <ArrowRightLeft data-icon="inline-start" />
+                Transferir
               </Button>
             )}
           {onDismiss && data && pending(data) && (

@@ -193,16 +193,19 @@ function Products() {
       {
         accessorKey: "productType",
         header: "Tipo",
+        meta: { hideOnMobile: true },
         cell: ({ row }) => PRODUCT_TYPE_LABELS[row.original.productType],
       },
       {
         accessorKey: "categoryPath",
         header: "Categoria",
+        meta: { hideOnMobile: true },
         cell: ({ row }) => row.original.categoryPath ?? "-",
       },
       {
         accessorKey: "variantCount",
         header: "Variações",
+        meta: { hideOnMobile: true },
         cell: ({ row }) =>
           row.original.hasVariants ? row.original.variantCount : "Sem grade",
       },

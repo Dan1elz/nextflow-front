@@ -105,6 +105,39 @@ function StoresSettings() {
     setLocationDialog(null);
   };
 
+  /** Ações do local, as mesmas na tabela (desktop) e na linha do celular. */
+  const locationActions = (
+    store: StoreResponseDto,
+    location: LocationResponseDto,
+    isSale: boolean,
+    isReceive: boolean
+  ) => (
+    <NavActionColumn
+      object={location}
+      onEdit={() => setLocationDialog({ store, location })}
+      onDelete={() =>
+        run(() => deleteLocation(location.id), "Local inativado com sucesso")
+      }
+      onReactivate={() =>
+        run(
+          () => reactivateLocation(location.id),
+          "Local reativado com sucesso"
+        )
+      }
+      disableView
+      disableEdit={!store.isActive || !location.isActive}
+      // Decisão 7: a API recusa; aqui só não oferece inativar um padrão.
+      disableDelete={
+        !store.isActive || !location.isActive || isSale || isReceive
+      }
+      disableReactivate={!store.isActive || location.isActive}
+      deleteLabel="Inativar"
+      deleteDialogTitle="Inativar este local?"
+      deleteDialogDescription="O local sai dos combos. Você pode reativá-lo depois."
+      deleteButtonLabel="Inativar"
+    />
+  );
+
   const locationName = (store: StoreResponseDto, id?: string | null) =>
     store.locations.find((location) => location.id === id)?.name ?? "-";
 
@@ -192,85 +225,84 @@ function StoresSettings() {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Local</TableHead>
-                  <TableHead>Vendável</TableHead>
-                  <TableHead>Padrão</TableHead>
-                  <TableHead>Status</TableHead>
-                  {/* No celular a tabela rola: as ações ficam fixas para não sumirem à direita. */}
-                  <TableHead className="w-16 max-md:sticky max-md:right-0 max-md:bg-card">
-                    Ações
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {store.locations.map((location) => {
-                  const isSale = store.defaultSaleLocationId === location.id;
-                  const isReceive =
-                    store.defaultReceiveLocationId === location.id;
-                  return (
-                    <TableRow key={location.id}>
-                      <TableCell>{location.name}</TableCell>
-                      <TableCell>
-                        {location.isSellable ? "Sim" : "Não"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {isSale && <Badge variant="outline">Venda</Badge>}
-                          {isReceive && (
-                            <Badge variant="outline">Recebimento</Badge>
-                          )}
-                          {!isSale && !isReceive && "-"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={location.isActive ? "default" : "secondary"}
-                        >
-                          {location.isActive ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-md:sticky max-md:right-0 max-md:bg-card">
-                        <NavActionColumn
-                          object={location}
-                          onEdit={() => setLocationDialog({ store, location })}
-                          onDelete={() =>
-                            run(
-                              () => deleteLocation(location.id),
-                              "Local inativado com sucesso"
-                            )
-                          }
-                          onReactivate={() =>
-                            run(
-                              () => reactivateLocation(location.id),
-                              "Local reativado com sucesso"
-                            )
-                          }
-                          disableView
-                          disableEdit={!store.isActive || !location.isActive}
-                          // Decisão 7: a API recusa; aqui só não oferece inativar um padrão.
-                          disableDelete={
-                            !store.isActive ||
-                            !location.isActive ||
-                            isSale ||
-                            isReceive
-                          }
-                          disableReactivate={
-                            !store.isActive || location.isActive
-                          }
-                          deleteLabel="Inativar"
-                          deleteDialogTitle="Inativar este local?"
-                          deleteDialogDescription="O local sai dos combos. Você pode reativá-lo depois."
-                          deleteButtonLabel="Inativar"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            {/* Celular: uma linha por local, sem tabela para rolar. */}
+            <div className="divide-y rounded-xl border md:hidden">
+              {store.locations.map((location) => {
+                const isSale = store.defaultSaleLocationId === location.id;
+                const isReceive =
+                  store.defaultReceiveLocationId === location.id;
+                return (
+                  <div
+                    key={location.id}
+                    className="flex items-center justify-between gap-3 p-3"
+                  >
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <span className="font-medium">{location.name}</span>
+                      <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                        {location.isSellable ? "Vendável" : "Não vendável"}
+                        {isSale && <Badge variant="outline">Venda</Badge>}
+                        {isReceive && (
+                          <Badge variant="outline">Recebimento</Badge>
+                        )}
+                        {!location.isActive && (
+                          <Badge variant="secondary">Inativo</Badge>
+                        )}
+                      </div>
+                    </div>
+                    {locationActions(store, location, isSale, isReceive)}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Local</TableHead>
+                    <TableHead>Vendável</TableHead>
+                    <TableHead>Padrão</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-16">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {store.locations.map((location) => {
+                    const isSale = store.defaultSaleLocationId === location.id;
+                    const isReceive =
+                      store.defaultReceiveLocationId === location.id;
+                    return (
+                      <TableRow key={location.id}>
+                        <TableCell>{location.name}</TableCell>
+                        <TableCell>
+                          {location.isSellable ? "Sim" : "Não"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {isSale && <Badge variant="outline">Venda</Badge>}
+                            {isReceive && (
+                              <Badge variant="outline">Recebimento</Badge>
+                            )}
+                            {!isSale && !isReceive && "-"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              location.isActive ? "default" : "secondary"
+                            }
+                          >
+                            {location.isActive ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {locationActions(store, location, isSale, isReceive)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       ))}

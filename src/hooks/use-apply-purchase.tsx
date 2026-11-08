@@ -6,6 +6,7 @@ import type {
   IApplyPurchaseResult,
   IForecastRecommendationDetail,
   IForecastRecommendationListItem,
+  IStoreSplitStore,
 } from "@/interfaces/forecast.interface";
 import type { LocationOptionDto } from "@/interfaces/store.interface";
 import { ApiError } from "@/services/api.service";
@@ -31,11 +32,20 @@ export interface PurchaseGroupView {
   supplierId: string;
   supplierName: string;
   receiveLocationId: string;
+  /** Falso quando todos os itens estão divididos por loja: cada loja recebe no próprio local (RN-DF27). */
+  needsLocation: boolean;
   note: string;
   items: PurchaseRecommendationView[];
 }
 
 type ChosenSupplier = { id: string; name: string };
+
+/** Compra dividida entre lojas (RN-DF27): as lojas da sugestão e a quantidade de cada variação em cada loja. */
+export interface StoreSplitState {
+  stores: IStoreSplitStore[];
+  /** storeId → variantId → quantidade digitada. */
+  quantities: Record<string, Record<string, string>>;
+}
 
 /** Erros do formulário: `line:<rec>:<variante>:<campo>`, `group:<fornecedor>:<campo>`, `supplier:<rec>`. */
 export type PurchaseErrors = Record<string, string>;
@@ -82,6 +92,8 @@ export function useApplyPurchase(
   const [submitted, setSubmitted] = useState(false);
   const fetchedCosts = useRef(new Set<string>());
   const [missingCost, setMissingCost] = useState<Set<string>>(new Set());
+  const [splits, setSplits] = useState<Record<string, StoreSplitState>>({});
+  const [splitLoading, setSplitLoading] = useState<string | null>(null);
 
   // Rateio e memória do cálculo de cada recomendação (T-DF3).
   useEffect(() => {
@@ -163,10 +175,12 @@ export function useApplyPurchase(
         supplierId: supplier.id,
         supplierName: supplier.name,
         receiveLocationId: groupLocation[supplier.id] ?? defaultLocationId,
+        needsLocation: false,
         note: groupNote[supplier.id] ?? "",
         items: [],
       };
       group.items.push(view);
+      if (!splits[rec.id]) group.needsLocation = true;
       byId.set(supplier.id, group);
     }
     return { groups: [...byId.values()], unassigned: pending };
@@ -179,6 +193,7 @@ export function useApplyPurchase(
     groupLocation,
     defaultLocationId,
     groupNote,
+    splits,
   ]);
 
   // Custo padrão: último custo do produto × fornecedor, senão o último custo do produto (T-DF4).
@@ -230,10 +245,24 @@ export function useApplyPurchase(
 
   const validate = useCallback((): PurchaseErrors => {
     const errors: PurchaseErrors = {};
+    for (const [recId, split] of Object.entries(splits))
+      for (const [storeId, byVariant] of Object.entries(split.quantities))
+        for (const [variantId, value] of Object.entries(byVariant)) {
+          const quantity = parseDecimal(value || "0");
+          const key = `split:${recId}:${storeId}:${variantId}`;
+          if (Number.isNaN(quantity) || quantity < 0)
+            errors[key] = "Quantidade inválida.";
+          else if (
+            quantity > 0 &&
+            !split.stores.find((s) => s.storeId === storeId)?.receiveLocationId
+          )
+            errors[key] =
+              "A loja não tem local de recebimento padrão. Configure em Lojas.";
+        }
     for (const item of unassigned)
       errors[`supplier:${item.recommendation.id}`] = "Escolha o fornecedor.";
     for (const group of groups) {
-      if (!group.receiveLocationId)
+      if (group.needsLocation && !group.receiveLocationId)
         errors[`group:${group.supplierId}:receiveLocationId`] =
           "Escolha o local de entrega.";
       for (const item of group.items)
@@ -247,7 +276,7 @@ export function useApplyPurchase(
         }
     }
     return errors;
-  }, [groups, unassigned]);
+  }, [groups, unassigned, splits]);
 
   useEffect(() => {
     if (submitted) setClientErrors(validate());
@@ -283,6 +312,84 @@ export function useApplyPurchase(
   const setNote = (supplierId: string, note: string) =>
     setGroupNote((prev) => ({ ...prev, [supplierId]: note }));
 
+  /** Liga a divisão entre lojas: busca a sugestão (RN-DF27) e a quantidade da linha vira a soma das lojas. */
+  const enableSplit = async (recId: string) => {
+    setSplitLoading(recId);
+    try {
+      const suggestion = await forecastRunService.getStoreSplit(recId, auth);
+      const quantities: StoreSplitState["quantities"] = {};
+      for (const store of suggestion.stores) quantities[store.storeId] = {};
+      for (const item of suggestion.items)
+        for (const part of item.byStore)
+          quantities[part.storeId][item.variantId] = String(part.quantity);
+      setSplits((prev) => ({
+        ...prev,
+        [recId]: { stores: suggestion.stores, quantities },
+      }));
+      setLines((prev) => ({
+        ...prev,
+        [recId]: prev[recId].map((line) => {
+          const item = suggestion.items.find(
+            (i) => i.variantId === line.variantId
+          );
+          return item ? { ...line, quantity: String(item.quantity) } : line;
+        }),
+      }));
+    } finally {
+      setSplitLoading(null);
+    }
+  };
+
+  // A análise já grava a parte de cada loja (RN-DF27): com 2+ lojas o dialog abre dividido.
+  const autoSplit = useRef(new Set<string>());
+  useEffect(() => {
+    if (!loaded) return;
+    for (const rec of recommendations) {
+      if ((rec.storeSplit?.length ?? 0) < 2 || autoSplit.current.has(rec.id))
+        continue;
+      autoSplit.current.add(rec.id);
+      void enableSplit(rec.id).catch(() => undefined);
+    }
+    // enableSplit é recriada a cada render; o ref garante uma chamada por recomendação.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, recommendations]);
+
+  const disableSplit = (recId: string) =>
+    setSplits((prev) => {
+      const next = { ...prev };
+      delete next[recId];
+      return next;
+    });
+
+  const setSplitQuantity = (
+    recId: string,
+    storeId: string,
+    variantId: string,
+    value: string
+  ) => {
+    setSplits((prev) => {
+      const split = prev[recId];
+      if (!split) return prev;
+      const quantities = {
+        ...split.quantities,
+        [storeId]: { ...split.quantities[storeId], [variantId]: value },
+      };
+      const total = Object.values(quantities).reduce((sum, byVariant) => {
+        const quantity = parseDecimal(byVariant[variantId] || "0");
+        return sum + (quantity > 0 ? quantity : 0);
+      }, 0);
+      setLines((lines) => ({
+        ...lines,
+        [recId]: lines[recId].map((line) =>
+          line.variantId === variantId
+            ? { ...line, quantity: String(total) }
+            : line
+        ),
+      }));
+      return { ...prev, [recId]: { ...split, quantities } };
+    });
+  };
+
   const chooseSupplier = (recId: string, supplier: ChosenSupplier | null) =>
     setChosen((prev) => {
       const next = { ...prev };
@@ -298,12 +405,46 @@ export function useApplyPurchase(
     setClientErrors(errors);
     if (Object.keys(errors).length > 0) return null;
 
-    const drafts: PurchaseGroupDraft[] = groups.map((group) => ({
-      supplierId: group.supplierId,
-      receiveLocationId: group.receiveLocationId,
-      note: group.note,
-      lines: group.items.flatMap((item) => item.lines),
-    }));
+    // Um pedido por fornecedor × local: recomendação dividida manda cada loja para o local de recebimento dela (RN-DF27).
+    const drafts: PurchaseGroupDraft[] = [];
+    const draftFor = (group: PurchaseGroupView, locationId: string) => {
+      let draft = drafts.find(
+        (d) =>
+          d.supplierId === group.supplierId &&
+          d.receiveLocationId === locationId
+      );
+      if (!draft) {
+        draft = {
+          supplierId: group.supplierId,
+          receiveLocationId: locationId,
+          note: group.note,
+          lines: [],
+        };
+        drafts.push(draft);
+      }
+      return draft;
+    };
+    for (const group of groups)
+      for (const item of group.items) {
+        const split = splits[item.recommendation.id];
+        if (!split) {
+          draftFor(group, group.receiveLocationId).lines.push(...item.lines);
+          continue;
+        }
+        for (const store of split.stores) {
+          if (!store.receiveLocationId) continue;
+          for (const line of item.lines) {
+            const quantity = parseDecimal(
+              split.quantities[store.storeId]?.[line.variantId] || "0"
+            );
+            if (quantity > 0)
+              draftFor(group, store.receiveLocationId).lines.push({
+                ...line,
+                quantity: String(quantity),
+              });
+          }
+        }
+      }
     const { request, groupKeys, itemKeys } = buildPurchaseRequest(drafts);
 
     setSubmitting(true);
@@ -352,6 +493,11 @@ export function useApplyPurchase(
     formError,
     submitting,
     missingCost,
+    splits,
+    splitLoading,
+    enableSplit,
+    disableSplit,
+    setSplitQuantity,
     setLine,
     setLocation,
     setNote,

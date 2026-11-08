@@ -17,6 +17,7 @@ import type {
   IForecastRunProgress,
   IForecastRunSummary,
   IProductForecast,
+  IStoreSplit,
 } from "@/interfaces/forecast.interface";
 
 const apiService = new ApiService();
@@ -66,6 +67,15 @@ export const forecastRunService = {
   },
 
   /** GET /api/forecasts/recommendations/{id}?storeId= (T-DF3) */
+  /** GET /forecasts/recommendations/{id}/store-split: divisão sugerida entre as lojas (RN-DF27). */
+  getStoreSplit(id: string, token?: string): Promise<IStoreSplit> {
+    return apiService.get<IStoreSplit>(
+      `forecasts/recommendations/${id}/store-split`,
+      undefined,
+      token
+    );
+  },
+
   getRecommendation(
     id: string,
     token?: string,
@@ -117,6 +127,18 @@ export const forecastRunService = {
   },
 
   /** POST /api/forecasts/recommendations/{id}/dismiss (T-DF8): exige corpo, mesmo vazio; devolve a linha. */
+  /** POST /forecasts/recommendations/{id}/transfer: gera a transferência sugerida (F3.4b, RN-CE62). */
+  applyTransfer(
+    id: string,
+    token?: string
+  ): Promise<IForecastRecommendationListItem> {
+    return apiService.post<IForecastRecommendationListItem>(
+      `forecasts/recommendations/${id}/transfer`,
+      {},
+      token
+    );
+  },
+
   dismiss(
     id: string,
     request: IDismissRecommendationRequest,

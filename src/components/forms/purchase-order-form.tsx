@@ -4,21 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PackagePlus, Trash2 } from "lucide-react";
 
 import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
+import { PurchaseItemPicker } from "@/components/app/purchase-item-picker";
 import { SearchSelect } from "@/components/app/search-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
+  EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
@@ -28,13 +23,11 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import {
   Select,
   SelectContent,
@@ -43,19 +36,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useApiForm } from "@/hooks/use-api-form";
-import { useDebounce } from "@/hooks/use-debounce";
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
 import type { IOption } from "@/interfaces/api.interface";
 import type {
@@ -269,229 +253,137 @@ export function PurchaseOrderForm({
         );
       })}
     >
-      <FieldGroup className="grid gap-5 md:grid-cols-2">
-        <Controller
-          control={form.control}
-          name="supplierId"
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <SearchSelect<IOption>
-                field={{
-                  value: field.value,
-                  onChange: (value) =>
-                    field.onChange(value ? String(value) : ""),
-                }}
-                label="Fornecedor"
-                data={supplierOptions}
-                onSearch={searchSuppliers}
-                placeholder="Digite para buscar"
-                disabled={isSubmitting || fields.length > 0}
-              />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+        <Card className="min-w-0">
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CardTitle>Itens</CardTitle>
               {fields.length > 0 && (
-                <FieldDescription>
-                  Remova os itens para trocar o fornecedor.
-                </FieldDescription>
+                <Badge variant="secondary" className="tabular-nums">
+                  {fields.length} {fields.length === 1 ? "item" : "itens"}
+                </Badge>
               )}
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="receiveLocationId"
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="receiveLocationId">
-                Local de entrega
-              </FieldLabel>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-                disabled={isSubmitting || fields.length > 0 || locationLocked}
-              >
-                <SelectTrigger
-                  id="receiveLocationId"
-                  aria-invalid={fieldState.invalid}
-                >
-                  <SelectValue placeholder="Escolha o local" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {locationOptions.map((location) => (
-                      <SelectItem key={location.id} value={location.id}>
-                        {location.storeName} › {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              {locationLocked && (
-                <FieldDescription>
-                  Local de recebimento padrão da loja selecionada no topo.
-                </FieldDescription>
-              )}
-              {initialData && (
-                <FieldDescription>
-                  Prazo de {initialData.leadTimeDays} dia(s)
-                  {initialData.expectedOn
-                    ? `, previsão em ${formatDateOnly(initialData.expectedOn)}`
-                    : ""}
-                  .
-                </FieldDescription>
-              )}
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-        <Controller
-          control={form.control}
-          name="note"
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid} className="md:col-span-2">
-              <FieldLabel htmlFor="note">Observação</FieldLabel>
-              <Textarea
-                {...field}
-                id="note"
-                aria-invalid={fieldState.invalid}
-                disabled={isSubmitting}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        <div className="flex flex-col gap-3 md:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Label>Itens</Label>
-            <VariantPicker
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <PurchaseItemPicker
               supplierId={supplierId}
               disabled={!supplierId || !receiveLocationId || isSubmitting}
+              disabledHint={
+                !supplierId
+                  ? "Escolha o fornecedor ao lado para buscar os itens"
+                  : "Escolha o local de entrega ao lado"
+              }
               search={searchVariantOptions}
               onSelect={addVariant}
             />
-          </div>
-
-          {fields.length === 0 ? (
-            <Empty className="border">
-              <EmptyHeader>
-                <EmptyTitle>Nenhum item</EmptyTitle>
-                <EmptyDescription>
-                  Escolha o fornecedor e o local de entrega e adicione as
-                  variações. A compra é sempre na unidade de venda.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="overflow-x-auto rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Quantidade</TableHead>
-                    <TableHead>Custo unitário</TableHead>
-                    <TableHead>Estoque</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {fields.map((row, index) => {
-                    const info = suggestions[row.variantId];
-                    return (
-                      <TableRow key={row.id}>
-                        <TableCell className="min-w-56">
-                          <div className="flex flex-col gap-1">
-                            <span className="font-medium">
-                              {info ? variantName(info) : row.variantId}
-                            </span>
-                            <span className="text-muted-foreground text-xs">
-                              SKU {info?.sku}
-                              {info?.supplierSku
-                                ? ` · no fornecedor ${info.supplierSku}`
-                                : ""}
-                            </span>
-                            <div className="flex flex-wrap gap-1">
-                              {info?.lifecycle === TLifecycle.Discontinued && (
-                                <Badge variant="destructive">
-                                  {LIFECYCLE_LABELS[info.lifecycle]}
-                                </Badge>
-                              )}
-                              {info?.minOrderQty != null && (
-                                <Badge variant="outline">
-                                  Mínimo{" "}
-                                  {formatNumber(
-                                    info.minOrderQty,
-                                    info.decimalPlaces
-                                  )}
-                                </Badge>
-                              )}
-                              {info?.orderMultiple != null && (
-                                <Badge variant="outline">
-                                  Múltiplo{" "}
-                                  {formatNumber(
-                                    info.orderMultiple,
-                                    info.decimalPlaces
-                                  )}
-                                </Badge>
-                              )}
-                            </div>
-                            {/* 422 da API na variação (inativa, repetida): sem campo próprio, aparece na linha. */}
-                            {form.formState.errors.items?.[index]
-                              ?.variantId && (
-                              <FieldError
-                                errors={[
-                                  form.formState.errors.items[index].variantId,
-                                ]}
-                              />
+            <div className="flex flex-col">
+              {fields.length === 0 ? (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <PackagePlus />
+                    </EmptyMedia>
+                    <EmptyTitle>Nenhum item</EmptyTitle>
+                    <EmptyDescription>
+                      {supplierId && receiveLocationId
+                        ? "Busque acima ou bipe o código. A compra é sempre na unidade de venda."
+                        : "Escolha o fornecedor e o local de entrega ao lado para adicionar os itens."}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : (
+                fields.map((row, index) => {
+                  const info = suggestions[row.variantId];
+                  return (
+                    <div key={row.id} className="flex flex-col gap-3">
+                      {index > 0 && <Separator />}
+                      <div className="grid gap-3 py-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                        <div className="flex min-w-0 flex-col gap-1">
+                          <span className="font-medium">
+                            {info ? variantName(info) : row.variantId}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            SKU {info?.sku}
+                            {info?.supplierSku
+                              ? ` · no fornecedor ${info.supplierSku}`
+                              : ""}
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {info?.lifecycle === TLifecycle.Discontinued && (
+                              <Badge variant="destructive">
+                                {LIFECYCLE_LABELS[info.lifecycle]}
+                              </Badge>
+                            )}
+                            {info?.minOrderQty != null && (
+                              <Badge variant="outline">
+                                Mínimo{" "}
+                                {formatNumber(
+                                  info.minOrderQty,
+                                  info.decimalPlaces
+                                )}
+                              </Badge>
+                            )}
+                            {info?.orderMultiple != null && (
+                              <Badge variant="outline">
+                                Múltiplo{" "}
+                                {formatNumber(
+                                  info.orderMultiple,
+                                  info.decimalPlaces
+                                )}
+                              </Badge>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell className="min-w-32">
-                          <ItemInput
-                            form={form}
-                            name={`items.${index}.quantity`}
-                            label="Quantidade"
-                            disabled={isSubmitting}
-                          />
                           {info && (
-                            <span className="text-muted-foreground text-xs">
-                              {SALE_UNIT_LABELS[info.saleUnit]}
+                            <span className="text-xs text-muted-foreground">
+                              Disponível na loja{" "}
+                              {formatNumber(
+                                info.availableAtStore,
+                                info.decimalPlaces
+                              )}
+                              {" · "}A caminho{" "}
+                              {formatNumber(
+                                info.incomingQuantity,
+                                info.decimalPlaces
+                              )}
                             </span>
                           )}
-                        </TableCell>
-                        <TableCell className="min-w-32">
-                          <ItemInput
-                            form={form}
-                            name={`items.${index}.unitCost`}
-                            label="Custo unitário"
-                            disabled={isSubmitting}
-                          />
-                          {info?.averageCost != null && (
-                            <span className="text-muted-foreground text-xs">
-                              Médio {formatCurrency(info.averageCost)}
+                          {/* 422 da API na variação (inativa, repetida): sem campo próprio, aparece na linha. */}
+                          {form.formState.errors.items?.[index]?.variantId && (
+                            <FieldError
+                              errors={[
+                                form.formState.errors.items[index].variantId,
+                              ]}
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-end gap-2">
+                          <div className="flex w-28 flex-col gap-1">
+                            <span className="text-xs text-muted-foreground">
+                              Quantidade
+                              {info
+                                ? ` (${SALE_UNIT_LABELS[info.saleUnit].toLowerCase()})`
+                                : ""}
                             </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground min-w-36 text-xs">
-                          {info && (
-                            <div className="flex flex-col gap-1">
-                              <span>
-                                Disponível{" "}
-                                {formatNumber(
-                                  info.availableAtStore,
-                                  info.decimalPlaces
-                                )}
-                              </span>
-                              <span>
-                                A caminho{" "}
-                                {formatNumber(
-                                  info.incomingQuantity,
-                                  info.decimalPlaces
-                                )}
-                              </span>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
+                            <ItemInput
+                              form={form}
+                              name={`items.${index}.quantity`}
+                              label="Quantidade"
+                              disabled={isSubmitting}
+                            />
+                          </div>
+                          <div className="flex w-32 flex-col gap-1">
+                            <span className="text-xs text-muted-foreground">
+                              Custo unitário
+                            </span>
+                            <ItemInput
+                              form={form}
+                              name={`items.${index}.unitCost`}
+                              label="Custo unitário"
+                              disabled={isSubmitting}
+                              prefix="R$"
+                            />
+                          </div>
                           <Button
                             type="button"
                             variant="ghost"
@@ -502,30 +394,178 @@ export function PurchaseOrderForm({
                           >
                             <Trash2 />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                        </div>
+                      </div>
+                      {info?.averageCost != null && (
+                        <span className="-mt-2 text-right text-xs text-muted-foreground">
+                          Custo médio atual {formatCurrency(info.averageCost)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
-          )}
-          {itemsError && <FieldError>{itemsError}</FieldError>}
-          {initialData && (
-            <p className="text-muted-foreground text-sm">
-              Total salvo: {formatCurrency(initialData.total)}. O total é
-              recalculado ao salvar.
-            </p>
-          )}
-        </div>
+            {itemsError && <FieldError>{itemsError}</FieldError>}
+          </CardContent>
+        </Card>
 
-        <div className="flex justify-end md:col-span-2">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Spinner data-icon="inline-start" />}
-            {mode === "edit" ? "Salvar" : "Criar orçamento"}
-          </Button>
-        </div>
-      </FieldGroup>
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Fornecedor e entrega</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FieldGroup>
+                <Controller
+                  control={form.control}
+                  name="supplierId"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <SearchSelect<IOption>
+                        field={{
+                          value: field.value,
+                          onChange: (value) =>
+                            field.onChange(value ? String(value) : ""),
+                        }}
+                        label="Fornecedor"
+                        data={supplierOptions}
+                        onSearch={searchSuppliers}
+                        placeholder="Digite para buscar"
+                        disabled={isSubmitting || fields.length > 0}
+                      />
+                      {fields.length > 0 && (
+                        <FieldDescription>
+                          Remova os itens para trocar o fornecedor.
+                        </FieldDescription>
+                      )}
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name="receiveLocationId"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="receiveLocationId">
+                        Local de entrega
+                      </FieldLabel>
+                      <Select
+                        value={field.value}
+                        // O Radix chama com "" quando o valor chega antes das opções (local padrão antes da lista):
+                        // ignorar, senão o local zera e os itens nunca liberam.
+                        onValueChange={(value) =>
+                          value && field.onChange(value)
+                        }
+                        disabled={
+                          isSubmitting || fields.length > 0 || locationLocked
+                        }
+                      >
+                        <SelectTrigger
+                          id="receiveLocationId"
+                          aria-invalid={fieldState.invalid}
+                        >
+                          <SelectValue placeholder="Escolha o local" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {locationOptions.map((location) => (
+                              <SelectItem key={location.id} value={location.id}>
+                                {location.storeName} › {location.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      {locationLocked && (
+                        <FieldDescription>
+                          Local de recebimento padrão da loja selecionada no
+                          topo.
+                        </FieldDescription>
+                      )}
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  control={form.control}
+                  name="note"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="note">Observação</FieldLabel>
+                      <Textarea
+                        {...field}
+                        id="note"
+                        placeholder="Opcional: condição combinada, contato etc."
+                        aria-invalid={fieldState.invalid}
+                        disabled={isSubmitting}
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Resumo</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <dl className="flex flex-col gap-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">Itens</dt>
+                  <dd className="tabular-nums">{fields.length}</dd>
+                </div>
+                {initialData && (
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted-foreground">Prazo</dt>
+                    <dd>
+                      {initialData.leadTimeDays} dia(s)
+                      {initialData.expectedOn
+                        ? ` · ${formatDateOnly(initialData.expectedOn)}`
+                        : ""}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              {initialData && (
+                <>
+                  <Separator />
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="font-medium">Total salvo</span>
+                    <span className="text-2xl font-semibold text-primary tabular-nums">
+                      {formatCurrency(initialData.total)}
+                    </span>
+                  </div>
+                </>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {mode === "edit"
+                  ? "O total e o prazo são recalculados pelo sistema ao salvar."
+                  : "O pedido nasce como orçamento: o total e o prazo são calculados pelo sistema ao criar, e nada é enviado ao fornecedor."}
+              </p>
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Spinner data-icon="inline-start" />}
+                {mode === "edit" ? "Salvar" : "Criar orçamento"}
+              </Button>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
       <ConfirmWarningDialog state={confirmWarning} />
     </form>
   );
@@ -536,11 +576,13 @@ function ItemInput({
   name,
   label,
   disabled,
+  prefix,
 }: {
   form: ReturnType<typeof useForm<PurchaseOrderFormData>>;
   name: `items.${number}.quantity` | `items.${number}.unitCost`;
   label: string;
   disabled: boolean;
+  prefix?: string;
 }) {
   return (
     <Controller
@@ -548,123 +590,21 @@ function ItemInput({
       name={name}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
-          <Input
-            {...field}
-            value={field.value ?? ""}
-            inputMode="decimal"
-            aria-label={label}
-            aria-invalid={fieldState.invalid}
-            disabled={disabled}
-          />
+          <InputGroup>
+            {prefix && <InputGroupAddon>{prefix}</InputGroupAddon>}
+            <InputGroupInput
+              {...field}
+              value={field.value ?? ""}
+              inputMode="decimal"
+              className="tabular-nums"
+              aria-label={label}
+              aria-invalid={fieldState.invalid}
+              disabled={disabled}
+            />
+          </InputGroup>
           {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
       )}
     />
-  );
-}
-
-/** Busca de variações (T-CP2): por padrão só as do fornecedor; "mostrar todos" abre o catálogo inteiro. */
-function VariantPicker({
-  supplierId,
-  disabled,
-  search,
-  onSelect,
-}: {
-  supplierId: string;
-  disabled: boolean;
-  search: (
-    supplierId: string,
-    search: string,
-    onlyLinked: boolean
-  ) => Promise<PurchaseVariantOptionDto[]>;
-  onSelect: (option: PurchaseVariantOptionDto) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [term, setTerm] = useState("");
-  const [showAll, setShowAll] = useState(false);
-  const [options, setOptions] = useState<PurchaseVariantOptionDto[]>([]);
-  const debouncedTerm = useDebounce(term, 300);
-  // A busca em andamento é a que ainda não respondeu: compara a chave pedida com a última respondida.
-  const requestKey = `${supplierId}|${showAll}|${debouncedTerm}`;
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
-  const loading = open && loadedKey !== requestKey;
-
-  useEffect(() => {
-    if (!open || !supplierId) return;
-    let active = true;
-    search(supplierId, debouncedTerm, !showAll)
-      .then((result) => {
-        if (!active) return;
-        setOptions(result);
-        setLoadedKey(`${supplierId}|${showAll}|${debouncedTerm}`);
-      })
-      .catch((error) => handleError(error, "Erro ao buscar itens"));
-    return () => {
-      active = false;
-    };
-  }, [debouncedTerm, open, search, showAll, supplierId]);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="outline" disabled={disabled}>
-          <PackagePlus data-icon="inline-start" />
-          Adicionar item
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[min(24rem,calc(100vw-2rem))] p-0"
-        align="end"
-      >
-        <Command shouldFilter={false}>
-          <CommandInput
-            value={term}
-            onValueChange={setTerm}
-            placeholder="Nome, SKU ou código de barras"
-          />
-          <div className="flex items-center gap-2 border-b px-3 py-2">
-            <Switch
-              id="show-all-products"
-              checked={showAll}
-              onCheckedChange={setShowAll}
-            />
-            <Label htmlFor="show-all-products">Mostrar todos os produtos</Label>
-          </div>
-          <CommandList>
-            {loading ? (
-              <div className="flex justify-center p-4">
-                <Spinner />
-              </div>
-            ) : (
-              <>
-                <CommandEmpty>Nenhuma variação encontrada.</CommandEmpty>
-                <CommandGroup>
-                  {options.map((option) => (
-                    <CommandItem
-                      key={option.variantId}
-                      value={option.variantId}
-                      onSelect={async () => {
-                        setOpen(false);
-                        await onSelect(option);
-                      }}
-                    >
-                      <div className="flex flex-1 flex-col">
-                        <span>{variantName(option)}</span>
-                        <span className="text-muted-foreground text-xs">
-                          SKU {option.sku}
-                        </span>
-                      </div>
-                      {!option.isLinked && (
-                        <Badge variant="secondary">Sem vínculo</Badge>
-                      )}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
   );
 }

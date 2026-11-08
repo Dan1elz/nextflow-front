@@ -76,55 +76,111 @@ function StockPolicySettings() {
           {loading ? (
             <Skeleton className="h-40 w-full" />
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Classe</TableHead>
-                    <TableHead>Regra</TableHead>
-                    <TableHead className="text-right">Cobertura alvo</TableHead>
-                    <TableHead className="text-right">
-                      Dias de segurança
-                    </TableHead>
-                    <TableHead className="text-right">Produtos</TableHead>
-                    <TableHead className="sr-only">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {policies.map((policy) => (
-                    <TableRow key={policy.id}>
-                      <TableCell>
-                        <Badge variant="outline">
+            <>
+              {/* Celular: um card por classe. */}
+              <div className="flex flex-col gap-3 md:hidden">
+                {policies.map((policy) => (
+                  <div
+                    key={policy.id}
+                    className="flex flex-col gap-3 rounded-xl border p-4"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <Badge variant="outline" className="self-start">
                           {ABC_CLASS_LABELS[policy.abcClass]}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {CLASS_RULES[policy.abcClass]}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {policy.targetCoverageDays} dias
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {policy.safetyDays} dias
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {policy.productCount}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Editar ${ABC_CLASS_LABELS[policy.abcClass]}`}
-                          onClick={() => setEditing(policy)}
-                        >
-                          <Pencil />
-                        </Button>
-                      </TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {CLASS_RULES[policy.abcClass]}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Editar ${ABC_CLASS_LABELS[policy.abcClass]}`}
+                        onClick={() => setEditing(policy)}
+                      >
+                        <Pencil />
+                      </Button>
+                    </div>
+                    <dl className="grid grid-cols-3 gap-2 text-center">
+                      <div className="flex flex-col gap-0.5 rounded-lg bg-muted p-2">
+                        <dt className="text-xs text-muted-foreground">
+                          Cobertura
+                        </dt>
+                        <dd className="font-semibold">
+                          {policy.targetCoverageDays} dias
+                        </dd>
+                      </div>
+                      <div className="flex flex-col gap-0.5 rounded-lg bg-muted p-2">
+                        <dt className="text-xs text-muted-foreground">
+                          Segurança
+                        </dt>
+                        <dd className="font-semibold">
+                          {policy.safetyDays} dias
+                        </dd>
+                      </div>
+                      <div className="flex flex-col gap-0.5 rounded-lg bg-muted p-2">
+                        <dt className="text-xs text-muted-foreground">
+                          Produtos
+                        </dt>
+                        <dd className="font-semibold">{policy.productCount}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto rounded-lg border md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Classe</TableHead>
+                      <TableHead>Regra</TableHead>
+                      <TableHead className="text-right">
+                        Cobertura alvo
+                      </TableHead>
+                      <TableHead className="text-right">
+                        Dias de segurança
+                      </TableHead>
+                      <TableHead className="text-right">Produtos</TableHead>
+                      <TableHead className="sr-only">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {policies.map((policy) => (
+                      <TableRow key={policy.id}>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {ABC_CLASS_LABELS[policy.abcClass]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {CLASS_RULES[policy.abcClass]}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {policy.targetCoverageDays} dias
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {policy.safetyDays} dias
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {policy.productCount}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Editar ${ABC_CLASS_LABELS[policy.abcClass]}`}
+                            onClick={() => setEditing(policy)}
+                          >
+                            <Pencil />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

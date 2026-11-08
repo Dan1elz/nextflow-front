@@ -148,4 +148,33 @@ describe("VariantSalePicker", () => {
       await screen.findByText(/Nenhum produto com o código doc/)
     ).toBeInTheDocument();
   });
+
+  it("adiciona sozinho, sem Enter, quando o termo é exatamente um código de barras", async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(<VariantSalePicker onSelect={onSelect} />);
+
+    const input = screen.getByLabelText("Buscar produto para venda");
+    await user.click(input);
+    await user.type(input, "7891000100110");
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+    expect(onSelect.mock.calls[0][0].variantId).toBe("var-2");
+    expect(input).toHaveValue("");
+    expect(input).toHaveFocus();
+  });
+
+  it("não adiciona sozinho quando o termo só começa igual a um código", async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(<VariantSalePicker onSelect={onSelect} />);
+
+    const input = screen.getByLabelText("Buscar produto para venda");
+    await user.click(input);
+    await user.type(input, "7891000100");
+    await screen.findByText("Beijinho");
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(input).toHaveValue("7891000100");
+  });
 });

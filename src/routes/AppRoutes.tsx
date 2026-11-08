@@ -7,12 +7,15 @@ import { Login } from "@/pages/Auth/Login";
 import { PrivateRoutes } from "./PrivateRoutes";
 import { PublicRoutes } from "./PublicRoutes";
 import { Home } from "@/pages/Home";
+import DashboardExpiringLotsPage from "@/pages/Dashboard/ExpiringLots";
+import DashboardLowStockPage from "@/pages/Dashboard/LowStock";
 import Profile from "@/pages/Profile";
 import StoresSettingsPage from "@/pages/Settings/Stores";
 import StockPolicySettingsPage from "@/pages/Settings/StockPolicy";
 import ForecastSettingsPage from "@/pages/Settings/ForecastSettings";
 import ForecastHistoryPage from "@/pages/ForecastHistory";
 import ForecastAccuracyPage from "@/pages/ForecastAccuracy";
+import ForecastPromotePage from "@/pages/ForecastPromote";
 import ViewUserPageWrapper from "@/pages/User/View";
 import ClientsPageWrapper from "@/pages/Clients";
 import CreateClientPageWrapper from "@/pages/Client/Create";
@@ -63,6 +66,11 @@ function AppRoutes() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route path="dashboard/low-stock" element={<DashboardLowStockPage />} />
+        <Route
+          path="dashboard/expiring-lots"
+          element={<DashboardExpiringLotsPage />}
+        />
         <Route path="profile" element={<Profile />} />
         <Route
           path="settings"
@@ -131,6 +139,7 @@ function AppRoutes() {
         <Route path="forecast" element={<ForecastPageWrapper />} />
         <Route path="forecast/history" element={<ForecastHistoryPage />} />
         <Route path="forecast/accuracy" element={<ForecastAccuracyPage />} />
+        <Route path="forecast/promote" element={<ForecastPromotePage />} />
         <Route path="promotions" element={<PromotionsPageWrapper />} />
       </Route>
 

@@ -19,6 +19,8 @@ import {
   Search,
   ShoppingCart,
   Sparkles,
+  TicketPercent,
+  X,
 } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -52,6 +54,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApplyPromotionDialog } from "@/components/app/apply-promotion-dialog";
 import { ApplyPurchaseDialog } from "@/components/app/apply-purchase-dialog";
+import { ApplyTransferDialog } from "@/components/app/apply-transfer-dialog";
 import { DismissRecommendationDialog } from "@/components/app/dismiss-recommendation-dialog";
 import { DataTable } from "@/components/app/data-table";
 import { ListFiltersSheet } from "@/components/app/list-filters-sheet";
@@ -328,8 +331,20 @@ function RunHeader({
 function Suggestion({ rec }: { rec: IForecastRecommendationListItem }) {
   if (rec.action === TRecommendationAction.Buy && rec.suggestedQuantity)
     return (
-      <span className="font-semibold tabular-nums">
-        {formatQty(rec, rec.suggestedQuantity)}
+      <span className="flex flex-col">
+        <span className="font-semibold tabular-nums">
+          {formatQty(rec, rec.suggestedQuantity)}
+        </span>
+        {rec.storeSplit?.length > 1 && (
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {rec.storeSplit
+              .map(
+                (store) =>
+                  `${store.storeName} ${formatQty(rec, store.quantity)}`
+              )
+              .join(" · ")}
+          </span>
+        )}
       </span>
     );
   if (
@@ -344,7 +359,17 @@ function Suggestion({ rec }: { rec: IForecastRecommendationListItem }) {
           : ""}
       </span>
     );
-  // Transferir (origem → destino) entra com a F3.4b; hoje `transfer` vem sempre nulo.
+  if (rec.action === TRecommendationAction.Transfer && rec.transfer)
+    return (
+      <span className="flex flex-col">
+        <span className="font-semibold tabular-nums">
+          {formatQty(rec, rec.transfer.quantity)}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {rec.transfer.fromLocationName} → {rec.transfer.toLocationName}
+        </span>
+      </span>
+    );
   return <span className="text-muted-foreground">—</span>;
 }
 
@@ -570,8 +595,12 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
   const admin = isAdmin(user);
   const [promoting, setPromoting] =
     useState<IForecastRecommendationListItem | null>(null);
-  const [dismissing, setDismissing] =
+  const [dismissing, setDismissing] = useState<
+    IForecastRecommendationListItem | IForecastRecommendationListItem[] | null
+  >(null);
+  const [transferring, setTransferring] =
     useState<IForecastRecommendationListItem | null>(null);
+  const navigate = useNavigate();
   // As ações ficam no detalhe (nome do produto). Ao abrir um modal a partir
   // dele, o detalhe some e volta quando o modal fecha.
   const [returnToId, setReturnToId] = useState<string | null>(null);
@@ -597,6 +626,17 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
   };
   const selectedBuyable = recommendations.filter(
     (rec) => selectedIds.includes(rec.id) && isBuyable(rec)
+  );
+  const selectedPromotable = recommendations.filter(
+    (rec) =>
+      selectedIds.includes(rec.id) &&
+      rec.action === TRecommendationAction.Promote &&
+      rec.status === TRecommendationStatus.Pending
+  );
+  const selectedPending = recommendations.filter(
+    (rec) =>
+      selectedIds.includes(rec.id) &&
+      rec.status === TRecommendationStatus.Pending
   );
   const [draft, setDraft] = useState(() => pickSheetFilters(query.filters));
 
@@ -767,11 +807,34 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {selectedBuyable.length > 0 && (
-              <div className="flex justify-end">
-                <Button onClick={() => openBuy(selectedBuyable)}>
-                  <ShoppingCart data-icon="inline-start" />
-                  Comprar selecionados ({selectedBuyable.length})
+            {selectedPending.length > 0 && (
+              <div className="flex flex-wrap justify-end gap-2">
+                {selectedBuyable.length > 0 && (
+                  <Button onClick={() => openBuy(selectedBuyable)}>
+                    <ShoppingCart data-icon="inline-start" />
+                    Comprar selecionados ({selectedBuyable.length})
+                  </Button>
+                )}
+                {admin && selectedPromotable.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      navigate(
+                        `/forecast/promote?ids=${selectedPromotable.map((rec) => rec.id).join(",")}`,
+                        { state: { recommendations: selectedPromotable } }
+                      )
+                    }
+                  >
+                    <TicketPercent data-icon="inline-start" />
+                    Promover selecionados ({selectedPromotable.length})
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setDismissing(selectedPending)}
+                >
+                  <X data-icon="inline-start" />
+                  Descartar selecionados ({selectedPending.length})
                 </Button>
               </div>
             )}
@@ -795,6 +858,7 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
           onBuy={readOnly ? undefined : fromDetail((rec) => openBuy([rec]))}
           onPromote={admin && !readOnly ? fromDetail(setPromoting) : undefined}
           onDismiss={readOnly ? undefined : fromDetail(setDismissing)}
+          onTransfer={readOnly ? undefined : fromDetail(setTransferring)}
         />
         <ApplyPromotionDialog
           recommendation={promoting}
@@ -810,6 +874,15 @@ function RecommendationsCard({ run }: { run: IForecastRunSummary }) {
           onOpenChange={(open) => {
             if (open) return;
             setDismissing(null);
+            backToDetail();
+          }}
+          onDone={afterAction}
+        />
+        <ApplyTransferDialog
+          recommendation={transferring}
+          onOpenChange={(open) => {
+            if (open) return;
+            setTransferring(null);
             backToDetail();
           }}
           onDone={afterAction}

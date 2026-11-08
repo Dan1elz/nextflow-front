@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 
 import { PurchaseOrderForm } from "@/components/forms/purchase-order-form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { usePurchaseOrders } from "@/hooks/use-purchase-orders";
@@ -39,40 +38,36 @@ function EditPurchaseOrder() {
   }, [getPurchaseOrderForm, id, navigate]);
 
   return (
-    <div className="container mx-auto flex max-w-7xl flex-col gap-4 p-4 pt-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Voltar"
-            onClick={() => navigate(`/purchase-orders/${id}/view`)}
-          >
-            <ArrowLeft />
-          </Button>
-          <CardTitle>
-            {form
-              ? `Editar pedido de compra nº ${form.number}`
-              : "Editar pedido de compra"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {form && id ? (
-            <PurchaseOrderForm
-              mode="edit"
-              storeId={storeId}
-              initialData={form}
-              onSubmit={async (dto) => {
-                await updatePurchaseOrder(id, dto);
-                handleSuccess("Pedido de compra atualizado");
-                navigate(`/purchase-orders/${id}/view`);
-              }}
-            />
-          ) : (
-            <Skeleton className="h-64 w-full" />
-          )}
-        </CardContent>
-      </Card>
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-4">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Voltar"
+          onClick={() => navigate(`/purchase-orders/${id}/view`)}
+        >
+          <ArrowLeft />
+        </Button>
+        <h1 className="text-2xl font-semibold">
+          {form
+            ? `Editar pedido de compra nº ${form.number}`
+            : "Editar pedido de compra"}
+        </h1>
+      </div>
+      {form && id ? (
+        <PurchaseOrderForm
+          mode="edit"
+          storeId={storeId}
+          initialData={form}
+          onSubmit={async (dto) => {
+            await updatePurchaseOrder(id, dto);
+            handleSuccess("Pedido de compra atualizado");
+            navigate(`/purchase-orders/${id}/view`);
+          }}
+        />
+      ) : (
+        <Skeleton className="h-64 w-full" />
+      )}
     </div>
   );
 }

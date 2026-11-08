@@ -20,7 +20,12 @@ const productColumn: ColumnDef<PromotionListItemDto> = {
 /** Colunas do T-VD7, na tela `/promotions` e na aba Promoções do T3 (sem a coluna do produto). */
 export function buildPromotionColumns(
   onCancel: (promotion: PromotionListItemDto) => void,
-  showProduct = true
+  showProduct = true,
+  actions: {
+    onView?: (promotion: PromotionListItemDto) => void;
+    /** Só a agendada se edita (a vigente já mudou preço de venda). */
+    onEdit?: (promotion: PromotionListItemDto) => void;
+  } = {}
 ): ColumnDef<PromotionListItemDto>[] {
   return [
     ...(showProduct ? [productColumn] : []),
@@ -67,9 +72,14 @@ export function buildPromotionColumns(
     {
       accessorKey: "source",
       header: "Origem",
+      meta: { hideOnMobile: true },
       cell: ({ row }) => PROMOTION_SOURCE_LABELS[row.original.source],
     },
-    { accessorKey: "createdByName", header: "Criada por" },
+    {
+      accessorKey: "createdByName",
+      header: "Criada por",
+      meta: { hideOnMobile: true },
+    },
     {
       id: "actions",
       header: "Ações",
@@ -77,8 +87,13 @@ export function buildPromotionColumns(
         <NavActionColumn
           object={row.original}
           onDelete={onCancel}
-          disableView
-          disableEdit
+          onView={actions.onView}
+          onEdit={actions.onEdit}
+          disableView={!actions.onView}
+          disableEdit={
+            !actions.onEdit ||
+            row.original.status !== TPromotionStatus.Scheduled
+          }
           disableDelete={!canCancel(row.original)}
           disableReactivate
           deleteLabel="Cancelar"

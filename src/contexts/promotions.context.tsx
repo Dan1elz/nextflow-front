@@ -21,6 +21,11 @@ export type PromotionsContextType = {
     discountPercent: number
   ) => Promise<PromotionPreviewDto>;
   createPromotion: (dto: PromotionRequestDto) => Promise<PromotionListItemDto>;
+  /** Só a agendada (a API recusa as demais com 400). */
+  updatePromotion: (
+    id: string,
+    dto: PromotionRequestDto
+  ) => Promise<PromotionListItemDto>;
   cancelPromotion: (id: string) => Promise<void>;
   /** Produtos ativos para o combo do dialog (T-VD7: só produto ativo recebe promoção, RN-VD11). */
   searchProductOptions: (search: string) => Promise<IOption[]>;

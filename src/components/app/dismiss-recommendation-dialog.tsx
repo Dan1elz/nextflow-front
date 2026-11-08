@@ -39,8 +39,11 @@ import {
 import { handleSuccess } from "@/utils/toast.helpers";
 
 type DismissRecommendationDialogProps = {
-  /** Recomendação a descartar; `null` fecha o dialog. */
-  recommendation: IForecastRecommendationListItem | null;
+  /** Recomendação a descartar, ou várias (descartar selecionados) com o mesmo motivo; `null` ou vazio fecha o dialog. */
+  recommendation:
+    | IForecastRecommendationListItem
+    | IForecastRecommendationListItem[]
+    | null;
   onOpenChange: (open: boolean) => void;
   onDone?: (updated: IForecastRecommendationListItem) => void;
 };
@@ -53,11 +56,11 @@ const REASONS: { value: string; label: string }[] = [
 ];
 
 function DismissForm({
-  recommendation,
+  recommendations,
   onClose,
   onDone,
 }: {
-  recommendation: IForecastRecommendationListItem;
+  recommendations: IForecastRecommendationListItem[];
   onClose: () => void;
   onDone?: (updated: IForecastRecommendationListItem) => void;
 }) {
@@ -76,28 +79,41 @@ function DismissForm({
       noValidate
       onSubmit={handleSubmit(async (data) => {
         let updated: IForecastRecommendationListItem | null = null;
+        // Uma chamada por recomendação, com o mesmo motivo; erro de campo (ex.: "Outro" sem texto) volta no formulário.
         const ok = await submit(async () => {
-          updated = await forecastRunService.dismiss(
-            recommendation.id,
-            {
-              reasonCode: (data.reasonCode || null) as DismissReason | null,
-              note: data.note.trim() || null,
-            },
-            token ?? undefined
-          );
+          for (const recommendation of recommendations) {
+            updated = await forecastRunService.dismiss(
+              recommendation.id,
+              {
+                reasonCode: (data.reasonCode || null) as DismissReason | null,
+                note: data.note.trim() || null,
+              },
+              token ?? undefined
+            );
+          }
         });
         if (!ok || !updated) return;
-        handleSuccess("Recomendação descartada.");
+        handleSuccess(
+          recommendations.length === 1
+            ? "Recomendação descartada."
+            : `${recommendations.length} recomendações descartadas.`
+        );
         onDone?.(updated);
         onClose();
       })}
       className="flex flex-col gap-6"
     >
       <DialogHeader className="text-left">
-        <DialogTitle>Descartar recomendação</DialogTitle>
+        <DialogTitle>
+          {recommendations.length === 1
+            ? "Descartar recomendação"
+            : `Descartar ${recommendations.length} recomendações`}
+        </DialogTitle>
         <DialogDescription>
-          {recommendation.productName} sai das pendentes. O motivo ajuda a
-          entender onde a previsão erra.
+          {recommendations.length === 1
+            ? recommendations[0].productName
+            : "As selecionadas"}{" "}
+          saem das pendentes. O motivo ajuda a entender onde a previsão erra.
         </DialogDescription>
       </DialogHeader>
 
@@ -178,13 +194,19 @@ export function DismissRecommendationDialog({
   onOpenChange,
   onDone,
 }: DismissRecommendationDialogProps) {
+  const list =
+    recommendation == null
+      ? []
+      : Array.isArray(recommendation)
+        ? recommendation
+        : [recommendation];
   return (
-    <Dialog open={recommendation !== null} onOpenChange={onOpenChange}>
+    <Dialog open={list.length > 0} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {recommendation && (
+        {list.length > 0 && (
           <DismissForm
-            key={recommendation.id}
-            recommendation={recommendation}
+            key={list.map((rec) => rec.id).join()}
+            recommendations={list}
             onClose={() => onOpenChange(false)}
             onDone={onDone}
           />

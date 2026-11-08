@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { CalendarHeart, CheckCircle2, PackageCheck } from "lucide-react";
 import {
   AreaChart,
@@ -38,6 +39,8 @@ import {
   StaggerItem,
 } from "@/components/motion/primitives";
 import { AiRecommendationsCard } from "@/components/app/ai-recommendations-card";
+import { UpcomingEventDialog } from "@/components/app/upcoming-event-dialog";
+import type { IUpcomingEvent } from "@/interfaces/dashboard.interface";
 import {
   BlockEmpty,
   BlockError,
@@ -354,9 +357,29 @@ function CountBadge({ count }: { count: number | undefined }) {
   return <Badge variant="secondary">{count}</Badge>;
 }
 
+/** Contador e "Ver mais" no canto do bloco; o botão só aparece com algo para listar. */
+function BlockAside({
+  count,
+  onMore,
+}: {
+  count: number | undefined;
+  onMore: () => void;
+}) {
+  if (!count) return null;
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <CountBadge count={count} />
+      <Button variant="ghost" size="sm" onClick={onMore}>
+        Ver mais
+      </Button>
+    </div>
+  );
+}
+
 function LowStock() {
   const { lowStock } = useDashboard();
   const { data, loading, error, reload } = lowStock;
+  const navigate = useNavigate();
 
   return (
     <section aria-label="Estoque baixo" className={COLUMN}>
@@ -364,7 +387,12 @@ function LowStock() {
         id="dash-low-stock-title"
         title="Estoque baixo"
         description="Variações com saldo abaixo do mínimo do local."
-        aside={<CountBadge count={data?.count} />}
+        aside={
+          <BlockAside
+            count={data?.count}
+            onMore={() => navigate("/dashboard/low-stock")}
+          />
+        }
       />
       {loading && !data ? (
         <BlockListSkeleton />
@@ -422,6 +450,7 @@ function LowStock() {
 function ExpiringLots() {
   const { expiringLots } = useDashboard();
   const { data, loading, error, reload } = expiringLots;
+  const navigate = useNavigate();
 
   return (
     <section aria-label="Lotes vencendo" className={COLUMN}>
@@ -433,7 +462,12 @@ function ExpiringLots() {
             ? `Próximos ${EXPIRING_LOTS_DAYS} dias · ${formatCurrency(data.totalCostValue)} em custo`
             : `Próximos ${EXPIRING_LOTS_DAYS} dias.`
         }
-        aside={<CountBadge count={data?.count} />}
+        aside={
+          <BlockAside
+            count={data?.count}
+            onMore={() => navigate("/dashboard/expiring-lots")}
+          />
+        }
       />
       {loading && !data ? (
         <BlockListSkeleton />
@@ -478,6 +512,8 @@ function ExpiringLots() {
 function UpcomingEvents() {
   const { upcomingEvents } = useDashboard();
   const { data, loading, error, reload } = upcomingEvents;
+  const navigate = useNavigate();
+  const [viewing, setViewing] = useState<IUpcomingEvent | null>(null);
 
   return (
     <section aria-label="Próximas datas" className={COLUMN}>
@@ -485,6 +521,12 @@ function UpcomingEvents() {
         id="dash-upcoming-events-title"
         title="Próximas datas"
         description={`Datas comemorativas dos próximos ${UPCOMING_EVENTS_DAYS} dias.`}
+        aside={
+          <BlockAside
+            count={data?.length}
+            onMore={() => navigate("/calendar-events")}
+          />
+        }
       />
       {loading && !data ? (
         <BlockListSkeleton />
@@ -497,7 +539,12 @@ function UpcomingEvents() {
       ) : (
         <div className="divide-y divide-border/60">
           {data.map((event) => (
-            <div key={`${event.eventId}-${event.nextDate}`} className={ROW}>
+            <button
+              type="button"
+              key={`${event.eventId}-${event.nextDate}`}
+              onClick={() => setViewing(event)}
+              className={`${ROW} w-full text-left transition-colors hover:text-primary`}
+            >
               <div className="flex min-w-0 flex-col gap-0.5">
                 <span className="truncate text-sm font-semibold">
                   {event.name}
@@ -515,10 +562,11 @@ function UpcomingEvents() {
                   {event.productCount === 1 ? "produto" : "produtos"}
                 </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
+      <UpcomingEventDialog event={viewing} onClose={() => setViewing(null)} />
     </section>
   );
 }

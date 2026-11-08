@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import {
   CheckCircle2,
+  Eye,
+  Minus,
   Plus,
   ShoppingCart,
   Trash2,
@@ -10,9 +12,14 @@ import {
 
 import { ClientQuickCreateDialog } from "@/components/app/client-quick-create-dialog";
 import { ConfirmWarningDialog } from "@/components/app/confirm-warning-dialog";
+import { SaleDetailDialog } from "@/components/app/sale-detail-dialog";
 import { SearchSelect } from "@/components/app/search-select";
-import { VariantSalePicker } from "@/components/app/variant-sale-picker";
+import {
+  VariantSalePicker,
+  type VariantSalePickerHandle,
+} from "@/components/app/variant-sale-picker";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -30,17 +37,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useApiForm } from "@/hooks/use-api-form";
 import { useAuth } from "@/hooks/use-auth";
+import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { ClientOptionDto } from "@/interfaces/client.interface";
@@ -57,7 +62,8 @@ import {
   TPaymentMethod,
   type TSaleUnit,
 } from "@/types/enums";
-import { formatCurrency } from "@/utils/format.helpers";
+import { formatCurrency, formatNumber } from "@/utils/format.helpers";
+import { PAYMENT_ICONS, PAYMENT_SHORT_LABELS } from "@/utils/payment.helpers";
 import { SALE_UNIT_SHORT } from "@/utils/product.helpers";
 
 type ClientOption = Record<string, unknown> & ClientOptionDto;
@@ -135,6 +141,15 @@ export default function QuickSalePage() {
   );
   const [done, setDone] = useState<OrderDetailDto | null>(null);
   const [newClientOpen, setNewClientOpen] = useState(false);
+  // Detalhe da venda recém-concluída (o mesmo do histórico).
+  const [showDone, setShowDone] = useState(false);
+  const pickerRef = useRef<VariantSalePickerHandle>(null);
+  // Leitura feita na tela de "venda concluída": abre a nova venda e entra nela assim que o seletor existir.
+  const queuedScan = useRef<string | null>(null);
+  // O foco volta para a busca depois de cada ação, para o leitor e a digitação caírem nela.
+  const focusSearch = useCallback(() => {
+    requestAnimationFrame(() => pickerRef.current?.focus());
+  }, []);
   // Cliente recém-cadastrado entra como opção do combo, para o rótulo aparecer sem nova busca.
   const [createdClients, setCreatedClients] = useState<ClientOption[]>([]);
   const searchClients = useCallback(
@@ -240,6 +255,16 @@ export default function QuickSalePage() {
     });
   };
 
+  // − e + na quantidade: passo de 1, sem descer abaixo de 1 (para tirar o item, a lixeira).
+  const stepQuantity = (index: number, delta: number) => {
+    const line = form.getValues(`items.${index}`);
+    const next = Math.max(1, toNumber(line.quantity) + delta);
+    form.setValue(
+      `items.${index}.quantity`,
+      formatNumber(next, line.decimalPlaces).replace(/\./g, "")
+    );
+  };
+
   const onSubmit = handleSubmit(async (formValues) => {
     if (!storeId) return;
     await submit(async (confirmWarnings) => {
@@ -256,7 +281,34 @@ export default function QuickSalePage() {
     autoAmount.current = null;
     setPreview(null);
     setDone(null);
+    setShowDone(false);
+    focusSearch();
   };
+
+  // Leitor com o foco fora da busca (num botão, na página): a leitura vai para o seletor como se fosse bipada nele.
+  useBarcodeScanner(
+    (code) => {
+      if (done) {
+        queuedScan.current = code;
+        newSale();
+        return;
+      }
+      pickerRef.current?.scan(code);
+    },
+    { enabled: !newClientOpen && !confirmWarning.open && !showDone }
+  );
+
+  useEffect(() => {
+    const code = queuedScan.current;
+    if (done || !code || !pickerRef.current) return;
+    queuedScan.current = null;
+    pickerRef.current.scan(code);
+  }, [done]);
+
+  // A busca já abre focada.
+  useEffect(() => {
+    focusSearch();
+  }, [focusSearch]);
 
   if (done) {
     return (
@@ -271,10 +323,23 @@ export default function QuickSalePage() {
               : ""}
           </AlertDescription>
         </Alert>
-        <Button onClick={newSale} autoFocus>
-          <Plus />
-          Nova venda
-        </Button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button onClick={newSale} autoFocus>
+            <Plus />
+            Nova venda
+          </Button>
+          <Button variant="outline" onClick={() => setShowDone(true)}>
+            <Eye />
+            Ver venda
+          </Button>
+        </div>
+        <p className="text-center text-xs text-muted-foreground">
+          Bipe o próximo produto para começar outra venda.
+        </p>
+        <SaleDetailDialog
+          sale={showDone ? done : null}
+          onClose={() => setShowDone(false)}
+        />
       </div>
     );
   }
@@ -284,304 +349,424 @@ export default function QuickSalePage() {
   return (
     <form
       onSubmit={onSubmit}
-      className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4"
+      className="mx-auto grid w-full max-w-6xl gap-6 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start"
     >
-      <h1 className="text-2xl font-semibold">Venda rápida</h1>
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold">Venda rápida</h1>
+          <p className="text-sm text-muted-foreground">
+            Bipe o código de barras ou busque pelo nome. O preço e os totais vêm
+            do sistema.
+          </p>
+        </div>
 
-      {!storeId && (
-        <Alert>
-          <AlertTitle>Selecione uma loja</AlertTitle>
-          <AlertDescription>
-            A venda nasce na loja escolhida no topo e baixa do local de venda
-            padrão dela.
-          </AlertDescription>
-        </Alert>
-      )}
+        {!storeId && (
+          <Alert>
+            <AlertTitle>Selecione uma loja</AlertTitle>
+            <AlertDescription>
+              A venda nasce na loja escolhida no topo e baixa do local de venda
+              padrão dela.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <VariantSalePicker onSelect={addOption} disabled={isSubmitting} />
+        <VariantSalePicker
+          ref={pickerRef}
+          onSelect={addOption}
+          disabled={isSubmitting}
+        />
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle>Carrinho</CardTitle>
-          {items.fields.length > 0 && (
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {items.fields.length}{" "}
-              {items.fields.length === 1 ? "item" : "itens"}
-            </span>
-          )}
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {items.fields.length === 0 ? (
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <ShoppingCart />
-                </EmptyMedia>
-                <EmptyTitle>Carrinho vazio</EmptyTitle>
-                <EmptyDescription>
-                  Bipe o código ou busque o produto acima.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            items.fields.map((line, index) => {
-              const priced = previewByVariant.get(line.variantId);
-              return (
-                <div key={line.id} className="flex flex-col gap-2">
-                  {index > 0 && <Separator />}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 flex-col">
-                      <span className="truncate font-medium">
-                        {line.productName}
-                        {line.variantLabel && (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · {line.variantLabel}
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {line.sku}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle>Carrinho</CardTitle>
+            {items.fields.length > 0 && (
+              <Badge variant="secondary" className="tabular-nums">
+                {items.fields.length}{" "}
+                {items.fields.length === 1 ? "item" : "itens"}
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="flex flex-col">
+            {items.fields.length === 0 ? (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <ShoppingCart />
+                  </EmptyMedia>
+                  <EmptyTitle>Carrinho vazio</EmptyTitle>
+                  <EmptyDescription>
+                    Bipe o código ou busque o produto acima.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              items.fields.map((line, index) => {
+                const priced = previewByVariant.get(line.variantId);
+                return (
+                  <div key={line.id} className="flex flex-col gap-3">
+                    {index > 0 && <Separator />}
+                    <div className="grid gap-3 py-1 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <span className="truncate font-medium">
+                          {line.productName}
+                          {line.variantLabel && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {line.variantLabel}
+                            </span>
+                          )}
+                        </span>
+                        <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {line.sku}
+                          {priced && (
+                            <span>
+                              {formatCurrency(priced.unitPrice)} /{" "}
+                              {SALE_UNIT_SHORT[line.saleUnit]}
+                            </span>
+                          )}
+                          {priced?.promotion && (
+                            <Badge
+                              variant="destructive"
+                              className="font-normal"
+                            >
+                              −{priced.promotion.discountPercent}% promoção
+                            </Badge>
+                          )}
+                        </span>
                         {priced &&
-                          ` · ${formatCurrency(priced.unitPrice)} / ${SALE_UNIT_SHORT[line.saleUnit]}`}
-                        {priced?.promotion &&
-                          ` (−${priced.promotion.discountPercent}%)`}
-                      </span>
-                      {priced &&
-                        priced.unitPrice !== line.expectedUnitPrice && (
-                          <span className="text-xs text-warning">
-                            Preço mudou desde a busca (era{" "}
-                            {formatCurrency(line.expectedUnitPrice)}); você
-                            confirma ao concluir.
-                          </span>
-                        )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remover item"
-                      onClick={() => items.remove(index)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </div>
-                  <FieldGroup className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    <Controller
-                      control={form.control}
-                      name={`items.${index}.quantity`}
-                      render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor={`qty-${line.id}`}>
-                            Quantidade
-                          </FieldLabel>
-                          <Input
-                            {...field}
-                            id={`qty-${line.id}`}
-                            inputMode="decimal"
-                            aria-invalid={fieldState.invalid}
-                          />
-                          {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
+                          priced.unitPrice !== line.expectedUnitPrice && (
+                            <span className="text-xs text-warning">
+                              Preço mudou desde a busca (era{" "}
+                              {formatCurrency(line.expectedUnitPrice)}); você
+                              confirma ao concluir.
+                            </span>
                           )}
-                        </Field>
-                      )}
-                    />
-                    <Controller
-                      control={form.control}
-                      name={`items.${index}.discount`}
-                      render={({ field, fieldState }) => (
-                        <Field data-invalid={fieldState.invalid}>
-                          <FieldLabel htmlFor={`disc-${line.id}`}>
-                            Desconto (R$)
-                          </FieldLabel>
-                          <Input
-                            {...field}
-                            id={`disc-${line.id}`}
-                            inputMode="decimal"
-                            aria-invalid={fieldState.invalid}
-                          />
-                          {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                          )}
-                        </Field>
-                      )}
-                    />
-                    <div className="col-span-2 flex flex-col items-end justify-end sm:col-span-1">
-                      <span className="text-xs text-muted-foreground">
-                        Total da linha
-                      </span>
-                      <span className="font-medium tabular-nums">
-                        {priced ? formatCurrency(priced.lineTotal) : "—"}
-                      </span>
-                    </div>
-                  </FieldGroup>
-                  {form.formState.errors.items?.[index]?.variantId && (
-                    <FieldError
-                      errors={[form.formState.errors.items[index]?.variantId]}
-                    />
-                  )}
-                </div>
-              );
-            })
-          )}
-          {form.formState.errors.items?.root && (
-            <FieldError errors={[form.formState.errors.items.root]} />
-          )}
-          {form.formState.errors.items?.message && (
-            <FieldError errors={[form.formState.errors.items]} />
-          )}
-        </CardContent>
-      </Card>
+                      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Cliente e pagamento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup>
+                      <div className="flex items-end gap-2">
+                        <Controller
+                          control={form.control}
+                          name={`items.${index}.quantity`}
+                          render={({ field, fieldState }) => (
+                            <Field
+                              data-invalid={fieldState.invalid}
+                              className="w-auto"
+                            >
+                              <FieldLabel
+                                htmlFor={`qty-${line.id}`}
+                                className="text-xs text-muted-foreground"
+                              >
+                                Quantidade
+                              </FieldLabel>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  aria-label="Diminuir quantidade"
+                                  disabled={toNumber(field.value) <= 1}
+                                  onClick={() => {
+                                    stepQuantity(index, -1);
+                                    focusSearch();
+                                  }}
+                                >
+                                  <Minus />
+                                </Button>
+                                <Input
+                                  {...field}
+                                  id={`qty-${line.id}`}
+                                  inputMode="decimal"
+                                  className="w-16 text-center tabular-nums"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  aria-label="Aumentar quantidade"
+                                  onClick={() => {
+                                    stepQuantity(index, 1);
+                                    focusSearch();
+                                  }}
+                                >
+                                  <Plus />
+                                </Button>
+                              </div>
+                              {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                              )}
+                            </Field>
+                          )}
+                        />
+                        <Controller
+                          control={form.control}
+                          name={`items.${index}.discount`}
+                          render={({ field, fieldState }) => (
+                            <Field
+                              data-invalid={fieldState.invalid}
+                              className="w-28"
+                            >
+                              <FieldLabel
+                                htmlFor={`disc-${line.id}`}
+                                className="text-xs text-muted-foreground"
+                              >
+                                Desconto
+                              </FieldLabel>
+                              <InputGroup>
+                                <InputGroupAddon>R$</InputGroupAddon>
+                                <InputGroupInput
+                                  {...field}
+                                  id={`disc-${line.id}`}
+                                  inputMode="decimal"
+                                  className="tabular-nums"
+                                  aria-invalid={fieldState.invalid}
+                                />
+                              </InputGroup>
+                              {fieldState.invalid && (
+                                <FieldError errors={[fieldState.error]} />
+                              )}
+                            </Field>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 sm:justify-end">
+                        <div className="flex flex-col sm:items-end">
+                          <span className="text-xs text-muted-foreground">
+                            Total
+                          </span>
+                          <span className="font-semibold tabular-nums">
+                            {priced ? formatCurrency(priced.lineTotal) : "—"}
+                          </span>
+                          {priced && priced.discount > 0 && (
+                            <span className="text-xs text-destructive tabular-nums">
+                              − {formatCurrency(priced.discount)}
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remover item"
+                          onClick={() => {
+                            items.remove(index);
+                            focusSearch();
+                          }}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </div>
+                    {form.formState.errors.items?.[index]?.variantId && (
+                      <FieldError
+                        errors={[form.formState.errors.items[index]?.variantId]}
+                      />
+                    )}
+                  </div>
+                );
+              })
+            )}
+            {form.formState.errors.items?.root && (
+              <FieldError errors={[form.formState.errors.items.root]} />
+            )}
+            {form.formState.errors.items?.message && (
+              <FieldError errors={[form.formState.errors.items]} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <aside className="flex flex-col gap-4 lg:sticky lg:top-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Cliente</CardTitle>
+          </CardHeader>
+          <CardContent>
             <Controller
               control={form.control}
               name="clientId"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <div className="flex items-end gap-2">
-                    <div className="min-w-0 flex-1">
-                      <SearchSelect<ClientOption>
-                        field={{
-                          value: field.value,
-                          onChange: (value) =>
-                            field.onChange(value ? String(value) : ""),
-                        }}
-                        label="Cliente (opcional)"
-                        data={createdClients}
-                        onSearch={searchClients}
-                        getOptionLabel={(client) => client.label}
-                        getOptionValue={(client) => client.id}
-                        placeholder="Consumidor final"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setNewClientOpen(true)}
-                      disabled={isSubmitting}
-                    >
-                      <UserPlus />
-                      Novo cliente
-                    </Button>
-                  </div>
+                  <SearchSelect<ClientOption>
+                    field={{
+                      value: field.value,
+                      onChange: (value) =>
+                        field.onChange(value ? String(value) : ""),
+                    }}
+                    data={createdClients}
+                    onSearch={searchClients}
+                    getOptionLabel={(client) => client.label}
+                    getOptionValue={(client) => client.id}
+                    placeholder="Consumidor final (opcional)"
+                    disabled={isSubmitting}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="self-start"
+                    onClick={() => setNewClientOpen(true)}
+                    disabled={isSubmitting}
+                  >
+                    <UserPlus />
+                    Cadastrar cliente
+                  </Button>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
                 </Field>
               )}
             />
+          </CardContent>
+        </Card>
 
-            {payments.fields.map((payment, index) => (
-              <div key={payment.id} className="flex items-end gap-2">
-                <Controller
-                  control={form.control}
-                  name={`payments.${index}.method`}
-                  render={({ field }) => (
-                    <Field className="flex-1">
-                      <FieldLabel>Forma</FieldLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger aria-label="Forma de pagamento">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {Object.values(TPaymentMethod).map((method) => (
-                              <SelectItem key={method} value={method}>
-                                {PAYMENT_METHOD_LABELS[method]}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name={`payments.${index}.amount`}
-                  render={({ field, fieldState }) => (
-                    <Field className="flex-1" data-invalid={fieldState.invalid}>
-                      <FieldLabel htmlFor={`pay-${payment.id}`}>
-                        Valor (R$)
-                      </FieldLabel>
-                      <Input
-                        {...field}
-                        id={`pay-${payment.id}`}
-                        inputMode="decimal"
-                        aria-invalid={fieldState.invalid}
-                      />
-                    </Field>
-                  )}
-                />
-                {payments.fields.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Remover pagamento"
-                    onClick={() => payments.remove(index)}
-                  >
-                    <Trash2 />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="outline" onClick={addPayment}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <CardTitle>Pagamento</CardTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={addPayment}
+            >
               <Plus />
-              Outra forma
+              Dividir
             </Button>
-            {form.formState.errors.payments?.message && (
-              <FieldError errors={[form.formState.errors.payments]} />
-            )}
-
-            {hasCash && (
-              <Controller
-                control={form.control}
-                name="cashReceived"
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="cash-received">
-                      Recebido em dinheiro (R$)
-                    </FieldLabel>
-                    <Input
-                      {...field}
-                      id="cash-received"
-                      inputMode="decimal"
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              {payments.fields.map((payment, index) => (
+                <div key={payment.id} className="flex flex-col gap-2">
+                  {index > 0 && <Separator />}
+                  <Controller
+                    control={form.control}
+                    name={`payments.${index}.method`}
+                    render={({ field }) => (
+                      <div
+                        role="radiogroup"
+                        aria-label="Forma de pagamento"
+                        className="grid grid-cols-3 gap-2"
+                      >
+                        {Object.values(TPaymentMethod).map((method) => {
+                          const Icon = PAYMENT_ICONS[method];
+                          const selected = field.value === method;
+                          return (
+                            <Button
+                              key={method}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              variant={selected ? "default" : "outline"}
+                              title={PAYMENT_METHOD_LABELS[method]}
+                              className="h-auto min-w-0 flex-col gap-1 px-2 py-2 text-xs"
+                              onClick={() => {
+                                field.onChange(method);
+                                focusSearch();
+                              }}
+                            >
+                              <Icon />
+                              <span className="truncate">
+                                {PAYMENT_SHORT_LABELS[method]}
+                              </span>
+                            </Button>
+                          );
+                        })}
+                      </div>
                     )}
-                  </Field>
-                )}
-              />
-            )}
-          </FieldGroup>
-        </CardContent>
-      </Card>
+                  />
+                  <div className="flex items-end gap-2">
+                    <Controller
+                      control={form.control}
+                      name={`payments.${index}.amount`}
+                      render={({ field, fieldState }) => (
+                        <Field
+                          className="flex-1"
+                          data-invalid={fieldState.invalid}
+                        >
+                          <FieldLabel
+                            htmlFor={`pay-${payment.id}`}
+                            className="text-xs text-muted-foreground"
+                          >
+                            Valor
+                          </FieldLabel>
+                          <InputGroup>
+                            <InputGroupAddon>R$</InputGroupAddon>
+                            <InputGroupInput
+                              {...field}
+                              id={`pay-${payment.id}`}
+                              inputMode="decimal"
+                              className="tabular-nums"
+                              aria-invalid={fieldState.invalid}
+                            />
+                          </InputGroup>
+                        </Field>
+                      )}
+                    />
+                    {payments.fields.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Remover pagamento"
+                        onClick={() => payments.remove(index)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {form.formState.errors.payments?.message && (
+                <FieldError errors={[form.formState.errors.payments]} />
+              )}
 
-      <SaleSummary
-        preview={preview}
-        showPaid={payments.fields.length > 1}
-        canSubmit={!isSubmitting && !!storeId && items.fields.length > 0}
-        isSubmitting={isSubmitting}
-      />
+              {hasCash && (
+                <Controller
+                  control={form.control}
+                  name="cashReceived"
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="cash-received">
+                        Recebido em dinheiro
+                      </FieldLabel>
+                      <InputGroup>
+                        <InputGroupAddon>R$</InputGroupAddon>
+                        <InputGroupInput
+                          {...field}
+                          id="cash-received"
+                          inputMode="decimal"
+                          className="tabular-nums"
+                          placeholder="Para calcular o troco"
+                          aria-invalid={fieldState.invalid}
+                        />
+                      </InputGroup>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              )}
+            </FieldGroup>
+          </CardContent>
+        </Card>
+
+        <SaleSummary
+          preview={preview}
+          showPaid={payments.fields.length > 1}
+          canSubmit={!isSubmitting && !!storeId && items.fields.length > 0}
+          isSubmitting={isSubmitting}
+        />
+      </aside>
 
       <ConfirmWarningDialog state={confirmWarning} />
       <ClientQuickCreateDialog
         open={newClientOpen}
-        onOpenChange={setNewClientOpen}
+        onOpenChange={(open) => {
+          setNewClientOpen(open);
+          if (!open) focusSearch();
+        }}
         onCreated={(client) => {
           setCreatedClients([client as ClientOption]);
           form.setValue("clientId", client.id);
@@ -592,8 +777,8 @@ export default function QuickSalePage() {
 }
 
 /**
- * Rodapé da venda: detalhes em linhas discretas, total em destaque e a situação do pagamento ao lado (falta pagar,
- * pago ou troco). Fica preso ao pé da tela para o botão de concluir estar sempre à mão com carrinho longo.
+ * Resumo da venda, no painel da direita: subtotal, descontos (vermelho), o total em destaque na cor da marca e a
+ * situação do pagamento (falta pagar, troco ou completo). Tudo vem da prévia da API.
  */
 function SaleSummary({
   preview,
@@ -610,7 +795,10 @@ function SaleSummary({
   const hasChange = preview?.change != null && preview.change > 0;
 
   return (
-    <Card className="sticky bottom-4 z-10 shadow-[var(--shadow-3)]">
+    <Card>
+      <CardHeader>
+        <CardTitle>Resumo</CardTitle>
+      </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <dl className="flex flex-col gap-1.5 text-sm">
           <SummaryRow label="Subtotal" value={preview?.subtotal} />
@@ -619,47 +807,50 @@ function SaleSummary({
               label="Descontos"
               value={preview.discountTotal}
               negative
+              className="text-destructive"
             />
           )}
-          {showPaid && <SummaryRow label="Pago" value={preview?.paid} />}
+          {showPaid && (
+            <SummaryRow
+              label="Pago"
+              value={preview?.paid}
+              className="text-success"
+            />
+          )}
         </dl>
 
-        <div className="flex items-end justify-between gap-4 border-t pt-4">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              Total
-            </span>
-            <span className="text-3xl font-semibold tracking-tight tabular-nums">
-              {preview == null ? "—" : formatCurrency(preview.total)}
-            </span>
-          </div>
-          {preview != null && (
-            <div className="flex flex-col items-end text-right">
-              {preview.remaining > 0 ? (
-                <>
-                  <span className="text-xs text-muted-foreground">
-                    Falta pagar
-                  </span>
-                  <span className="text-lg font-semibold text-destructive tabular-nums">
-                    {formatCurrency(preview.remaining)}
-                  </span>
-                </>
-              ) : hasChange ? (
-                <>
-                  <span className="text-xs text-muted-foreground">Troco</span>
-                  <span className="text-lg font-semibold tabular-nums">
-                    {formatCurrency(preview.change!)}
-                  </span>
-                </>
-              ) : (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-success">
-                  <CheckCircle2 className="size-4" />
-                  Pagamento completo
-                </span>
-              )}
-            </div>
-          )}
+        <Separator />
+
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="font-medium">Total</span>
+          <span className="text-3xl font-semibold tracking-tight text-primary tabular-nums">
+            {preview == null
+              ? formatCurrency(0)
+              : formatCurrency(preview.total)}
+          </span>
         </div>
+
+        {preview != null &&
+          (preview.remaining > 0 ? (
+            <div className="flex items-center justify-between rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <span>Falta pagar</span>
+              <span className="font-semibold tabular-nums">
+                {formatCurrency(preview.remaining)}
+              </span>
+            </div>
+          ) : hasChange ? (
+            <div className="flex items-center justify-between rounded-xl bg-success/10 px-3 py-2 text-sm text-success">
+              <span>Troco</span>
+              <span className="font-semibold tabular-nums">
+                {formatCurrency(preview.change!)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-xl bg-success/10 px-3 py-2 text-sm font-medium text-success">
+              <CheckCircle2 className="size-4" />
+              Pagamento completo
+            </div>
+          ))}
 
         <Button
           type="submit"
@@ -679,14 +870,18 @@ function SummaryRow({
   label,
   value,
   negative,
+  className,
 }: {
   label: string;
   value: number | undefined;
   negative?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <dt className="text-muted-foreground">{label}</dt>
+    <div className={`flex items-center justify-between ${className ?? ""}`}>
+      <dt className={className ? undefined : "text-muted-foreground"}>
+        {label}
+      </dt>
       <dd className="tabular-nums">
         {value == null
           ? "—"

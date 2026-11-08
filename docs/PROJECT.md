@@ -292,7 +292,8 @@ Incluem: `accordion`, `alert-dialog`, `alert`, `avatar`, `badge`, `breadcrumb`, 
 | Kardex (T8)     | `/stock-movements` | —                   | —                     | —                     |
 | Orders          | `/orders/*` mostra "em breve" (`pages/Order/Pending.tsx`) até a F2.5; telas legadas fora das rotas e do menu | — | — | — |
 | Purchase Orders | `/purchase-orders` | —                   | —                     | —                     |
-| Forecast (IA)   | `/forecast`        | —                   | —                     | —                     |
+| Forecast (IA)   | `/forecast` (`/forecast/history`, `/forecast/accuracy`, `/forecast/promote?ids=…`) | — | — | — |
+| Painel, ver mais | `/dashboard/low-stock`, `/dashboard/expiring-lots` | — | — | — |
 | Promotions      | `/promotions`      | —                   | —                     | —                     |
 
 Rota catch-all `*` → redireciona para `/login`.
