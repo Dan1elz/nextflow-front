@@ -1,4 +1,10 @@
-import { PromotionCreateForm } from "@/components/forms/promotion-create-form";
+import { Sparkles } from "lucide-react";
+
+import {
+  PromotionCreateForm,
+  type PromotionSuggestionDefaults,
+} from "@/components/forms/promotion-create-form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +25,10 @@ interface PromotionCreateDialogProps {
   fixedProduct?: { id: string; name: string } | null;
   /** Promoção agendada a editar; sem ela, o dialog cria uma nova. */
   promotion?: PromotionListItemDto | null;
+  /** Sugestão da IA (lote vencendo no painel): preenche o formulário e mostra o motivo. */
+  suggestion?:
+    | (PromotionSuggestionDefaults & { explanation: string; fromAi: boolean })
+    | null;
   onCreated: () => void;
 }
 
@@ -28,6 +38,7 @@ export function PromotionCreateDialog({
   onOpenChange,
   fixedProduct,
   promotion,
+  suggestion,
   onCreated,
 }: PromotionCreateDialogProps) {
   const { createPromotion, updatePromotion } = usePromotions();
@@ -57,8 +68,20 @@ export function PromotionCreateDialog({
               : "Desconto por período, para o produto inteiro ou uma variação."}
           </DialogDescription>
         </DialogHeader>
+        {open && suggestion && (
+          <Alert>
+            <Sparkles />
+            <AlertTitle>
+              {suggestion.fromAi
+                ? "Sugestão da IA"
+                : "Sugestão calculada (IA indisponível)"}
+            </AlertTitle>
+            <AlertDescription>{suggestion.explanation}</AlertDescription>
+          </Alert>
+        )}
         {open && (
           <PromotionCreateForm
+            suggestion={suggestion}
             fixedProduct={fixedProduct}
             editing={promotion}
             onSubmit={handleSubmit}

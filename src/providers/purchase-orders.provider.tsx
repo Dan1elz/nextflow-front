@@ -9,6 +9,7 @@ import type {
   ReceivePurchaseOrderDto,
   SavePurchaseOrderDto,
 } from "@/interfaces/purchase-order.interface";
+import { productService } from "@/services/product.service";
 import { purchaseOrderService } from "@/services/purchase-order.service";
 import { storeService } from "@/services/store.service";
 import { supplierService } from "@/services/supplier.service";
@@ -106,6 +107,11 @@ export function PurchaseOrdersProvider({ children }: { children: ReactNode }) {
     [auth]
   );
 
+  const getProductSuppliers = useCallback(
+    (productId: string) => productService.suppliers(productId, auth),
+    [auth]
+  );
+
   return (
     <PurchaseOrdersContext.Provider
       value={{
@@ -124,6 +130,7 @@ export function PurchaseOrdersProvider({ children }: { children: ReactNode }) {
         searchSupplierOptions,
         getLocationOptions,
         getDefaultReceiveLocationId,
+        getProductSuppliers,
       }}
     >
       {children}

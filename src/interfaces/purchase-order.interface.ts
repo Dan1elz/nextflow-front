@@ -1,3 +1,4 @@
+import type { IPurchaseSuggestion } from "@/interfaces/forecast.interface";
 import type { LocationOptionDto } from "./store.interface";
 import type { TLifecycle, TPurchaseStatus, TSaleUnit } from "@/types/enums";
 
@@ -167,3 +168,6 @@ export interface PurchaseOrderDetailDto {
   } | null;
   items: PurchaseOrderDetailItemDto[];
 }
+
+/** Estado da navegação para "Novo pedido de compra" vindo do painel: a sugestão (IA ou cálculo) que preencheu o item. */
+export type PurchaseSuggestionState = { suggestion?: IPurchaseSuggestion };

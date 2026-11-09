@@ -1,3 +1,4 @@
+import type { ProductSupplierResponseDto } from "@/interfaces/product.interface";
 import { createContext } from "react";
 import type {
   IIndexParams,
@@ -57,6 +58,10 @@ export type PurchaseOrdersContextType = {
   getLocationOptions: () => Promise<LocationOptionDto[]>;
   /** Local de entrega padrão da loja (`stores.defaultReceiveLocationId`, RN-CP07). */
   getDefaultReceiveLocationId: (storeId: string) => Promise<string | null>;
+  /** Fornecedores do produto: o pedido aberto pelo painel já vem com o preferido. */
+  getProductSuppliers: (
+    productId: string
+  ) => Promise<ProductSupplierResponseDto[]>;
 };
 
 export const PurchaseOrdersContext =
