@@ -95,6 +95,7 @@ export function EntityIndexPage<TData>({
                       aria-label="Importar"
                     >
                       <Upload className="h-4 w-4" />
+                      <span className="md:hidden">Importar</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={6}>Importar</TooltipContent>
@@ -114,6 +115,7 @@ export function EntityIndexPage<TData>({
                     aria-label="Exportar"
                   >
                     <Download className="h-4 w-4" />
+                    <span className="md:hidden">Exportar</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={6}>Exportar</TooltipContent>
@@ -131,6 +133,7 @@ export function EntityIndexPage<TData>({
                     aria-label="Excluir selecionados"
                   >
                     <Trash2 className="h-4 w-4" />
+                    <span className="md:hidden">Excluir selecionados</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={6}>
@@ -144,6 +147,8 @@ export function EntityIndexPage<TData>({
                 <TooltipTrigger asChild>
                   <Button type="button" onClick={onCreate} aria-label="Novo">
                     <Plus className="h-4 w-4" />
+                    {/* No celular o botão ocupa a largura toda: só o ícone parecia uma faixa vazia. */}
+                    <span className="md:hidden">Novo</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent sideOffset={6}>Novo</TooltipContent>

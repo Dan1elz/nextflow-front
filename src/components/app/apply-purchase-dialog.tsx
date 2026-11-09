@@ -64,6 +64,7 @@ import {
   formatNumber,
 } from "@/utils/format.helpers";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
+import { unitShort } from "@/utils/product.helpers";
 
 type ApplyPurchaseDialogProps = {
   open: boolean;
@@ -213,7 +214,7 @@ function ProductHeader({ rec }: { rec: IForecastRecommendationListItem }) {
           Sugerido:{" "}
           <span className="font-medium text-foreground">
             {formatNumber(rec.suggestedQuantity ?? 0, rec.decimalPlaces)}{" "}
-            {rec.saleUnit}
+            {unitShort(rec.saleUnit)}
           </span>
         </span>
         {rec.deadline && (
@@ -339,7 +340,7 @@ function StoreSplitSection({
                           }
                         />
                         <InputGroupAddon align="inline-end">
-                          {detail.saleUnit}
+                          {unitShort(detail.saleUnit)}
                         </InputGroupAddon>
                       </InputGroup>
                       {error && <FieldError>{error}</FieldError>}

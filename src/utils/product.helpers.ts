@@ -277,3 +277,7 @@ export const SALE_UNIT_SHORT: Record<TSaleUnit, string> = {
   Liter: "l",
   Meter: "m",
 };
+
+/** Abreviação da unidade vinda da API como texto (`"Unit"` → `"un"`); valor desconhecido passa como está. */
+export const unitShort = (saleUnit: string): string =>
+  SALE_UNIT_SHORT[saleUnit as TSaleUnit] ?? saleUnit;

@@ -52,6 +52,7 @@ export function ListFiltersSheet({
               aria-label={triggerAriaLabel}
             >
               <Filter className="h-4 w-4" />
+              <span className="md:hidden">{triggerAriaLabel}</span>
             </Button>
           </SheetTrigger>
         </TooltipTrigger>
