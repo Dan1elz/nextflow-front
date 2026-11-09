@@ -25,7 +25,25 @@ const routeNameMap: Record<string, string> = {
   orders: "Pedidos de Venda",
   forecast: "Previsão de Demanda (IA)",
   promotions: "Promoções",
+  accuracy: "Precisão",
+  promote: "Promover selecionados",
+  "low-stock": "Estoque baixo",
+  "expiring-lots": "Lotes vencendo",
+  quick: "Venda rápida",
+  "stock-policy": "Política de estoque",
 };
+
+/** Nome que depende do caminho inteiro (mesmo segmento, telas diferentes). Mesmos nomes do menu. */
+const pathNameMap: Record<string, string> = {
+  "/settings/forecast": "Agendamento da previsão",
+  "/sales/history": "Histórico de vendas",
+};
+
+/** Segmentos sem tela própria: viram texto, sem link (o link cairia no "rota não encontrada"). */
+const textOnlySegments = new Set(["sales"]);
+
+/** Segmentos sem tela própria: o "ver mais" do painel (`/dashboard/...`) fica direto abaixo do Home, que é o painel. */
+const hiddenSegments = new Set(["dashboard"]);
 
 export function useBreadcrumbPath(): IBreadcrumb[] | null {
   const location = useLocation();
@@ -56,8 +74,10 @@ export function useBreadcrumbPath(): IBreadcrumb[] | null {
       }
 
       breadcrumbPath += `/${segment}`;
+      if (hiddenSegments.has(segment)) return;
 
       const name =
+        pathNameMap[breadcrumbPath] ||
         routeNameMap[segment] ||
         segment.charAt(0).toUpperCase() + segment.slice(1);
 
@@ -65,6 +85,7 @@ export function useBreadcrumbPath(): IBreadcrumb[] | null {
         name,
         path: breadcrumbPath,
         isLast,
+        textOnly: textOnlySegments.has(segment),
       });
     });
 

@@ -429,3 +429,46 @@ export interface IStoreSplit {
   stores: IStoreSplitStore[];
   items: IStoreSplitItem[];
 }
+
+/** `PurchaseSuggestionDto`: quanto comprar de uma variação num local, pela IA na hora (RN-DF30). */
+export interface IPurchaseSuggestion {
+  productId: string;
+  variantId: string;
+  locationId: string;
+  storeId: string;
+  available: number;
+  minQuantity: number;
+  incoming: number;
+  dailySales: number;
+  leadTimeDays: number;
+  supplierId: string | null;
+  supplierName: string | null;
+  minOrderQty: number | null;
+  orderMultiple: number | null;
+  /** A da IA dentro dos limites (RN-DF12), ou a calculada. */
+  quantity: number;
+  calculatedQuantity: number;
+  reason: string;
+  fromAi: boolean;
+}
+
+/** `PromotionSuggestionDto`: desconto e dias para escoar um lote num local, pela IA na hora (RN-DF30). */
+export interface IPromotionSuggestion {
+  productId: string;
+  productName: string;
+  variantId: string;
+  lotId: string;
+  locationId: string;
+  storeId: string;
+  quantity: number;
+  expiresOn: string;
+  daysToExpire: number;
+  dailySales: number;
+  expectedSales: number;
+  maxDiscountPercent: number;
+  discountPercent: number;
+  promotionDays: number;
+  calculatedDiscountPercent: number;
+  reason: string;
+  fromAi: boolean;
+}

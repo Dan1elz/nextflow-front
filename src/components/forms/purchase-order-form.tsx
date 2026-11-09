@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PackagePlus, Trash2 } from "lucide-react";
@@ -67,7 +67,30 @@ interface PurchaseOrderFormProps {
   /** Loja selecionada no topo: define o local de entrega padrão na criação. */
   storeId: string | null;
   initialData?: PurchaseOrderFormDto | null;
+  /** Item para já entrar no pedido (estoque baixo do painel): escolhe o fornecedor preferido e adiciona a variação. */
+  prefill?: PurchaseOrderPrefill | null;
   onSubmit: (dto: SavePurchaseOrderDto) => Promise<void>;
+}
+
+export interface PurchaseOrderPrefill {
+  productId: string;
+  variantId: string;
+  /** Quantidade sugerida pela API (IA ou cálculo); sobe para o mínimo do fornecedor e o múltiplo. */
+  quantity: number;
+  /** Fornecedor da sugestão; sem ele, o preferido do produto. */
+  supplier?: { id: string; name: string } | null;
+}
+
+/** Falta arredondada para o pedido mínimo e o múltiplo de compra do fornecedor. */
+function prefillQuantity(
+  missing: number,
+  suggestion: PurchaseItemSuggestionDto
+): number {
+  let quantity = Math.max(missing, suggestion.minOrderQty ?? 0);
+  const multiple = suggestion.orderMultiple;
+  if (multiple && multiple > 0)
+    quantity = Math.ceil(quantity / multiple) * multiple;
+  return quantity;
 }
 
 const toInput = (value?: number | null) =>
@@ -83,6 +106,7 @@ export function PurchaseOrderForm({
   mode,
   storeId,
   initialData,
+  prefill,
   onSubmit,
 }: PurchaseOrderFormProps) {
   const {
@@ -91,6 +115,7 @@ export function PurchaseOrderForm({
     getDefaultReceiveLocationId,
     getItemSuggestion,
     searchVariantOptions,
+    getProductSuppliers,
   } = usePurchaseOrders();
 
   const form = useForm<PurchaseOrderFormData>({
@@ -188,7 +213,39 @@ export function PurchaseOrderForm({
     return options;
   };
 
-  const addVariant = async (option: PurchaseVariantOptionDto) => {
+  // Pedido aberto pelo painel: fornecedor preferido do produto (ou o único ativo) já escolhido.
+  useEffect(() => {
+    if (!prefill || initialData) return;
+    if (prefill.supplier) {
+      setSupplierOptions([
+        { value: prefill.supplier.id, label: prefill.supplier.name },
+      ]);
+      form.setValue("supplierId", prefill.supplier.id);
+      return;
+    }
+    let cancelled = false;
+    getProductSuppliers(prefill.productId)
+      .then((suppliers) => {
+        const active = suppliers.filter((s) => s.supplierIsActive);
+        const chosen =
+          active.find((s) => s.isPreferred) ??
+          (active.length === 1 ? active[0] : null);
+        if (cancelled || !chosen || form.getValues("supplierId")) return;
+        setSupplierOptions([
+          { value: chosen.supplierId, label: chosen.supplierName },
+        ]);
+        form.setValue("supplierId", chosen.supplierId);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [prefill, initialData, getProductSuppliers, form]);
+
+  const addVariant = async (
+    option: Pick<PurchaseVariantOptionDto, "variantId">,
+    missing?: number
+  ) => {
     if (
       form
         .getValues("items")
@@ -213,7 +270,9 @@ export function PurchaseOrderForm({
         id: null,
         variantId: option.variantId,
         quantity: toInput(
-          suggestion.minOrderQty ?? suggestion.orderMultiple ?? null
+          missing != null
+            ? prefillQuantity(missing, suggestion)
+            : (suggestion.minOrderQty ?? suggestion.orderMultiple ?? null)
         ),
         unitCost: toInput(
           suggestion.lastCostFromSupplier ??
@@ -227,6 +286,17 @@ export function PurchaseOrderForm({
       handleError(error, "Erro ao buscar o item");
     }
   };
+
+  // Assim que houver fornecedor e local, o item do painel entra com a quantidade que falta (uma vez só).
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (!prefill || prefilled.current || !supplierId || !deliveryStoreId)
+      return;
+    prefilled.current = true;
+    void addVariant({ variantId: prefill.variantId }, prefill.quantity);
+    // addVariant é recriada a cada render; o ref garante uma chamada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill, supplierId, deliveryStoreId]);
 
   const itemsError =
     form.formState.errors.items?.root?.message ??

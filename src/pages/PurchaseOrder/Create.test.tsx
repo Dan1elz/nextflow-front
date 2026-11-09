@@ -112,4 +112,57 @@ describe("Novo pedido de compra pela loja do topo", () => {
       screen.queryByRole("option", { name: "Shopping › Estoque" })
     ).not.toBeInTheDocument();
   });
+
+  it("aberto pelo estoque baixo, já vem com o fornecedor preferido e a falta arredondada ao múltiplo", async () => {
+    currentStore.storeId = "store-centro";
+    server.use(
+      ...handlers("loc-centro-estoque"),
+      http.get(apiUrl("products/:id/suppliers"), () =>
+        HttpResponse.json([
+          {
+            supplierId: "sup-2",
+            supplierName: "Outro",
+            supplierIsActive: true,
+            isPreferred: false,
+            leadTimeDays: 5,
+          },
+          {
+            supplierId: "sup-1",
+            supplierName: "Cacau Sul",
+            supplierIsActive: true,
+            isPreferred: true,
+            leadTimeDays: 5,
+          },
+        ])
+      ),
+      http.get(apiUrl("purchase-orders/item-suggestion"), ({ request }) =>
+        HttpResponse.json({
+          variantId: new URL(request.url).searchParams.get("variantId"),
+          productId: "prod-1",
+          productName: "Bombom de Coco 20g",
+          variantLabel: "",
+          sku: "DP-001",
+          saleUnit: "Unit",
+          decimalPlaces: 0,
+          tracksLots: false,
+          lifecycle: "Active",
+          minOrderQty: 12,
+          orderMultiple: 12,
+          lastCostFromSupplier: 1.5,
+        })
+      )
+    );
+    render(
+      <MemoryRouter
+        initialEntries={["/?productId=prod-1&variantId=var-1&quantity=34"]}
+      >
+        <CreatePurchaseOrder />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("textbox", { name: "Quantidade" })
+    ).toHaveValue("36");
+    expect(screen.getByText("Cacau Sul")).toBeInTheDocument();
+  });
 });

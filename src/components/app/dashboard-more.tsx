@@ -22,6 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentStore } from "@/hooks/use-current-store";
 import type {
@@ -30,7 +31,11 @@ import type {
   ILowStockItem,
   ILowStockSummary,
 } from "@/interfaces/dashboard.interface";
-import type { IForecastRecommendationListItem } from "@/interfaces/forecast.interface";
+import type {
+  IForecastRecommendationListItem,
+  IPromotionSuggestion,
+} from "@/interfaces/forecast.interface";
+import type { PurchaseSuggestionState } from "@/interfaces/purchase-order.interface";
 import { PromotionsProvider } from "@/providers/promotions.provider";
 import {
   dashboardService,
@@ -195,14 +200,44 @@ const placeOf = (
 ) => (storeId ? item.locationName : `${item.storeName} › ${item.locationName}`);
 
 /**
- * "Ver mais" do estoque baixo (`/dashboard/low-stock`): todas as variações × locais abaixo do mínimo, com comprar pela IA ou um
- * pedido novo. Cada ação troca a loja do topo para a loja da linha antes de abrir (o comprar usa o local de recebimento dela).
+ * "Ver mais" do estoque baixo (`/dashboard/low-stock`): toda linha tem "Comprar com a IA". Com recomendação "Comprar" pendente da
+ * análise, abre o comprar dela; senão pede à IA na hora quanto comprar da variação no local (RN-DF30) e abre o pedido de compra
+ * já com o item e a quantidade. "Novo pedido de compra" abre o mesmo pedido com a quantidade só calculada (sem gastar cota).
+ * Cada ação troca a loja do topo para a loja da linha antes de abrir.
  */
 export function LowStockMore() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const { setStoreId } = useCurrentStore();
   const { data, storeId, reload } = useMore<ILowStockSummary>(loadLowStock);
   const actions = useRecommendationActions(reload);
+  const [asking, setAsking] = useState<string | null>(null);
+
+  const purchase = async (item: ILowStockItem, ai: boolean) => {
+    const key = `${item.variantId}-${item.locationId}`;
+    setAsking(key);
+    try {
+      const suggestion = await forecastRunService.getPurchaseSuggestion(
+        item.variantId,
+        item.locationId,
+        ai,
+        token ?? undefined
+      );
+      const params = new URLSearchParams({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: String(suggestion.quantity),
+      });
+      setStoreId(item.storeId);
+      navigate(`/purchase-orders/create?${params}`, {
+        state: { suggestion } satisfies PurchaseSuggestionState,
+      });
+    } catch (error) {
+      handleError(error, "Erro ao buscar a sugestão de compra");
+    } finally {
+      setAsking(null);
+    }
+  };
 
   return (
     <MorePage
@@ -219,57 +254,61 @@ export function LowStockMore() {
         <EmptyList text="Nenhuma variação abaixo do mínimo." />
       ) : (
         <div className="divide-y rounded-xl border">
-          {data.items.map((item: ILowStockItem) => (
-            <Row
-              key={`${item.variantId}-${item.locationId}`}
-              title={item.productName}
-              subtitle={`${item.variantLabel ? `${item.variantLabel} · ` : ""}${placeOf(item, storeId)}`}
-              aside={
-                <>
-                  <span
-                    className={`text-sm font-semibold tabular-nums ${item.available <= 0 ? "text-destructive" : ""}`}
-                  >
-                    {qty(item.available)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    mín. {qty(item.minQuantity)}
-                  </span>
-                </>
-              }
-              actions={
-                <>
-                  {item.recommendationId &&
-                    item.recommendationAction === TRecommendationAction.Buy && (
-                      <Button
-                        size="sm"
-                        disabled={actions.loadingId != null}
-                        onClick={() => {
+          {data.items.map((item: ILowStockItem) => {
+            const key = `${item.variantId}-${item.locationId}`;
+            const busy = asking != null || actions.loadingId != null;
+            const fromAnalysis =
+              item.recommendationId &&
+              item.recommendationAction === TRecommendationAction.Buy;
+            return (
+              <Row
+                key={key}
+                title={item.productName}
+                subtitle={`${item.variantLabel ? `${item.variantLabel} · ` : ""}${placeOf(item, storeId)}`}
+                aside={
+                  <>
+                    <span
+                      className={`text-sm font-semibold tabular-nums ${item.available <= 0 ? "text-destructive" : ""}`}
+                    >
+                      {qty(item.available)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      mín. {qty(item.minQuantity)}
+                    </span>
+                  </>
+                }
+                actions={
+                  <>
+                    <Button
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => {
+                        if (fromAnalysis) {
                           setStoreId(item.storeId);
                           void actions.open(
                             item.recommendationId!,
                             item.storeId
                           );
-                        }}
-                      >
-                        <Sparkles />
-                        Comprar com a IA
-                      </Button>
-                    )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setStoreId(item.storeId);
-                      navigate("/purchase-orders/create");
-                    }}
-                  >
-                    <ShoppingCart />
-                    Novo pedido de compra
-                  </Button>
-                </>
-              }
-            />
-          ))}
+                        } else void purchase(item, true);
+                      }}
+                    >
+                      {asking === key ? <Spinner /> : <Sparkles />}
+                      Comprar com a IA
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => void purchase(item, false)}
+                    >
+                      <ShoppingCart />
+                      Novo pedido de compra
+                    </Button>
+                  </>
+                }
+              />
+            );
+          })}
         </div>
       )}
       {actions.dialogs}
@@ -287,10 +326,35 @@ export function ExpiringLotsMore() {
   const { data, storeId, reload } =
     useMore<IExpiringLotsSummary>(loadExpiringLots);
   const actions = useRecommendationActions(reload);
+  const { token } = useAuth();
   const [promotingProduct, setPromotingProduct] = useState<{
     id: string;
     name: string;
   } | null>(null);
+  const [suggestion, setSuggestion] = useState<IPromotionSuggestion | null>(
+    null
+  );
+  const [asking, setAsking] = useState<string | null>(null);
+
+  /** Pede à IA o desconto e os dias para escoar o lote (RN-DF30) e abre a promoção já preenchida. */
+  const promoteWithAi = async (item: IExpiringLotItem) => {
+    const key = `${item.lotId}-${item.locationId}`;
+    setAsking(key);
+    try {
+      const found = await forecastRunService.getPromotionSuggestion(
+        item.lotId,
+        item.locationId,
+        token ?? undefined
+      );
+      setStoreId(item.storeId);
+      setSuggestion(found);
+      setPromotingProduct({ id: item.productId, name: item.productName });
+    } catch (error) {
+      handleError(error, "Erro ao buscar a sugestão de promoção");
+    } finally {
+      setAsking(null);
+    }
+  };
 
   return (
     <MorePage
@@ -330,29 +394,34 @@ export function ExpiringLotsMore() {
               }
               actions={
                 <>
-                  {item.recommendationId &&
-                    item.recommendationAction ===
-                      TRecommendationAction.Promote && (
-                      <Button
-                        size="sm"
-                        disabled={actions.loadingId != null}
-                        onClick={() => {
-                          setStoreId(item.storeId);
-                          void actions.open(
-                            item.recommendationId!,
-                            item.storeId
-                          );
-                        }}
-                      >
-                        <Sparkles />
-                        Promover com a IA
-                      </Button>
+                  <Button
+                    size="sm"
+                    disabled={asking != null || actions.loadingId != null}
+                    onClick={() => {
+                      // Recomendação "Promover" da análise: aplica ela (fica ligada à promoção); senão, a IA na hora.
+                      if (
+                        item.recommendationId &&
+                        item.recommendationAction ===
+                          TRecommendationAction.Promote
+                      ) {
+                        setStoreId(item.storeId);
+                        void actions.open(item.recommendationId, item.storeId);
+                      } else void promoteWithAi(item);
+                    }}
+                  >
+                    {asking === `${item.lotId}-${item.locationId}` ? (
+                      <Spinner />
+                    ) : (
+                      <Sparkles />
                     )}
+                    Promover com a IA
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => {
                       setStoreId(item.storeId);
+                      setSuggestion(null);
                       setPromotingProduct({
                         id: item.productId,
                         name: item.productName,
@@ -385,8 +454,22 @@ export function ExpiringLotsMore() {
       <PromotionsProvider>
         <PromotionCreateDialog
           open={promotingProduct != null}
-          onOpenChange={(value) => !value && setPromotingProduct(null)}
+          onOpenChange={(value) => {
+            if (value) return;
+            setPromotingProduct(null);
+            setSuggestion(null);
+          }}
           fixedProduct={promotingProduct}
+          suggestion={
+            suggestion && {
+              variantId: suggestion.variantId,
+              discountPercent: suggestion.discountPercent,
+              days: suggestion.promotionDays,
+              reason: `Lote vencendo em ${formatDateOnly(suggestion.expiresOn)}${suggestion.fromAi ? " (sugestão da IA)" : ""}`,
+              explanation: suggestion.reason,
+              fromAi: suggestion.fromAi,
+            }
+          }
           onCreated={reload}
         />
       </PromotionsProvider>

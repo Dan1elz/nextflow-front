@@ -17,6 +17,8 @@ import type {
   IForecastRunProgress,
   IForecastRunSummary,
   IProductForecast,
+  IPromotionSuggestion,
+  IPurchaseSuggestion,
   IStoreSplit,
 } from "@/interfaces/forecast.interface";
 
@@ -67,6 +69,33 @@ export const forecastRunService = {
   },
 
   /** GET /api/forecasts/recommendations/{id}?storeId= (T-DF3) */
+  /** GET /forecasts/suggestions/purchase: quanto comprar da variação no local; `ai=false` só o cálculo (RN-DF30). */
+  getPurchaseSuggestion(
+    variantId: string,
+    locationId: string,
+    ai: boolean,
+    token?: string
+  ): Promise<IPurchaseSuggestion> {
+    return apiService.get<IPurchaseSuggestion>(
+      "forecasts/suggestions/purchase",
+      { variantId, locationId, ai },
+      token
+    );
+  },
+
+  /** GET /forecasts/suggestions/promotion: desconto e dias para escoar o lote no local, pela IA (RN-DF30). */
+  getPromotionSuggestion(
+    lotId: string,
+    locationId: string,
+    token?: string
+  ): Promise<IPromotionSuggestion> {
+    return apiService.get<IPromotionSuggestion>(
+      "forecasts/suggestions/promotion",
+      { lotId, locationId },
+      token
+    );
+  },
+
   /** GET /forecasts/recommendations/{id}/store-split: divisão sugerida entre as lojas (RN-DF27). */
   getStoreSplit(id: string, token?: string): Promise<IStoreSplit> {
     return apiService.get<IStoreSplit>(

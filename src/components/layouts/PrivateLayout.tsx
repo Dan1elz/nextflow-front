@@ -48,10 +48,17 @@ export default function PrivateLayout() {
                 <>
                   <BreadcrumbSeparator />
                   {breadcrumbItemsData.map((item: IBreadcrumb) =>
-                    item.isLast ? (
-                      <BreadcrumbItem key={item.path}>
-                        <BreadcrumbPage>{item.name}</BreadcrumbPage>
-                      </BreadcrumbItem>
+                    item.isLast || item.textOnly ? (
+                      <React.Fragment key={item.path}>
+                        <BreadcrumbItem>
+                          {item.isLast ? (
+                            <BreadcrumbPage>{item.name}</BreadcrumbPage>
+                          ) : (
+                            <span>{item.name}</span>
+                          )}
+                        </BreadcrumbItem>
+                        {!item.isLast && <BreadcrumbSeparator />}
+                      </React.Fragment>
                     ) : (
                       <React.Fragment key={item.path}>
                         <BreadcrumbItem>

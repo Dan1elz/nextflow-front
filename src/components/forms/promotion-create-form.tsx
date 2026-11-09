@@ -61,11 +61,20 @@ import { handleError } from "@/utils/toast.helpers";
 const formatPercentInput = (value: string) =>
   value.replace(/[^\d,]/g, "").replace(/,(?=.*,)/g, "");
 
+export interface PromotionSuggestionDefaults {
+  variantId: string;
+  discountPercent: number;
+  days: number;
+  reason: string;
+}
+
 interface PromotionCreateFormProps {
   /** Produto já escolhido (aba Promoções do T3): o combo de produto some. */
   fixedProduct?: { id: string; name: string } | null;
   /** Promoção agendada em edição: o produto fica fixo e os campos vêm preenchidos. */
   editing?: PromotionListItemDto | null;
+  /** Sugestão da IA para um lote (painel): variação, desconto, duração a partir de hoje e motivo já preenchidos. */
+  suggestion?: PromotionSuggestionDefaults | null;
   onSubmit: (dto: PromotionRequestDto) => Promise<void>;
   onCancel: () => void;
 }
@@ -77,6 +86,7 @@ interface PromotionCreateFormProps {
 export function PromotionCreateForm({
   fixedProduct: fixedProductProp,
   editing,
+  suggestion,
   onSubmit,
   onCancel,
 }: PromotionCreateFormProps) {
@@ -97,14 +107,26 @@ export function PromotionCreateForm({
           endDate: editing.endDate,
           reason: editing.reason ?? "",
         }
-      : {
-          productId: fixedProduct?.id ?? "",
-          variantId: ALL_VARIANTS,
-          discountPercent: "",
-          startDate: today,
-          endDate: addDaysToDateOnly(today, 6),
-          reason: "",
-        },
+      : suggestion
+        ? {
+            productId: fixedProduct?.id ?? "",
+            variantId: suggestion.variantId,
+            discountPercent: String(suggestion.discountPercent).replace(
+              ".",
+              ","
+            ),
+            startDate: today,
+            endDate: addDaysToDateOnly(today, Math.max(suggestion.days, 1) - 1),
+            reason: suggestion.reason,
+          }
+        : {
+            productId: fixedProduct?.id ?? "",
+            variantId: ALL_VARIANTS,
+            discountPercent: "",
+            startDate: today,
+            endDate: addDaysToDateOnly(today, 6),
+            reason: "",
+          },
   });
   const { submit, confirmWarning } = useApiForm(form);
   const { isSubmitting } = form.formState;
