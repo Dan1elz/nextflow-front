@@ -98,11 +98,12 @@ import {
   formatNumber,
 } from "@/utils/format.helpers";
 import { formatCoverageDays, formatDiscount } from "@/utils/forecast.helpers";
+import { unitShort } from "@/utils/product.helpers";
 
 // ---------- Formatação ----------
 
 function formatQty(rec: IForecastRecommendationListItem, value: number) {
-  return `${formatNumber(value, rec.decimalPlaces)} ${rec.saleUnit}`;
+  return `${formatNumber(value, rec.decimalPlaces)} ${unitShort(rec.saleUnit)}`;
 }
 
 function formatDuration(ms: number | null): string {
@@ -365,7 +366,7 @@ function Suggestion({ rec }: { rec: IForecastRecommendationListItem }) {
         <span className="font-semibold tabular-nums">
           {formatQty(rec, rec.transfer.quantity)}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="min-w-44 text-xs text-muted-foreground">
           {rec.transfer.fromLocationName} → {rec.transfer.toLocationName}
         </span>
       </span>

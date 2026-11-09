@@ -16,6 +16,7 @@ import type { IForecastRecommendationListItem } from "@/interfaces/forecast.inte
 import { forecastRunService } from "@/services/forecast-run.service";
 import { formatNumber } from "@/utils/format.helpers";
 import { handleError, handleSuccess } from "@/utils/toast.helpers";
+import { unitShort } from "@/utils/product.helpers";
 
 /**
  * Aplicar "Transferir" (F3.4b): confirma a transferência sugerida (origem → destino, quantidade) e a lança na hora (RN-CE62),
@@ -84,7 +85,7 @@ export function ApplyTransferDialog({
               <span className="text-2xl font-semibold text-primary tabular-nums">
                 {formatNumber(transfer.quantity, recommendation.decimalPlaces)}{" "}
                 <span className="text-sm font-normal text-muted-foreground">
-                  {recommendation.saleUnit}
+                  {unitShort(recommendation.saleUnit)}
                 </span>
               </span>
             </div>

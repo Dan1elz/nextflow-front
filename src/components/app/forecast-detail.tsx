@@ -43,13 +43,14 @@ import {
   formatCoverageDays,
   formatSeasonalIndex,
 } from "@/utils/forecast.helpers";
+import { unitShort } from "@/utils/product.helpers";
 
 // ---------- Formatação ----------
 
 type Unit = { saleUnit: string; decimalPlaces: number };
 
 function formatQty(unit: Unit, value: number) {
-  return `${formatNumber(value, unit.decimalPlaces)} ${unit.saleUnit}`;
+  return `${formatNumber(value, unit.decimalPlaces)} ${unitShort(unit.saleUnit)}`;
 }
 
 function formatPercent(value: number) {
@@ -501,7 +502,7 @@ export function ForecastDetailView({
           projection={product.projection}
           events={product.events}
           currentStock={product.currentStock}
-          saleUnit={product.saleUnit}
+          saleUnit={unitShort(product.saleUnit)}
           decimalPlaces={product.decimalPlaces}
         />
       </Section>

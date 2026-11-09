@@ -33,9 +33,10 @@ import type {
 import { TForecastRunStatus, TRecommendationAction } from "@/types/enums";
 import { formatDateTime, formatNumber } from "@/utils/format.helpers";
 import { formatCoverageDays, formatDiscount } from "@/utils/forecast.helpers";
+import { unitShort } from "@/utils/product.helpers";
 
 function formatQty(rec: IForecastRecommendationListItem, value: number) {
-  return `${formatNumber(value, rec.decimalPlaces)} ${rec.saleUnit}`;
+  return `${formatNumber(value, rec.decimalPlaces)} ${unitShort(rec.saleUnit)}`;
 }
 
 /** O que a recomendação sugere, em uma linha: quantidade a comprar ou desconto. */
